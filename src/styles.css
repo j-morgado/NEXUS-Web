@@ -237,10 +237,7 @@ button {
   cursor: pointer;
   transition: 0.2s;
 }
-.primary-cta:hover {
-  background: #fccfff;
-  transform: translateY(-2px);
-}
+
 .primary-cta span {
   font-size: 1.5rem;
 }
@@ -1299,6 +1296,71 @@ footer {
   .catalog-lower { grid-template-rows: max-content minmax(320px, 1fr); }
   .catalog-features { overflow: visible; }
 }
+/* Button interaction tokens verified against Leidos Storybook atoms/button. */
+:root {
+  --button-duration: 200ms;
+  --button-easing: cubic-bezier(.4, 0, .2, 1);
+  --button-light-hover: #fde7ff;
+  --button-outline-hover: #fccfff;
+  --button-ink-hover: #781770;
+  --button-shadow: -4px 4px 6px rgba(115, 76, 221, .15);
+  --button-shadow-hover: -4px 4px 8px rgba(37, 24, 70, .35);
+}
+button {
+  transition: color var(--button-duration) var(--button-easing),
+    background-color var(--button-duration) var(--button-easing),
+    border-color var(--button-duration) var(--button-easing),
+    box-shadow var(--button-duration) var(--button-easing),
+    filter var(--button-duration) var(--button-easing),
+    opacity var(--button-duration) var(--button-easing);
+}
+button:enabled { cursor: pointer; }
+button:enabled:is(:hover, :active) { filter: brightness(1.12); }
+button:focus-visible { outline: 3px solid #a7a3fe; outline-offset: 3px; }
+/* Filled and outlined pill actions keep their geometry throughout interaction. */
+:is(.primary-cta, .hub-explorer, .outline-pill) { box-shadow: var(--button-shadow); }
+:is(.primary-cta, .hub-explorer):enabled:is(:hover, :active) {
+  background-color: var(--button-light-hover);
+  color: var(--button-ink-hover);
+  border-color: var(--button-light-hover);
+  box-shadow: var(--button-shadow-hover);
+  filter: none;
+}
+button.outline-pill:enabled:is(:hover, :active),
+.hub-card:enabled:is(:hover, :active) .outline-pill {
+  color: var(--button-outline-hover);
+  border-color: var(--button-outline-hover);
+  box-shadow: var(--button-shadow-hover);
+  filter: none;
+}
+.hub-card .outline-pill {
+  transition: color var(--button-duration) var(--button-easing), border-color var(--button-duration) var(--button-easing), box-shadow var(--button-duration) var(--button-easing);
+}
+/* Text/navigation actions use the dark-mode tertiary color treatment. */
+:is(.reference-begin, .hub-arrows button, .back-button, .text-button, .wordmark, .operator-trigger, .close, .overlay-x):enabled:is(:hover, :active) {
+  color: var(--button-outline-hover);
+  filter: none;
+}
+/* Interactive rows and compact controls use the same palette and timing. */
+:is(.market-toggle, .product-list > button, .media-tabs button, .bottom-config button):enabled:is(:hover, :active) {
+  background-color: #4f2ea5;
+  color: var(--button-outline-hover);
+  filter: none;
+}
+:is(.product-list > button.selected, .media-tabs button.selected):enabled:is(:hover, :active) { background-color: #251846; }
+:is(.catalog-features button, .touch-keyboard button, .media-grid > button, .media-rail button, .bottom-config button.selected):enabled:is(:hover, :active) {
+  background-color: var(--button-light-hover);
+  color: var(--button-ink-hover);
+  filter: none;
+}
+:is(.viewer-controls button, .anchored-hotspot-card > button, .hotspot-marker, .catalog-explorer .back-to-hub):enabled:is(:hover, :active) {
+  background-color: var(--button-ink-hover);
+  color: #fff;
+  box-shadow: var(--button-shadow-hover);
+  filter: none;
+}
+/* Disabled controls never acquire an interactive hover or press treatment. */
+button:disabled { cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
