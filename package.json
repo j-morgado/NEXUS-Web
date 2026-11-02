@@ -13,7 +13,8 @@
     "test:e2e:timeout-production": "node scripts/timeout-production-e2e.mjs",
     "test:watch": "vitest",
     "preview": "vite preview --host 0.0.0.0",
-    "test:e2e:experience": "node scripts/experience-e2e.mjs"
+    "test:e2e:experience": "node scripts/experience-e2e.mjs",
+    "test:e2e:addons": "node scripts/addon-transition-e2e.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.6",

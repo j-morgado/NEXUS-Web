@@ -15,14 +15,14 @@ export function CameraMotionBlur({ reducedMotion, statusRef }: { reducedMotion: 
     target.depthTexture = new DepthTexture(1, 1, UnsignedIntType)
     const material = new ShaderMaterial({
       depthTest: false, depthWrite: false, blending: NoBlending, dithering: true,
-      uniforms: { colorBuffer: { value: target.texture }, depthBuffer: { value: target.depthTexture }, inverseViewProjection: { value: new Matrix4() }, previousViewProjection: { value: new Matrix4() }, resolution: { value: new Vector2(1, 1) }, strength: { value: 0 } },
+      uniforms: { colorBuffer: { value: target.texture }, depthBuffer: { value: target.depthTexture }, inverseViewProjection: { value: new Matrix4() }, previousViewProjection: { value: new Matrix4() }, resolution: { value: new Vector2(1, 1) }, strength: { value: 0 }, glowStrength: { value: 0 } },
       vertexShader: 'varying vec2 vUv; void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
       fragmentShader: `
         #include <common>
         #include <dithering_pars_fragment>
         uniform sampler2D colorBuffer, depthBuffer;
         uniform mat4 inverseViewProjection, previousViewProjection;
-        uniform vec2 resolution; uniform float strength; varying vec2 vUv;
+        uniform vec2 resolution; uniform float strength, glowStrength; varying vec2 vUv;
         void main(){
           float depth=texture2D(depthBuffer,vUv).r;
           vec4 world=inverseViewProjection*vec4(vUv*2.-1.,depth*2.-1.,1.);
@@ -36,6 +36,15 @@ export function CameraMotionBlur({ reducedMotion, statusRef }: { reducedMotion: 
             color=vec4(0.);
             for(int i=0;i<5;i++) color+=texture2D(colorBuffer,clamp(vUv+velocity*(float(i)/4.-.5),vec2(0.),vec2(1.)));
             color/=5.;
+          }
+          if(glowStrength>0.) {
+            vec3 halo=vec3(0.);
+            for(int i=0;i<8;i++) {
+              float angle=float(i)*.78539816;
+              vec2 offset=vec2(cos(angle),sin(angle))*6./resolution;
+              halo+=clamp(texture2D(colorBuffer,clamp(vUv+offset,vec2(0.),vec2(1.))).rgb-vec3(1.),vec3(0.),vec3(4.));
+            }
+            color.rgb+=halo*(.22/8.)*glowStrength;
           }
           gl_FragColor=color;
           #include <tonemapping_fragment>
@@ -70,6 +79,7 @@ export function CameraMotionBlur({ reducedMotion, statusRef }: { reducedMotion: 
     pipeline.material.uniforms.inverseViewProjection.value.copy(inverse)
     pipeline.material.uniforms.previousViewProjection.value.copy(previous)
     pipeline.material.uniforms.strength.value = enabled ? .45 : 0
+    pipeline.material.uniforms.glowStrength.value = !reducedMotion && statusRef.current?.dataset.addonTransitioning === 'true' ? 1 : 0
     gl.setRenderTarget(pipeline.target)
     gl.clear()
     gl.render(scene, camera)

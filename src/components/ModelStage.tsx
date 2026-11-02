@@ -1,12 +1,14 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF, useProgress } from '@react-three/drei'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ElementRef, type RefObject } from 'react'
-import { BackSide, Box3, Color, DoubleSide, FrontSide, Mesh, MeshStandardMaterial, Raycaster, Vector2, Vector3, type Material, type Object3D, type PerspectiveCamera } from 'three'
+import { BackSide, Box3, Color, DoubleSide, FrontSide, Mesh, MeshDepthMaterial, MeshStandardMaterial, RGBADepthPacking, Raycaster, Vector2, Vector3, type Material, type Object3D, type PerspectiveCamera } from 'three'
 import type { Vehicle } from '../domain/schemas'
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
 import { CameraMotionBlur } from './CameraMotionBlur'
 import { createGroundTextures } from './groundTextures'
 import { SceneReadiness } from './SceneReadiness'
+import { AddonTransition } from './AddonTransition'
+import { applyAddonDissolve, createAddonUniforms } from './addonDissolve'
 
 type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; qualityTier?: 'standard' | 'high'; onHotspot: (id: string | null) => void; onExit: () => void; onReadyChange: (ready: boolean) => void; onProgress: (progress: number) => void }
 type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
@@ -68,9 +70,10 @@ function StudioGround({ qualityTier }: { qualityTier?: 'standard' | 'high' }) {
   </mesh>
 }
 
-function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef, onHotspot }: Omit<Props, 'onExit'> & { markers: MarkerRefs; stageRef: RefObject<HTMLDivElement | null> }) {
+function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef, onHotspot, reducedMotion }: Omit<Props, 'onExit'> & { markers: MarkerRefs; stageRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
   const faultMode = new URLSearchParams(window.location.search).get('fault')
   const gltf = useGLTF(faultMode === 'model' ? '/assets/corrupted-demo.glb' : vehicle.modelUrl)
+  const [addonUniforms] = useState(() => createAddonUniforms(addonVisible))
   const scene = useMemo(() => {
     const owned = gltf.scene.clone(true)
     owned.traverse((object: Object3D) => {
@@ -107,9 +110,20 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
         return material
       }
       object.material = Array.isArray(object.material) ? object.material.map(prepare) : prepare(object.material)
+      let node: Object3D | null = object
+      let isAddon = false
+      while (node) { if (/^Addon[_ ]1$/i.test(node.name)) isAddon = true; node = node.parent }
+      if (isAddon) {
+        const materials = Array.isArray(object.material) ? object.material : [object.material]
+        materials.forEach(material => applyAddonDissolve(material, addonUniforms))
+        const source = materials[0] as MeshStandardMaterial
+        object.customDepthMaterial = new MeshDepthMaterial({ depthPacking: RGBADepthPacking, map: source.map, alphaTest: source.alphaTest, side: source.side })
+        applyAddonDissolve(object.customDepthMaterial, addonUniforms, false)
+      }
     })
     return owned
-  }, [gltf.scene])
+  }, [gltf.scene, addonUniforms])
+  const addon = useMemo(() => scene.getObjectByName(vehicle.addons[0].nodeName) ?? scene.getObjectByName(vehicle.addons[0].nodeName.replaceAll(' ', '_')), [scene, vehicle.addons])
   const box = useMemo(() => new Box3().setFromObject(scene), [scene])
   const modelOffset = useMemo(() => {
     const center = box.getCenter(new Vector3())
@@ -119,12 +133,9 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
   const { camera, size, gl, invalidate } = useThree()
   const closedOccluded = useRef<string | null>(null)
   useEffect(() => {
-    const addon = scene.getObjectByName(vehicle.addons[0].nodeName) ?? scene.getObjectByName(vehicle.addons[0].nodeName.replaceAll(' ', '_'))
-    if (addon) addon.visible = addonVisible
     gl.shadowMap.needsUpdate = true
     invalidate()
     if (stageRef.current) {
-      stageRef.current.dataset.addonVisible = String(addon?.visible ?? false)
       stageRef.current.dataset.modelBounds = JSON.stringify({ min: box.min.toArray(), max: box.max.toArray(), offset: modelOffset.toArray() })
       stageRef.current.dataset.modelReady = 'true'
       stageRef.current.dataset.modelNodes = JSON.stringify(scene.children.map(node => ({ name: node.name, type: node.type, visible: node.visible, children: node.children.map(child => ({ name: child.name, visible: child.visible })) })))
@@ -175,12 +186,13 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
   useEffect(() => () => {
     scene.traverse(object => {
       if (!(object instanceof Mesh)) return
+      object.customDepthMaterial?.dispose()
       object.geometry.boundsTree = undefined
       object.geometry.dispose()
       ;(Array.isArray(object.material) ? object.material : [object.material]).forEach(material => material.dispose())
     })
   }, [scene])
-  return <group position={modelOffset}><primitive object={scene} /></group>
+  return <group position={modelOffset}><primitive object={scene} /><AddonTransition addon={addon} visible={addonVisible} uniforms={addonUniforms} offset={modelOffset} reducedMotion={reducedMotion} stageRef={stageRef} /></group>
 }
 
 export function ModelStage(props: Props) {
@@ -229,7 +241,7 @@ export function ModelStage(props: Props) {
       <pointLight position={[-1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
       <pointLight position={[1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
       <Suspense fallback={null}>
-        <VehicleModel {...props} markers={markers} stageRef={stageRef} />
+        <VehicleModel {...props} reducedMotion={reducedMotion} markers={markers} stageRef={stageRef} />
         <StudioGround qualityTier={props.qualityTier} />
         <ContactShadows key={String(props.addonVisible)} position={[0, .005, 0]} opacity={.48} scale={16} blur={2.8} far={7} color="#30143e" frames={1} resolution={256} />
         <SceneReadiness onReady={props.onReadyChange} onProgress={props.onProgress} />
