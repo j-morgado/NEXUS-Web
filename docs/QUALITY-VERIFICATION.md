@@ -28,3 +28,7 @@ The current configurator route is approximately 994.90 KB minified / 274.33 KB g
 ## Timeout presentation
 
 The warning is portaled to the document body and centered against the viewport, with the obsolete sideways transform removed. Its 350ms opacity entrance runs independently from a 1200ms background darkening and 12px backdrop blur. The dialog fits mobile widths and reduced-motion preferences suppress the animation. `node scripts/timeout-presentation-e2e.mjs` verifies centering at 1280×720, 960×640, and 390×844; intermediate/final animation styles; dismissal; reduced motion; and expiry back to attract. Existing idle/countdown timing remains unchanged.
+
+## Bounded media viewer
+
+Images and PDF placeholders zoom/pan within a clipped, scrollable viewport; controls occupy a separate row inside the same bordered frame. Image, video, and PDF toolbars share fullscreen enter/exit, with a viewport-filling fallback if native fullscreen is unavailable. Video controls drive the existing demo clip through HTML video playback, metadata duration, current time, and a seek slider. The global idle warning portals into the active fullscreen element so it remains visible. `npm run test:e2e:media` covers all three media types at desktop/mobile sizes, zoom containment, PDF page controls, actual seeking/play/pause, native fullscreen, fallback/Escape, close behavior, and the fullscreen timeout warning. Image/PDF content remains the existing catalog placeholders.

@@ -1,0 +1,86 @@
+import { chromium } from 'playwright-core'
+import assert from 'node:assert/strict'
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', args: ['--no-sandbox'] })
+try {
+  for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+    const page = await browser.newPage({ viewport, serviceWorkers: 'block' })
+    const errors = []
+    page.on('pageerror', error => errors.push(error.message))
+    await page.goto(process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177')
+    await page.getByRole('button', { name: 'Touch Screen to Begin' }).click()
+    await page.getByRole('button', { name: /^Explorer/ }).click()
+    for (const kind of ['image', 'video', 'pdf']) {
+      await page.getByRole('button', { name: kind === 'pdf' ? 'Documents' : `${kind}s`, exact: true }).click()
+      await page.locator('.media-grid > button').first().click()
+      const dialog = page.getByRole('dialog')
+      const frame = dialog.locator('.media-viewer'), mediaViewport = frame.locator('.media-viewport'), toolbar = frame.locator('.viewer-controls')
+      const bounds = await frame.boundingBox(), controls = await toolbar.boundingBox(), clip = await mediaViewport.boundingBox()
+      assert(bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= viewport.width && bounds.y + bounds.height <= viewport.height)
+      assert(controls.y >= clip.y + clip.height - 1)
+      assert(controls.y + controls.height <= bounds.y + bounds.height)
+      if (kind !== 'video') {
+        for (let index = 0; index < 4; index++) await dialog.getByRole('button', { name: 'Zoom in', exact: true }).click()
+        assert(await dialog.getByText('200%', { exact: true }).isVisible())
+        const overflow = await mediaViewport.evaluate(element => ({ x: element.scrollWidth > element.clientWidth, y: element.scrollHeight > element.clientHeight, clip: getComputedStyle(element).overflow }))
+        assert(overflow.x && overflow.y && overflow.clip === 'auto')
+        const toolbarHit = await toolbar.evaluate(element => { const rect = element.getBoundingClientRect(); return document.elementFromPoint(rect.x + 10, rect.y + 10)?.closest('.viewer-controls') === element })
+        assert(toolbarHit, 'Zoomed media must never cover its controls')
+        if (kind === 'pdf') {
+          await dialog.getByRole('button', { name: 'Next page', exact: true }).click()
+          assert(await dialog.getByText('Page 2 / 4').isVisible())
+        }
+        await dialog.getByRole('button', { name: 'Fit media to viewer' }).click()
+      } else {
+        const video = dialog.locator('video')
+        await page.waitForFunction(() => { const video = document.querySelector('.media-video-stage video'); return video && Number.isFinite(video.duration) && video.duration > 0 })
+        const duration = await video.evaluate(element => element.duration)
+        const slider = dialog.getByRole('slider', { name: 'Video playback position' })
+        const sliderBounds = await slider.boundingBox()
+        await slider.click({ position: { x: sliderBounds.width * .55, y: sliderBounds.height / 2 } })
+        const seekTo = Number(await slider.inputValue())
+        assert(seekTo > 0 && seekTo < duration)
+        await page.waitForFunction(expected => Math.abs(document.querySelector('.media-video-stage video').currentTime - expected) < .08, seekTo)
+        await dialog.getByRole('button', { name: 'Play video', exact: true }).click()
+        await page.waitForTimeout(180)
+        assert.equal(await video.evaluate(element => element.paused), false)
+        assert(await video.evaluate((element, before) => element.currentTime > before, seekTo))
+        await dialog.getByRole('button', { name: 'Pause video', exact: true }).click()
+        assert.equal(await video.evaluate(element => element.paused), true)
+      }
+      await dialog.getByRole('button', { name: 'Enter fullscreen', exact: true }).click()
+      await page.waitForFunction(() => document.fullscreenElement?.classList.contains('media-viewer') || document.querySelector('.media-viewer.is-expanded'))
+      const fullBounds = await frame.boundingBox()
+      assert(Math.abs(fullBounds.width - viewport.width) <= 1 && Math.abs(fullBounds.height - viewport.height) <= 1)
+      await page.getByRole('button', { name: 'Exit fullscreen', exact: true }).waitFor()
+      await page.getByRole('button', { name: 'Exit fullscreen', exact: true }).click()
+      await page.waitForFunction(() => !document.fullscreenElement && !document.querySelector('.media-viewer.is-expanded'))
+      if (kind === 'image' && viewport.width === 390) {
+        await frame.evaluate(element => { element.requestFullscreen = undefined })
+        await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).click()
+        await page.waitForFunction(() => document.querySelector('.media-viewer.is-expanded'))
+        const expandedBounds = await frame.boundingBox()
+        assert.equal(expandedBounds.width, viewport.width)
+        assert.equal(expandedBounds.height, viewport.height)
+        await page.keyboard.press('Escape')
+        assert.equal(await page.locator('.media-viewer.is-expanded').count(), 0)
+        console.log('Fullscreen fallback and Escape restore passed')
+      }
+      await page.screenshot({ path: `/tmp/nexus-viewer-${kind}-${viewport.width}.png` })
+      await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+      assert.equal(await page.getByRole('dialog').count(), 0)
+      console.log(`${viewport.width}px ${kind}: bounded viewport/controls, zoom or real seek/playback, fullscreen enter/exit and close passed`)
+    }
+    assert.deepEqual(errors, [])
+    await page.close()
+  }
+  // A fullscreen media frame must still host the global idle warning.
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' })
+  await page.goto('http://127.0.0.1:4177?testTimeout=3')
+  await page.getByRole('button', { name: 'Touch Screen to Begin' }).click()
+  await page.getByRole('button', { name: /^Explorer/ }).click()
+  await page.locator('.media-grid > button').first().click()
+  await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).click()
+  await page.getByRole('alertdialog').waitFor()
+  assert(await page.getByRole('alertdialog').evaluate(element => !document.fullscreenElement || document.fullscreenElement.contains(element)))
+  console.log('Timeout warning remains visible within native fullscreen')
+} finally { await browser.close() }

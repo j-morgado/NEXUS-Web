@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { MediaViewer } from '../components/MediaViewer'
 import { catalogMarkets, type CatalogMedia, type CatalogProduct, type MediaKind } from '../content/catalog'
 import { createEmailPreview } from '../services/emailTemplate'
 import { enqueueRequest, listRequests, QueuePersistenceError } from '../services/requestQueue'
@@ -13,10 +14,6 @@ function TouchKeyboard({ value, onChange }: { value: string; onChange: (value: s
   return <div className="touch-keyboard" aria-label="Touch keyboard">{rows.map((row) => <div key={row}>{[...row].map((key) => <button type="button" key={key} onClick={() => onChange(value + key)} aria-label={`Type ${key}`}>{key}</button>)}</div>)}<div><button type="button" className="key-wide" onClick={() => onChange(value.slice(0, -1))}>Backspace</button><button type="button" className="key-space" onClick={() => onChange(value + ' ')}>Space</button></div></div>
 }
 
-function MediaPlaceholder({ media, zoom, page, playing }: { media: CatalogMedia; zoom: number; page: number; playing: boolean }) {
-  return <div className={`media-placeholder media-${media.kind}`} style={{ '--media-accent': media.accent, '--media-zoom': zoom } as CSSProperties}><span>{media.kind === 'pdf' ? `DOCUMENT · PAGE ${page}` : media.kind === 'video' ? (playing ? 'PLAYING PLACEHOLDER VIDEO' : 'VIDEO PAUSED') : 'IMAGE PLACEHOLDER'}</span><strong>{media.name}</strong></div>
-}
-
 export function Explorer({ onExit }: { onExit: () => void }) {
   const accordionId = useId()
   const [openMarket, setOpenMarket] = useState('land')
@@ -25,9 +22,6 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   const [filter, setFilter] = useState<MediaFilter>('all')
   const [overlay, setOverlay] = useState<Overlay>('none')
   const [selectedMedia, setSelectedMedia] = useState<CatalogMedia>(product.media[0])
-  const [zoom, setZoom] = useState(100)
-  const [page, setPage] = useState(1)
-  const [playing, setPlaying] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [activeField, setActiveField] = useState<'name' | 'email'>('name')
@@ -40,7 +34,8 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   useEffect(() => { void listRequests().then((items) => setPendingCount(items.length)) }, [])
   useEffect(() => { if (overlay !== 'none') closeRef.current?.focus() }, [overlay])
   const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setFilter('all'); setOpenFeature(0); setOverlay('none') }
-  const openMedia = (media: CatalogMedia) => { setSelectedMedia(media); setZoom(100); setPage(1); setPlaying(false); setOverlay('media') }
+  const openMedia = (media: CatalogMedia) => { setSelectedMedia(media); setOverlay('media') }
+  const closeMedia = useCallback(() => setOverlay('none'), [])
   const submit = async () => {
     setError('')
     if (name.trim().length < 2) return setError('Enter a name with at least two characters.')
@@ -80,7 +75,7 @@ export function Explorer({ onExit }: { onExit: () => void }) {
     </div>
     <footer className="catalog-footer"><button className="back-to-hub" onClick={onExit}>← Back to hub</button></footer>
     {overlay !== 'none' && <div className="explorer-overlay">
-      {overlay === 'media' && <section className="media-lightbox" role="dialog" aria-modal="true" aria-labelledby="media-title"><header><h2 id="media-title">{selectedMedia.name}</h2><p>{selectedMedia.description}</p></header><MediaPlaceholder media={selectedMedia} zoom={zoom} page={page} playing={playing} /><div className="viewer-controls">{selectedMedia.kind === 'image' && <><button aria-label="Zoom out" onClick={() => setZoom(Math.max(50, zoom - 25))}>−</button><span>{zoom}%</span><button aria-label="Zoom in" onClick={() => setZoom(Math.min(200, zoom + 25))}>+</button></>}{selectedMedia.kind === 'video' && <><button aria-label={playing ? 'Pause video' : 'Play video'} onClick={() => setPlaying(!playing)}>{playing ? 'Pause' : 'Play'}</button><span>00:00 / 00:30</span></>}{selectedMedia.kind === 'pdf' && <><button aria-label="Previous page" onClick={() => setPage(Math.max(1, page - 1))}>←</button><span>Page {page} / 4</span><button aria-label="Next page" onClick={() => setPage(Math.min(4, page + 1))}>→</button><button aria-label="Zoom out" onClick={() => setZoom(Math.max(50, zoom - 25))}>−</button><span>{zoom}%</span><button aria-label="Zoom in" onClick={() => setZoom(Math.min(200, zoom + 25))}>+</button></>}</div><div className="media-rail">{product.media.map((media) => <button key={media.id} aria-label={`View ${media.name}`} className={selectedMedia.id === media.id ? 'selected' : ''} onClick={() => { setSelectedMedia(media); setZoom(100); setPage(1); setPlaying(false) }}><span style={{ background: media.accent }}>{media.kind}</span></button>)}</div><button ref={closeRef} className="lightbox-close outline-pill" onClick={() => setOverlay('none')}>Close</button></section>}
+      {overlay === 'media' && <MediaViewer media={selectedMedia} items={product.media} onSelect={setSelectedMedia} onClose={closeMedia} />}
       {(overlay === 'share' || overlay === 'saved') && <section className="share-lightbox" role="dialog" aria-modal="true" aria-labelledby="share-title"><header><h2 id="share-title">Share</h2><p>To receive more information regarding this product please fill out the following information.</p></header><button ref={closeRef} className="overlay-x" onClick={() => setOverlay('none')} aria-label="Close share dialog">×</button>{overlay === 'share' ? <><div className="share-form" data-email-subject={preview.subject}><label>Full name<input aria-label="Name" value={name} onFocus={() => setActiveField('name')} onChange={(event) => setName(event.target.value)} /></label><label>Email address<input aria-label="Email" type="email" value={email} onFocus={() => setActiveField('email')} onChange={(event) => setEmail(event.target.value)} /></label>{error && <p role="alert">{error}</p>}<button className="outline-pill" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'} <span>→</span></button></div><TouchKeyboard value={keyboardValue} onChange={setKeyboardValue} /></> : <div className="share-saved"><h3>Request saved locally.</h3><p>Pending — email service not configured. It has not been sent or delivered.</p><button className="outline-pill" onClick={() => { setName(''); setEmail(''); setOverlay('none') }}>Return to Explorer</button></div>}</section>}
     </div>}
   </main>

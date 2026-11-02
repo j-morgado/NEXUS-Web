@@ -41,6 +41,6 @@ export function InactivityGuard({ timeoutSeconds, warningSeconds, onReset, child
     {children}
     {remaining !== null && createPortal(<div className="timeout-scrim"><button className="timeout-warning" role="alertdialog" aria-label="Session timeout warning" onClick={resetTimer}>
       <strong>Are you still there?</strong><span className="timeout-count">:{String(remaining).padStart(2, '0')}</span><small>Tap to dismiss</small>
-    </button></div>, document.body)}
+    </button></div>, document.fullscreenElement ?? document.body)}
   </>
 }
