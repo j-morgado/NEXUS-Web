@@ -14,6 +14,8 @@ type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | 
 type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
 type OrbitHandle = ElementRef<typeof OrbitControls>
 const STUDIO_HORIZON = '#9254b1'
+const STUDIO_FOG_NEAR = 18
+const STUDIO_FOG_FAR = 90
 const DEFAULT_POSITION = new Vector3(7.1, 2.8, 9.2)
 const DEFAULT_TARGET = new Vector3(-.6, 2.0, 0)
 
@@ -34,11 +36,12 @@ function CameraController({ statusRef, reducedMotion }: { statusRef: RefObject<H
 function StudioSky() {
   return <mesh renderOrder={-1}>
     <sphereGeometry args={[450, 32, 16]} />
-    <shaderMaterial side={BackSide} depthWrite={false} toneMapped={false} uniforms={{ horizonColor: { value: new Color(STUDIO_HORIZON) }, zenithColor: { value: new Color('#401d73') } }}
+    <shaderMaterial side={BackSide} depthWrite={false} toneMapped={false} uniforms={{ horizonColor: { value: new Color(STUDIO_HORIZON) }, zenithColor: { value: new Color('#401d73') }, fogNear: { value: STUDIO_FOG_NEAR }, fogFar: { value: STUDIO_FOG_FAR } }}
       vertexShader={`varying vec3 vDirection; void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`}
       fragmentShader={`
         varying vec3 vDirection;
         uniform vec3 horizonColor, zenithColor;
+        uniform float fogNear, fogFar;
         // Integer angular frequencies make the distant ridgelines seamless over 360°.
         float ridge(float angle, float phase){
           return .014 + .047 * (1.-abs(sin(angle*3.+phase)))
@@ -50,14 +53,21 @@ function StudioSky() {
           float height=direction.y;
           float angle=atan(direction.z,direction.x);
           vec3 sky=mix(horizonColor,zenithColor,smoothstep(0.,.22,height));
-          float softness=max(fwidth(height)*1.5,.0007);
-          float baseHaze=smoothstep(-.002,.025,height);
+          float softness=max(fwidth(height)*1.5,.0012);
           float farRidge=ridge(angle+.45,1.7)*1.25+.008;
           float midRidge=ridge(angle, .6);
           float nearRidge=ridge(angle-.7,2.8)*.72;
-          sky=mix(sky,mix(horizonColor,zenithColor,.20),(1.-smoothstep(farRidge-softness,farRidge+softness,height))*baseHaze*.75);
-          sky=mix(sky,mix(horizonColor,zenithColor,.36),(1.-smoothstep(midRidge-softness,midRidge+softness,height))*baseHaze*.8);
-          sky=mix(sky,mix(horizonColor,zenithColor,.50),(1.-smoothstep(nearRidge-softness,nearRidge+softness,height))*baseHaze*.85);
+          // Match the ground's fog color and distance curve for each ridge layer.
+          vec3 farColor=mix(mix(horizonColor,zenithColor,.20),horizonColor,smoothstep(fogNear,fogFar,65.));
+          vec3 midColor=mix(mix(horizonColor,zenithColor,.36),horizonColor,smoothstep(fogNear,fogFar,50.));
+          vec3 nearColor=mix(mix(horizonColor,zenithColor,.50),horizonColor,smoothstep(fogNear,fogFar,38.));
+          sky=mix(sky,farColor,1.-smoothstep(farRidge-softness*3.,farRidge+softness*3.,height));
+          sky=mix(sky,midColor,1.-smoothstep(midRidge-softness*2.,midRidge+softness*2.,height));
+          sky=mix(sky,nearColor,1.-smoothstep(nearRidge-softness,nearRidge+softness,height));
+          // One continuous haze field covers sky AND mountains, rather than fading
+          // mountains to the sky and leaving a separate bright strip under them.
+          float lowHaze=1.-smoothstep(0.,.065,max(0.,height));
+          sky=mix(sky,horizonColor,lowHaze);
           gl_FragColor=vec4(sky,1.);
           #include <colorspace_fragment>
         }
@@ -248,7 +258,7 @@ export function ModelStage(props: Props) {
       if (new URLSearchParams(window.location.search).get('fault') === 'webgl' && !injectedWebglFault.current) { injectedWebglFault.current = true; window.setTimeout(() => gl.domElement.dispatchEvent(new Event('webglcontextlost', { cancelable: true })), 250) }
     }}>
       <color attach="background" args={['#64358d']} />
-      <fog attach="fog" args={[STUDIO_HORIZON, 18, 90]} />
+      <fog attach="fog" args={[STUDIO_HORIZON, STUDIO_FOG_NEAR, STUDIO_FOG_FAR]} />
       <StudioSky />
       <ambientLight intensity={.6} />
       <hemisphereLight args={['#edd5ff', '#49314d', 1.6]} />
