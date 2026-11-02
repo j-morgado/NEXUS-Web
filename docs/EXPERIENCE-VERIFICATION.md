@@ -7,7 +7,7 @@ The supplied purple studio reference informs the procedural sky gradient, horizo
 - A single Return to hub action replaces the obsolete top navigation. Vehicle title and interaction instructions sit at the top left.
 - Configuration has three mutually exclusive, toggle-off add-ons. The default is bare. Add-on 1 controls the actual attachment; Add-ons 2/3 are explicitly labeled placeholders and remove the real attachment when selected.
 - Four projected markers expand in place into purple-header panels. Selection does not modify the camera or orbit target. Only one panel opens; outside pointer input, Escape, and occlusion close it. Occluded markers become inert immediately and fade visually over one second.
-- Camera motion blur uses five depth-reprojected samples capped at two physical pixels. It runs only during camera movement and is disabled for reduced motion. The normal renderer is used when stationary.
+- Camera motion blur uses five depth-reprojected samples capped at two physical pixels. It runs only during camera movement and is disabled for reduced motion. When stationary the same output pass uses a single unblurred sample, keeping fog and sky color processing consistent.
 
 ## Asset inspection and corrections
 
@@ -23,4 +23,6 @@ The loader sanitizes `Addon 1` to `Addon_1`; both names are handled. The actual 
 
 `npm run build`, `npm test`, and `npm run test:e2e:experience` cover the updated module. The browser test uses the actual WebGL model and checks initial bare state, all add-on transitions, zoom preservation, in-place expansion, one-open behavior, outside/Escape dismissal, all four markers becoming reachable, occlusion dismissal, intermediate fade opacity, camera-motion blur, reduced motion, idle rendering, and return navigation. It also captures front/hotspot and opposite-side screenshots and fails on browser/shader errors.
 
-Rendering uses demand-driven frames, cached contact shadows, bounded pixel ratio and reflector resolution, and BVH-accelerated occlusion queries at up to 20 Hz. The extra motion-blur pass is skipped when still. Resource allocations and event listeners have explicit cleanup. The cloud browser uses SwiftShader software rendering: these checks establish functionality, not target kiosk GPU frame rate. The original nine 2048px maps remain a substantial texture allocation; integrated-GPU frame time and memory need measurement on the target display/device.
+Rendering uses demand-driven frames, cached contact shadows, bounded pixel ratio and reflector resolution, and BVH-accelerated occlusion queries at up to 20 Hz. Additional blur sampling is skipped when still; the consistent color-output pass remains. Resource allocations and event listeners have explicit cleanup. The cloud browser uses SwiftShader software rendering: these checks establish functionality, not target kiosk GPU frame rate. The original nine 2048px maps remain a substantial texture allocation; integrated-GPU frame time and memory need measurement on the target display/device.
+
+The horizon correction uses the same output pipeline during movement and rest, with a non-tone-mapped sky source and shared horizon/fog color. Distance haze (18–90 model units) remains active when stationary; it does not depend on camera-motion blur.

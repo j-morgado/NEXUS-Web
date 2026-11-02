@@ -1,8 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, type RefObject } from 'react'
-import { DepthTexture, Matrix4, Mesh, NoBlending, OrthographicCamera, PlaneGeometry, Scene, ShaderMaterial, UnsignedIntType, Vector2, WebGLRenderTarget } from 'three'
+import { DepthTexture, HalfFloatType, Matrix4, Mesh, NoBlending, OrthographicCamera, PlaneGeometry, Scene, ShaderMaterial, UnsignedIntType, Vector2, WebGLRenderTarget } from 'three'
 
-/** Five depth-reprojected samples: camera motion only, capped at 2 screen pixels. */
+/** Consistent scene output; five depth-reprojected samples only during camera motion. */
 export function CameraMotionBlur({ reducedMotion, statusRef }: { reducedMotion: boolean; statusRef: RefObject<HTMLDivElement | null> }) {
   const { gl, size, invalidate } = useThree()
   const firstFrame = useRef(true)
@@ -11,13 +11,15 @@ export function CameraMotionBlur({ reducedMotion, statusRef }: { reducedMotion: 
   const current = useMemo(() => new Matrix4(), [])
   const inverse = useMemo(() => new Matrix4(), [])
   const pipeline = useMemo(() => {
-    const target = new WebGLRenderTarget(1, 1)
+    const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: 2 })
     target.depthTexture = new DepthTexture(1, 1, UnsignedIntType)
     const material = new ShaderMaterial({
-      depthTest: false, depthWrite: false, blending: NoBlending,
+      depthTest: false, depthWrite: false, blending: NoBlending, dithering: true,
       uniforms: { colorBuffer: { value: target.texture }, depthBuffer: { value: target.depthTexture }, inverseViewProjection: { value: new Matrix4() }, previousViewProjection: { value: new Matrix4() }, resolution: { value: new Vector2(1, 1) }, strength: { value: 0 } },
       vertexShader: 'varying vec2 vUv; void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
       fragmentShader: `
+        #include <common>
+        #include <dithering_pars_fragment>
         uniform sampler2D colorBuffer, depthBuffer;
         uniform mat4 inverseViewProjection, previousViewProjection;
         uniform vec2 resolution; uniform float strength; varying vec2 vUv;
@@ -29,11 +31,16 @@ export function CameraMotionBlur({ reducedMotion, statusRef }: { reducedMotion: 
           vec2 velocity=(vUv-(old.xy/old.w*.5+.5))*strength;
           vec2 pixels=velocity*resolution;
           velocity*=min(1.,2./max(length(pixels),.0001));
-          vec4 color=vec4(0.);
-          for(int i=0;i<5;i++) color+=texture2D(colorBuffer,clamp(vUv+velocity*(float(i)/4.-.5),vec2(0.),vec2(1.)));
-          gl_FragColor=color/5.;
+          vec4 color=texture2D(colorBuffer,vUv);
+          if(strength>0.) {
+            color=vec4(0.);
+            for(int i=0;i<5;i++) color+=texture2D(colorBuffer,clamp(vUv+velocity*(float(i)/4.-.5),vec2(0.),vec2(1.)));
+            color/=5.;
+          }
+          gl_FragColor=color;
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
+          #include <dithering_fragment>
         }`,
     })
     const scene = new Scene()
@@ -57,20 +64,17 @@ export function CameraMotionBlur({ reducedMotion, statusRef }: { reducedMotion: 
       statusRef.current.dataset.motionBlurActive = String(enabled)
       statusRef.current.dataset.renderedFrames = String(++renderedFrames.current)
     }
-    if (enabled) {
-      inverse.copy(current).invert()
-      pipeline.material.uniforms.inverseViewProjection.value.copy(inverse)
-      pipeline.material.uniforms.previousViewProjection.value.copy(previous)
-      pipeline.material.uniforms.strength.value = .45
-      gl.setRenderTarget(pipeline.target)
-      gl.clear()
-      gl.render(scene, camera)
-      gl.setRenderTarget(null)
-      gl.render(pipeline.scene, pipeline.camera)
-    } else {
-      gl.setRenderTarget(null)
-      gl.render(scene, camera)
-    }
+    // Keep tone mapping and fog output identical while moving and stationary.
+    // Switching to direct canvas rendering here creates a visible horizon/color jump.
+    inverse.copy(current).invert()
+    pipeline.material.uniforms.inverseViewProjection.value.copy(inverse)
+    pipeline.material.uniforms.previousViewProjection.value.copy(previous)
+    pipeline.material.uniforms.strength.value = enabled ? .45 : 0
+    gl.setRenderTarget(pipeline.target)
+    gl.clear()
+    gl.render(scene, camera)
+    gl.setRenderTarget(null)
+    gl.render(pipeline.scene, pipeline.camera)
     if (enabled) invalidate()
     previous.copy(current)
     firstFrame.current = false

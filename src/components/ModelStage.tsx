@@ -29,7 +29,7 @@ function CameraController({ statusRef, reducedMotion }: { statusRef: RefObject<H
 function StudioSky() {
   return <mesh renderOrder={-1}>
     <sphereGeometry args={[450, 32, 16]} />
-    <shaderMaterial side={BackSide} depthWrite={false} uniforms={{ horizonColor: { value: new Color('#b373cf') }, zenithColor: { value: new Color('#512491') } }}
+    <shaderMaterial side={BackSide} depthWrite={false} toneMapped={false} uniforms={{ horizonColor: { value: new Color('#b373cf') }, zenithColor: { value: new Color('#512491') } }}
       vertexShader={`varying vec3 vDirection; void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`}
       fragmentShader={`
         varying vec3 vDirection;
@@ -37,7 +37,6 @@ function StudioSky() {
         void main(){
           float height=normalize(vDirection).y;
           gl_FragColor=vec4(mix(horizonColor,zenithColor,smoothstep(0.,.22,height)),1.);
-          #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }
       `} />
@@ -192,7 +191,7 @@ export function ModelStage(props: Props) {
       if (new URLSearchParams(window.location.search).get('fault') === 'webgl' && !injectedWebglFault.current) { injectedWebglFault.current = true; window.setTimeout(() => gl.domElement.dispatchEvent(new Event('webglcontextlost', { cancelable: true })), 250) }
     }}>
       <color attach="background" args={['#7c44ab']} />
-      <fog attach="fog" args={['#b373cf', 24, 100]} />
+      <fog attach="fog" args={['#b373cf', 18, 90]} />
       <StudioSky />
       <ambientLight intensity={.7} />
       <hemisphereLight args={['#edd5ff', '#49314d', 1.7]} />
