@@ -7,4 +7,5 @@ review-evidence
 public/assets/*.glb
 public/assets/jltv-card.webp
 public/assets/fonts/
+public/assets/figma/
 !public/assets/.gitkeep

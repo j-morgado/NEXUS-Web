@@ -12,6 +12,7 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   const [error, setError] = useState('')
   const [pendingCount, setPendingCount] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [openFeature, setOpenFeature] = useState(0)
   const modalCloseRef = useRef<HTMLButtonElement>(null)
   const preview = useMemo(() => createEmailPreview(seedProduct), [])
   useEffect(() => { void listRequests().then((items) => setPendingCount(items.length)) }, [])
@@ -34,14 +35,18 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   }
 
   return <main id="main-content" className="explorer">
-    <header className="topbar"><button className="wordmark" onClick={onExit}>NEXUS</button><p>PRODUCT EXPLORER</p><button className="back-button" onClick={onExit}>← Back to platforms</button></header>
+    <header className="topbar"><button className="wordmark" onClick={onExit}>NEXUS</button><p>PRODUCT EXPLORER</p><span className="leidos-wordmark"><i aria-hidden="true">◆</i> leidos</span></header>
     <div className="explorer-grid">
-      <aside className="market-nav"><p>MARKETS</p><button className="selected"><span>01</span> Land systems</button><div className="queue-stat"><strong>{pendingCount}</strong><span>Requests saved locally</span><small>Sent: 0</small></div></aside>
+      <aside className="market-nav"><p>LAND SYSTEMS</p><button className="selected"><span>01</span> JLTV overview</button><button disabled><span>02</span> Product pending</button><button disabled><span>03</span> Product pending</button><div className="queue-stat"><strong>{pendingCount}</strong><span>Requests saved locally</span><small>Sent: 0</small></div></aside>
       <section className="product-view">
-        <div className="product-visual"><div className="visual-grid" /><span>FILLER MEDIA</span><strong>JLTV</strong><p>{seedProduct.heroLabel}</p></div>
-        <div className="product-copy"><p className="eyebrow">LAND SYSTEMS · DEMONSTRATION</p><h1>{seedProduct.name}</h1><p className="lead">{seedProduct.description}</p><div className="highlights">{seedProduct.highlights.map((item, index) => <div key={item.text}><span>0{index + 1}</span><p>{item.text}</p></div>)}</div><button className="primary-cta" onClick={() => setStep('preview')}>Request follow-up <span>→</span></button></div>
+        <div className="explorer-hero">
+          <div className="product-copy"><p className="eyebrow">LAND SYSTEMS · DEMONSTRATION CONTENT</p><h1>{seedProduct.name}</h1><p className="lead">{seedProduct.description}</p><div className="hero-specs"><p>HIGHLIGHTS</p>{seedProduct.highlights.slice(0, 4).map((item, index) => <div key={item.text}><b>0{index + 1}</b><span>{item.text}</span></div>)}</div><button className="secondary-cta" onClick={() => setStep('preview')}>Share overview <span>→</span></button></div>
+          <div className="product-visual"><img src="/assets/jltv-card.webp" alt="JLTV demonstrator in a studio setting" /><span>FILLER MEDIA</span><p>{seedProduct.heroLabel}</p></div>
+        </div>
+        <div className="feature-zone"><p className="eyebrow">FEATURES</p><div className="feature-accordion">{seedProduct.features.slice(0, 5).map((feature, index) => <button key={feature.text} aria-expanded={openFeature === index} onClick={() => setOpenFeature(index)}><span>Feature 0{index + 1}</span><b aria-hidden="true">{openFeature === index ? '−' : '+'}</b>{openFeature === index && <p>{feature.text}. This is demonstration-only content pending product-owner review.</p>}</button>)}</div></div>
       </section>
     </div>
+    <button className="back-to-hub" onClick={onExit}>← Back to hub</button>
     {step !== 'catalog' && <div className="modal-backdrop"><section className="email-modal" role="dialog" aria-modal="true" aria-labelledby="email-modal-title">
       <button ref={modalCloseRef} className="close" onClick={() => setStep('catalog')} aria-label="Close follow-up request">×</button>
       {step === 'preview' ? <>
