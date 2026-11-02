@@ -1,0 +1,10 @@
+node_modules
+dist
+.vite
+coverage
+review-evidence
+*.log
+public/assets/*.glb
+public/assets/jltv-card.webp
+public/assets/fonts/
+!public/assets/.gitkeep

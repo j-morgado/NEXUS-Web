@@ -1,0 +1,35 @@
+import { describe, expect, it } from 'vitest'
+import { seedEventConfig } from '../content/seed'
+import { getConfigState, getOperatorSettings, injectConfigRecordForTest, rollbackEventConfig, saveOperatorSettings, stageAndActivateEventConfig } from './configStore'
+
+describe('local configuration store', () => {
+  it('maintains active and previous bundles and rolls back safely', async () => {
+    await stageAndActivateEventConfig(seedEventConfig)
+    await stageAndActivateEventConfig({ ...seedEventConfig, version: '0.2.0', activeBundleVersion: 'jltv-0.2.0', previousBundleVersion: 'jltv-0.1.0' })
+    const state = await getConfigState()
+    expect(state.active.config.version).toBe('0.2.0')
+    expect(state.previous?.config.version).toBe('0.1.0')
+    const rolledBack = await rollbackEventConfig()
+    expect(rolledBack.active.config.version).toBe('0.1.0')
+    expect(rolledBack.previous?.config.version).toBe('0.2.0')
+  })
+
+  it('rejects invalid staged configuration before activation', async () => {
+    const before = await getConfigState()
+    await expect(stageAndActivateEventConfig({ ...seedEventConfig, warningSeconds: 4 })).rejects.toThrow()
+    expect((await getConfigState()).active.key).toBe(before.active.key)
+  })
+
+  it('recovers from a corrupt active bundle using the previous verified bundle', async () => {
+    const good = await stageAndActivateEventConfig({ ...seedEventConfig, version: '0.3.0', activeBundleVersion: 'jltv-0.3.0' })
+    await injectConfigRecordForTest('corrupt@1', { key: 'corrupt@1', config: {}, checksum: 'bad' }, { active: 'corrupt@1', previous: good.key })
+    const recovered = await getConfigState()
+    expect(recovered.active.key).toBe(good.key)
+    expect(recovered.recoveredFrom).toBe('previous')
+  })
+
+  it('persists validated operator choices', async () => {
+    await saveOperatorSettings({ inactivitySeconds: 300, qualityTier: 'high', updateChecksEnabled: false, locallyDisabledModuleIds: ['demo'] })
+    expect(await getOperatorSettings()).toEqual({ inactivitySeconds: 300, qualityTier: 'high', updateChecksEnabled: false, locallyDisabledModuleIds: ['demo'] })
+  })
+})
