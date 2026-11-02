@@ -39,9 +39,26 @@ function StudioSky() {
       fragmentShader={`
         varying vec3 vDirection;
         uniform vec3 horizonColor, zenithColor;
+        // Integer angular frequencies make the distant ridgelines seamless over 360°.
+        float ridge(float angle, float phase){
+          return .014 + .047 * (1.-abs(sin(angle*3.+phase)))
+            + .018 * (1.-abs(sin(angle*7.-phase)))
+            + .007 * (1.-abs(sin(angle*19.+phase)));
+        }
         void main(){
-          float height=normalize(vDirection).y;
-          gl_FragColor=vec4(mix(horizonColor,zenithColor,smoothstep(0.,.22,height)),1.);
+          vec3 direction=normalize(vDirection);
+          float height=direction.y;
+          float angle=atan(direction.z,direction.x);
+          vec3 sky=mix(horizonColor,zenithColor,smoothstep(0.,.22,height));
+          float softness=max(fwidth(height)*1.5,.0007);
+          float baseHaze=smoothstep(-.002,.025,height);
+          float farRidge=ridge(angle+.45,1.7)*1.25+.008;
+          float midRidge=ridge(angle, .6);
+          float nearRidge=ridge(angle-.7,2.8)*.72;
+          sky=mix(sky,mix(horizonColor,zenithColor,.20),(1.-smoothstep(farRidge-softness,farRidge+softness,height))*baseHaze*.75);
+          sky=mix(sky,mix(horizonColor,zenithColor,.36),(1.-smoothstep(midRidge-softness,midRidge+softness,height))*baseHaze*.8);
+          sky=mix(sky,mix(horizonColor,zenithColor,.50),(1.-smoothstep(nearRidge-softness,nearRidge+softness,height))*baseHaze*.85);
+          gl_FragColor=vec4(sky,1.);
           #include <colorspace_fragment>
         }
       `} />
