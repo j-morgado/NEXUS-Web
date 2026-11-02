@@ -1142,7 +1142,11 @@ footer {
 .reference-begin { position: absolute; left: 50%; bottom: 66px; translate: -50% 0; border: 0; background: transparent; color: #fff; font-size: 29px; line-height: 1; font-weight: 300; text-transform: uppercase; cursor: pointer; text-shadow: 0 2px 20px rgba(37,24,70,.75); }
 .hub-home { position: absolute; z-index: 4; left: 46px; top: 40px; border: 0; background: transparent; color: rgba(255,255,255,.82); letter-spacing: .22em; }
 .reference-hub h1 { position: absolute; z-index: 3; left: 7.25vw; top: 120px; margin: 0; font-size: 60px; line-height: 74px; font-weight: 300; letter-spacing: .02em; text-transform: uppercase; }
-.hub-carousel { position: absolute; z-index: 3; left: 7.25vw; right: -27vw; top: 258px; height: 594px; display: grid; grid-template-columns: 1036px 622px 520px; gap: 64px; }
+.hub-experiences { position: absolute; z-index: 3; left: 7.25vw; right: 0; top: clamp(180px, 23.9svh, 258px); bottom: 100px; max-height: 690px; display: flex; flex-direction: column; gap: 18px; }
+.hub-carousel { position: relative; flex: 1; min-height: 0; display: flex; gap: clamp(24px, 3.33vw, 64px); overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #a7a3fe transparent; padding-bottom: 12px; }
+.hub-carousel > .hub-card { flex: 0 0 min(622px, 78vw); scroll-snap-align: start; }
+.hub-carousel > .hub-card-primary { flex-basis: min(1036px, 78vw); }
+.hub-carousel:focus-visible, .hub-arrows button:focus-visible { outline: 3px solid #a7a3fe; outline-offset: -3px; }
 .hub-card { position: relative; display: block; overflow: hidden; border: 0; padding: 0; text-align: left; background: #4c3291; color: #fff; }
 .hub-card img,.pending-card-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .pending-card-art { background: radial-gradient(circle at 70% 40%,#8f75cf,transparent 32%),linear-gradient(145deg,#302056,#7753bd); }
@@ -1154,9 +1158,9 @@ footer {
 .outline-pill { display: inline-flex; justify-content: center; align-items: center; gap: 20px; min-height: 50px; padding: 10px 30px; border: 2px solid #fff; border-radius: 50px; background: transparent; color: #fff; font-size: 16px; line-height: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
 .outline-pill i { font-style: normal; }
 .hub-card.disabled { opacity: .58; }
-.hub-arrows { position: absolute; z-index: 4; left: 50%; bottom: 126px; display: flex; gap: 54px; translate: -50% 0; pointer-events: none; }
-.hub-arrows button { border: 0; background: transparent; color: rgba(255,255,255,.72); font-size: 52px; font-weight: 200; }
-.hub-arrows button:disabled { pointer-events: none; }
+.hub-arrows { flex: 0 0 60px; display: flex; justify-content: center; gap: 54px; margin-right: 7.25vw; }
+.hub-arrows button { border: 0; background: transparent; color: rgba(255,255,255,.72); font-size: 52px; font-weight: 200; min-width: 60px; min-height: 60px; line-height: 1; cursor: pointer; }
+.hub-arrows button:disabled { opacity: .3; cursor: default; }
 .hub-explorer { position: absolute; z-index: 4; left: 24px; bottom: 20px; min-height: 50px; padding: 10px 30px; border: 2px solid #251846; border-radius: 50px; background: #fff; color: #251846; font-weight: 600; text-transform: uppercase; }
 .hub-explorer span { margin-left: 20px; }
 
@@ -1266,7 +1270,7 @@ footer {
 @keyframes hotspot-detail { from { opacity: 0; transform: scaleY(.12) translateY(-8px); } to { opacity: 1; transform: scaleY(1) translateY(0); } }
 
 @media (max-width: 900px) {
-  .hub-carousel { grid-template-columns: minmax(620px,1fr) 420px 360px; }
+
   .catalog-explorer { grid-template-columns: 280px 1fr; }
   .catalog-lower { grid-template-columns: 1fr; overflow: auto; }
   .catalog-information { grid-template-rows: 60% 40%; }
@@ -1275,8 +1279,12 @@ footer {
 @media (max-width: 620px) {
   .reference-logo { width: 120px; right: 20px; top: 24px; }
   .reference-hub h1 { left: 24px; top: 96px; font-size: 38px; line-height: 1.1; }
-  .hub-carousel { left: 24px; top: 180px; right: 24px; height: calc(100svh - 300px); grid-template-columns: 1fr; overflow: auto; }
-  .hub-card:not(:first-child) { min-height: 330px; }
+  .hub-experiences { left: 24px; right: 24px; top: 180px; bottom: 88px; gap: 10px; }
+  .hub-carousel > .hub-card { flex-basis: 100%; }
+  .hub-card > div { left: 24px; right: 24px; bottom: 24px; }
+  .hub-card h2 { font-size: 30px; margin-bottom: 14px; }
+  .hub-card p { font-size: 16px; margin-bottom: 18px; }
+  .hub-arrows { margin-right: 0; }
   .catalog-explorer { grid-template-columns: 1fr; overflow: auto; }
   .catalog-nav { min-height: 100svh; }.catalog-information { min-height: 1200px; }
 }
