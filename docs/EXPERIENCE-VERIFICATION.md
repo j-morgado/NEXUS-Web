@@ -27,4 +27,6 @@ Rendering uses demand-driven frames, cached contact shadows, bounded pixel ratio
 
 The horizon correction uses the same output pipeline during movement and rest, with a non-tone-mapped sky source and shared horizon/fog color. Distance haze (18–90 model units) remains active when stationary; it does not depend on camera-motion blur.
 
-The darker studio revision uses shared `#9254b1` horizon/fog and `#401d73` zenith colors, with a `#3a234d` ground base. A deterministic seamless 256px multi-scale roughness data texture varies the reflection blur over 6.25-unit surface tiles. The reflector blend samples transformed roughness UVs, matching the physical material; mipmaps suppress distant texture aliasing. Texture generation is memoized and the texture is disposed on exit.
+The darker studio revision uses shared `#9254b1` horizon/fog and `#401d73` zenith colors, with a `#3a234d` ground base. A deterministic seamless 1024px multi-scale roughness data texture varies the reflection blur over 6.25-unit surface tiles. The reflector blend samples transformed roughness UVs, matching the physical material; mipmaps suppress distant texture aliasing. Texture generation is memoized and the texture is disposed on exit.
+
+The detailed-surface revision shifts noise energy into 128/256/512-cell grain layers, increases local roughness contrast, and uses a very small 0.0008-unit bump for fine surface light response. Cached periodic lattices avoid per-pixel trigonometric work. Reflection blur is reduced to preserve texture clarity.
