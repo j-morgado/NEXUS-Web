@@ -1651,7 +1651,7 @@ footer {
 .hotspot-description p { margin: 0; padding: 22px 24px 14px; font-size: 15px; line-height: 1.6; }
 .hotspot-description small { display: block; padding: 0 24px 22px; color: #8f1588; font-size: 11px; text-transform: uppercase; }
 .is-open .hotspot-description { grid-template-rows: 1fr; opacity: 1; }
-.hotspot-header:enabled:is(:hover,:active) { background-color: #781770; color: #fff; filter: none; }
+.hotspot-header:enabled:is(:hover,:active) { background-color: #734cdd; color: #fff; filter: none; }
 @media (max-width: 620px) {
   .experience-navigation { top: 18px; right: 16px; }
   .experience-navigation .back-button { font-size: 12px; min-height: 44px; padding: 8px 16px; }
