@@ -10,7 +10,7 @@ type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | 
 type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
 type OrbitHandle = ElementRef<typeof OrbitControls>
 const DEFAULT_POSITION = new Vector3(7.1, 2.8, 9.2)
-const DEFAULT_TARGET = new Vector3(-.6, 2.35, 0)
+const DEFAULT_TARGET = new Vector3(-.6, 2.0, 0)
 
 function CameraController({ statusRef, reducedMotion }: { statusRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
   const controls = useRef<OrbitHandle>(null)
