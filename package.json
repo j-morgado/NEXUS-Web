@@ -12,7 +12,8 @@
     "test:e2e:quality": "node scripts/quality-e2e.mjs",
     "test:e2e:timeout-production": "node scripts/timeout-production-e2e.mjs",
     "test:watch": "vitest",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test:e2e:experience": "node scripts/experience-e2e.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.6",
@@ -21,7 +22,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "three": "^0.181.0",
-    "zod": "^4.1.12"
+    "zod": "^4.1.12",
+    "three-mesh-bvh": "^0.8.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

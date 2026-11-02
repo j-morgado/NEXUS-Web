@@ -96,15 +96,14 @@ await page.getByRole('button', { name: /return to explorer/i }).click()
 
 await page.getByRole('button', { name: /back to hub/i }).click()
 await page.getByRole('button', { name: /jltv/i }).click()
-await page.getByText('JLTV CONFIGURATOR').waitFor()
-if (!(await page.getByRole('button', { name: /^bare vehicle$/i }).getAttribute('class'))?.includes('selected')) throw new Error('Bare vehicle was not selected by default')
-await page.getByRole('button', { name: /addon 1/i }).click()
-await page.getByRole('button', { name: /^bare vehicle$/i }).click()
-await page.locator('.model-marker').waitFor()
-await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector('.model-marker')).opacity) > 0, null, { timeout: 15000 })
-await page.locator('.model-marker').click()
+await page.getByRole('button', { name: /return to hub/i }).waitFor()
+if (await page.locator('.bottom-config [aria-pressed="true"]').count()) throw new Error('Bare vehicle was not the default')
+await page.getByRole('button', { name: /^add-on 1$/i }).click()
+await page.getByRole('button', { name: /^add-on 1$/i }).click()
+await page.waitForFunction(() => [...document.querySelectorAll('.vehicle-hotspot')].some(marker => marker.dataset.visible === 'true' && Number(getComputedStyle(marker).opacity) > .99))
+await page.locator('.vehicle-hotspot[data-visible="true"] button').first().click()
 await page.getByRole('button', { name: /close hotspot/i }).waitFor()
-if (!(await page.locator('.anchored-hotspot-card').isVisible())) throw new Error('Anchored hotspot card did not expand')
+if (!(await page.locator('.vehicle-hotspot.is-open').isVisible())) throw new Error('Integrated hotspot panel did not expand')
 await audit('configurator-hotspot')
 
 for (const route of process.env.SKIP_TIMER_CHECKS ? [] : ['share', 'media', 'configurator']) {
@@ -115,7 +114,7 @@ for (const route of process.env.SKIP_TIMER_CHECKS ? [] : ['share', 'media', 'con
   await timerPage.getByRole('button', { name: /touch screen to begin/i }).click()
   if (route === 'configurator') {
     await timerPage.getByRole('button', { name: /jltv/i }).click()
-    await timerPage.getByText('JLTV CONFIGURATOR').waitFor()
+    await timerPage.getByRole('button', { name: /return to hub/i }).waitFor()
   }
   else {
     await timerPage.getByRole('button', { name: /^explorer/i }).click()

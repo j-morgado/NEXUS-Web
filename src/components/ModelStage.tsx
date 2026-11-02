@@ -1,247 +1,225 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF } from '@react-three/drei'
 import { Suspense, useEffect, useMemo, useRef, useState, type ElementRef, type RefObject } from 'react'
-import type { Group, Object3D, PerspectiveCamera } from 'three'
-import { Box3, Raycaster, Vector2, Vector3 } from 'three'
+import { BackSide, Box3, Color, DoubleSide, FrontSide, Mesh, MeshStandardMaterial, Raycaster, Vector2, Vector3, type Object3D, type PerspectiveCamera } from 'three'
 import type { Vehicle } from '../domain/schemas'
+import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
+import { CameraMotionBlur } from './CameraMotionBlur'
 
-type Props = { vehicle: Vehicle; addonVisible: boolean; hotspotOpen: boolean; qualityTier?: 'standard' | 'high'; onHotspot: () => void; onExit: () => void }
-type MarkerRef = RefObject<HTMLButtonElement | null>
+type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; qualityTier?: 'standard' | 'high'; onHotspot: (id: string | null) => void; onExit: () => void }
+type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
 type OrbitHandle = ElementRef<typeof OrbitControls>
+const DEFAULT_POSITION = new Vector3(7.1, 2.8, 9.2)
+const DEFAULT_TARGET = new Vector3(-.6, 2.35, 0)
 
-const DEFAULT_POSITION = new Vector3(6.45, 3.75, 7.15)
-const DEFAULT_TARGET = new Vector3(0, 1.65, 0)
-
-function CameraController({ vehicle, hotspotOpen, statusRef, reducedMotion }: { vehicle: Vehicle; hotspotOpen: boolean; statusRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
-  const { camera } = useThree()
+function CameraController({ statusRef, reducedMotion }: { statusRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
   const controls = useRef<OrbitHandle>(null)
-  const previousOpen = useRef(false)
-  const savedPosition = useRef(DEFAULT_POSITION.clone())
-  const savedTarget = useRef(DEFAULT_TARGET.clone())
-  const goalPosition = useRef(DEFAULT_POSITION.clone())
-  const goalTarget = useRef(DEFAULT_TARGET.clone())
-  const lastPosition = useRef(DEFAULT_POSITION.clone())
-  const lastTarget = useRef(DEFAULT_TARGET.clone())
-  const transitioning = useRef(false)
+  useFrame(({ camera }) => {
+    const status = statusRef.current
+    if (!status || !controls.current) return
+    status.dataset.cameraPosition = camera.position.toArray().map(value => value.toFixed(4)).join(',')
+    status.dataset.cameraTarget = controls.current.target.toArray().map(value => value.toFixed(4)).join(',')
+    status.dataset.cameraDistance = camera.position.distanceTo(controls.current.target).toFixed(4)
 
-  useEffect(() => {
-    if (hotspotOpen && !previousOpen.current) {
-      savedPosition.current.copy(camera.position)
-      if (controls.current) savedTarget.current.copy(controls.current.target)
-      goalPosition.current.set(...vehicle.hotspots[0].camera.position)
-      goalTarget.current.set(...vehicle.hotspots[0].camera.target)
-      transitioning.current = !reducedMotion
-      if (reducedMotion) {
-        camera.position.copy(goalPosition.current)
-        controls.current?.target.copy(goalTarget.current)
-        controls.current?.update()
-      }
-    } else if (!hotspotOpen && previousOpen.current) {
-      camera.position.copy(lastPosition.current)
-      if (controls.current) controls.current.target.copy(lastTarget.current)
-      goalPosition.current.copy(savedPosition.current)
-      goalTarget.current.copy(savedTarget.current)
-      transitioning.current = !reducedMotion
-      if (reducedMotion) {
-        camera.position.copy(goalPosition.current)
-        controls.current?.target.copy(goalTarget.current)
-        controls.current?.update()
-      }
-    }
-    previousOpen.current = hotspotOpen
-  }, [camera, hotspotOpen, reducedMotion, vehicle.hotspots])
-
-  useFrame((_, delta) => {
-    if (statusRef.current && controls.current) {
-      statusRef.current.dataset.cameraPosition = camera.position.toArray().map((value) => value.toFixed(3)).join(',')
-      statusRef.current.dataset.cameraTarget = controls.current.target.toArray().map((value) => value.toFixed(3)).join(',')
-      statusRef.current.dataset.cameraTransitioning = transitioning.current ? 'true' : 'false'
-      statusRef.current.dataset.cameraPreviousOpen = previousOpen.current ? 'true' : 'false'
-    }
-    if (transitioning.current && controls.current) {
-      const blend = 1 - Math.exp(-delta * 5.2)
-      camera.position.lerp(goalPosition.current, blend)
-      controls.current.target.lerp(goalTarget.current, blend)
-      controls.current.update()
-      if (camera.position.distanceTo(goalPosition.current) < 0.012 && controls.current.target.distanceTo(goalTarget.current) < 0.012) {
-        camera.position.copy(goalPosition.current)
-        controls.current.target.copy(goalTarget.current)
-        controls.current.update()
-        transitioning.current = false
-      }
-    }
-    if (controls.current) {
-      lastPosition.current.copy(camera.position)
-      lastTarget.current.copy(controls.current.target)
-    }
   })
-
-  return <OrbitControls
-    ref={controls}
-    enablePan={false}
-    minDistance={5.5}
-    maxDistance={16}
-    minPolarAngle={0.55}
-    maxPolarAngle={1.45}
-    target={[0, 2, 0]}
-    onStart={() => { transitioning.current = false }}
-  />
+  // Hotspots never change the camera or target: the user's orbit and zoom are preserved.
+  return <OrbitControls ref={controls} enablePan={false} enableDamping={!reducedMotion} dampingFactor={.085} minDistance={5.5} maxDistance={16} minPolarAngle={.55} maxPolarAngle={1.535} target={DEFAULT_TARGET} />
 }
 
-function VehicleModel({ vehicle, addonVisible, hotspotOpen, markerRef, stageRef }: Omit<Props, 'onExit' | 'onHotspot'> & { markerRef: MarkerRef; stageRef: RefObject<HTMLDivElement | null> }) {
+function StudioSky() {
+  return <mesh renderOrder={-1}>
+    <sphereGeometry args={[450, 32, 16]} />
+    <shaderMaterial side={BackSide} depthWrite={false} uniforms={{ horizonColor: { value: new Color('#b373cf') }, zenithColor: { value: new Color('#512491') } }}
+      vertexShader={`varying vec3 vDirection; void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`}
+      fragmentShader={`
+        varying vec3 vDirection;
+        uniform vec3 horizonColor, zenithColor;
+        void main(){
+          float height=normalize(vDirection).y;
+          gl_FragColor=vec4(mix(horizonColor,zenithColor,smoothstep(0.,.22,height)),1.);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }
+      `} />
+  </mesh>
+}
+
+function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef, onHotspot }: Omit<Props, 'onExit'> & { markers: MarkerRefs; stageRef: RefObject<HTMLDivElement | null> }) {
   const faultMode = new URLSearchParams(window.location.search).get('fault')
-  const modelUrl = faultMode === 'model' ? '/assets/corrupted-demo.glb' : vehicle.modelUrl
-  const gltf = useGLTF(modelUrl)
+  const gltf = useGLTF(faultMode === 'model' ? '/assets/corrupted-demo.glb' : vehicle.modelUrl)
   const scene = useMemo(() => {
     const owned = gltf.scene.clone(true)
     owned.traverse((object: Object3D) => {
-      if ('geometry' in object) {
-        const mesh = object as Object3D & { geometry?: { clone: () => unknown } }
-        if (mesh.geometry) mesh.geometry = mesh.geometry.clone() as typeof mesh.geometry
+      if (!(object instanceof Mesh)) return
+      object.geometry = object.geometry.clone()
+      object.geometry.boundsTree = new MeshBVH(object.geometry)
+      object.raycast = acceleratedRaycast
+      object.castShadow = true
+      object.receiveShadow = true
+      const prepare = (source: MeshStandardMaterial) => {
+        const material = source.clone()
+        const cutout = source.transparent || Boolean(source.alphaMap)
+        // The details atlas contains opaque tires/bodywork plus small alpha cutouts.
+        // BLEND sorted the entire mesh as transparent; depth-writing cutouts fix see-through wheels.
+        material.transparent = false
+        material.opacity = 1
+        material.depthWrite = true
+        material.depthTest = true
+        material.alphaTest = cutout ? .45 : 0
+        material.alphaToCoverage = cutout
+        material.side = cutout ? DoubleSide : FrontSide
+        material.metalness = 0
+        material.roughness = 1
+        material.envMapIntensity = .45
+        if ('clearcoat' in material) material.clearcoat = 0
+        if ('specularIntensity' in material) material.specularIntensity = .35
+        // glTF defines G as roughness. Preserve authored channel direction and remap
+        // its range to matte paint/rubber instead of blindly inverting a legacy filename.
+        const floor = cutout ? .78 : .65
+        material.onBeforeCompile = shader => {
+          shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>\nroughnessFactor = mix(${floor.toFixed(2)}, 1.0, roughnessFactor);`)
+        }
+        material.customProgramCacheKey = () => `nexus-matte-${floor}`
+        return material
       }
-      if ('isMesh' in object) {
-        const mesh = object as Object3D & { castShadow: boolean; receiveShadow: boolean }
-        mesh.castShadow = true
-        mesh.receiveShadow = true
-      }
-      if ('material' in object) {
-        const mesh = object as Object3D & { material?: { clone: () => unknown } | { clone: () => unknown }[] }
-        if (Array.isArray(mesh.material)) mesh.material = mesh.material.map((item) => item.clone()) as typeof mesh.material
-        else if (mesh.material) mesh.material = mesh.material.clone() as typeof mesh.material
-      }
+      object.material = Array.isArray(object.material) ? object.material.map(prepare) : prepare(object.material)
     })
     return owned
   }, [gltf.scene])
   const box = useMemo(() => new Box3().setFromObject(scene), [scene])
-  const center = useMemo(() => box.getCenter(new Vector3()), [box])
-  const modelOffset = useMemo(() => new Vector3(-center.x, -box.min.y, -center.z), [box.min.y, center])
-  const markerWorld = useMemo(() => new Vector3(), [])
-  const markerNdc = useMemo(() => new Vector3(), [])
-  const raycaster = useMemo(() => new Raycaster(), [])
-  const pointer = useMemo(() => new Vector2(), [])
-  const { camera, scene: rootScene, size } = useThree()
-
+  const modelOffset = useMemo(() => {
+    const center = box.getCenter(new Vector3())
+    return new Vector3(-center.x, -box.min.y, -center.z)
+  }, [box])
+  const scratch = useMemo(() => ({ world: new Vector3(), ndc: new Vector3(), pointer: new Vector2(), ray: new Raycaster(), elapsed: Infinity }), [])
+  const { camera, size, gl, invalidate } = useThree()
+  const closedOccluded = useRef<string | null>(null)
   useEffect(() => {
-    const addon = scene.getObjectByName(vehicle.addons[0].nodeName) ?? scene.children.find((item) => item.name.toLowerCase().includes('addon'))
+    const addon = scene.getObjectByName(vehicle.addons[0].nodeName) ?? scene.getObjectByName(vehicle.addons[0].nodeName.replaceAll(' ', '_'))
     if (addon) addon.visible = addonVisible
-  }, [addonVisible, scene, vehicle.addons])
+    gl.shadowMap.needsUpdate = true
+    invalidate()
+    if (stageRef.current) {
+      stageRef.current.dataset.addonVisible = String(addon?.visible ?? false)
+      stageRef.current.dataset.modelBounds = JSON.stringify({ min: box.min.toArray(), max: box.max.toArray(), offset: modelOffset.toArray() })
+      stageRef.current.dataset.modelReady = 'true'
+      stageRef.current.dataset.modelNodes = JSON.stringify(scene.children.map(node => ({ name: node.name, type: node.type, visible: node.visible, children: node.children.map(child => ({ name: child.name, visible: child.visible })) })))
+    }
+  }, [addonVisible, box, gl, invalidate, modelOffset, scene, stageRef, vehicle.addons])
 
-  useFrame(() => {
-    const element = markerRef.current
-    if (!element) return
-    markerWorld.set(...vehicle.hotspots[0].position).add(modelOffset)
-    markerNdc.copy(markerWorld).project(camera)
-    pointer.set(markerNdc.x, markerNdc.y)
-    raycaster.setFromCamera(pointer, camera)
-    const markerDistance = camera.position.distanceTo(markerWorld)
-    const firstHit = raycaster.intersectObject(rootScene, true)[0]
-    const occluded = Boolean(firstHit && firstHit.distance < markerDistance - 0.32)
-    const inside = markerNdc.z > -1 && markerNdc.z < 1 && Math.abs(markerNdc.x) <= 1.03 && Math.abs(markerNdc.y) <= 1.03
-    const visible = inside && !occluded
-    element.style.left = `${(markerNdc.x * 0.5 + 0.5) * size.width}px`
-    element.style.top = `${(-markerNdc.y * 0.5 + 0.5) * size.height}px`
-    const markerLeft = (markerNdc.x * 0.5 + 0.5) * size.width
-    const markerTop = (-markerNdc.y * 0.5 + 0.5) * size.height
-    stageRef.current?.style.setProperty('--marker-left', `${markerLeft}px`)
-    stageRef.current?.style.setProperty('--marker-top', `${markerTop}px`)
-    const cardLeft = markerLeft < size.width / 2 ? markerLeft - 448 : markerLeft + 56
-    stageRef.current?.style.setProperty('--card-left', `${Math.max(28, Math.min(size.width - 448, cardLeft))}px`)
-    stageRef.current?.style.setProperty('--card-top', `${Math.max(120, Math.min(size.height - 330, markerTop - 56))}px`)
-    element.style.opacity = visible ? '1' : '0'
-    element.style.pointerEvents = visible && !hotspotOpen ? 'auto' : 'none'
-  })
-
-  useEffect(() => () => {
-    scene.traverse((object: Object3D) => {
-      if ('geometry' in object) (object as Object3D & { geometry?: { dispose: () => void } }).geometry?.dispose()
-      if ('material' in object) {
-        const material = (object as Object3D & { material?: { dispose: () => void } | { dispose: () => void }[] }).material
-        ;(Array.isArray(material) ? material : material ? [material] : []).forEach((item) => item.dispose())
+  useFrame((_, delta) => {
+    scratch.elapsed += delta
+    const checkOcclusion = scratch.elapsed >= .05
+    if (checkOcclusion) { scratch.elapsed = 0; scene.updateWorldMatrix(true, true) }
+    if (!activeHotspot) closedOccluded.current = null
+    for (const hotspot of vehicle.hotspots) {
+      const element = markers.current.get(hotspot.id)
+      if (!element) continue
+      scratch.world.set(...hotspot.position).add(modelOffset)
+      scratch.ndc.copy(scratch.world).project(camera)
+      const left = (scratch.ndc.x * .5 + .5) * size.width
+      const top = (-scratch.ndc.y * .5 + .5) * size.height
+      element.style.left = `${left}px`
+      element.style.top = `${top}px`
+      const panelWidth = Math.min(360, size.width - 32)
+      element.style.setProperty('--hotspot-shift', `${Math.min(0, size.width - 16 - (left - 21 + panelWidth))}px`)
+      element.style.setProperty('--hotspot-rise', `${Math.min(0, size.height - 390 - top)}px`)
+      if (!checkOcclusion) continue
+      scratch.pointer.set(scratch.ndc.x, scratch.ndc.y)
+      scratch.ray.setFromCamera(scratch.pointer, camera)
+      const distance = camera.position.distanceTo(scratch.world)
+      const firstHit = scratch.ray.intersectObject(scene, true).find(hit => {
+        let node: Object3D | null = hit.object
+        while (node) { if (!node.visible) return false; node = node.parent }
+        return true
+      })
+      const occluded = Boolean(firstHit && firstHit.distance < distance - .14)
+      const inside = scratch.ndc.z > -1 && scratch.ndc.z < 1 && Math.abs(scratch.ndc.x) <= 1 && Math.abs(scratch.ndc.y) <= 1
+      const visible = inside && !occluded
+      element.style.opacity = visible ? '1' : '0'
+      element.style.pointerEvents = visible ? 'auto' : 'none'
+      element.inert = !visible
+      element.setAttribute('aria-hidden', String(!visible))
+      element.dataset.occluded = String(occluded)
+      element.dataset.visible = String(visible)
+      if (!visible && activeHotspot === hotspot.id && closedOccluded.current !== hotspot.id) {
+        closedOccluded.current = hotspot.id
+        onHotspot(null)
       }
+    }
+  })
+  useEffect(() => () => {
+    scene.traverse(object => {
+      if (!(object instanceof Mesh)) return
+      object.geometry.boundsTree = undefined
+      object.geometry.dispose()
+      ;(Array.isArray(object.material) ? object.material : [object.material]).forEach(material => material.dispose())
     })
   }, [scene])
-
-  return <group position={modelOffset}>
-    <primitive object={scene as Group} />
-  </group>
+  return <group position={modelOffset}><primitive object={scene} /></group>
 }
 
 export function ModelStage(props: Props) {
   const [contextLost, setContextLost] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const pointerStart = useRef<[number, number] | null>(null)
-  const markerRef = useRef<HTMLButtonElement>(null)
+  const markers = useRef(new Map<string, HTMLDivElement>())
   const stageRef = useRef<HTMLDivElement>(null)
   const injectedWebglFault = useRef(false)
-
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
     const update = () => setReducedMotion(query.matches)
     query.addEventListener('change', update)
     return () => query.removeEventListener('change', update)
   }, [])
+  useEffect(() => {
+    if (!props.activeHotspot) return
+    const dismiss = (event: PointerEvent) => { if (!(event.target instanceof Element) || !event.target.closest('.vehicle-hotspot')) props.onHotspot(null) }
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') props.onHotspot(null) }
+    document.addEventListener('pointerdown', dismiss)
+    document.addEventListener('keydown', escape)
+    return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', escape) }
+  }, [props.activeHotspot, props.onHotspot])
 
-  if (contextLost) return <section className="model-failure" role="alert">
-    <p className="eyebrow">3D MODULE INTERRUPTED</p>
-    <h2>The vehicle view needs to restart.</h2>
-    <p>Your selected configuration is preserved. Retry the renderer or return to the platform selector.</p>
-    <div><button className="primary-cta" onClick={() => setContextLost(false)}>Retry 3D view <span>↻</span></button><button className="recovery-back" onClick={props.onExit}>Return to platforms</button></div>
-  </section>
+  if (contextLost) return <section className="model-failure" role="alert"><p className="eyebrow">3D MODULE INTERRUPTED</p><h2>The vehicle view needs to restart.</h2><p>Your selected configuration is preserved. Retry the renderer or return to the hub.</p><div><button className="primary-cta" onClick={() => setContextLost(false)}>Retry 3D view <span>↻</span></button><button className="recovery-back" onClick={props.onExit}>Return to hub</button></div></section>
 
-  return <div className="model-stage" ref={stageRef} data-hotspot-open={props.hotspotOpen ? 'true' : 'false'}>
-    <Canvas
-      dpr={props.qualityTier === 'high' ? [1.25, 2] : [1, 1.6]}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
-      onCreated={({ gl, camera }) => {
-        const perspective = camera as PerspectiveCamera
-        camera.position.copy(DEFAULT_POSITION)
-        camera.lookAt(DEFAULT_TARGET)
-        perspective.fov = 38
-        perspective.near = 0.1
-        perspective.far = 100
-        perspective.updateProjectionMatrix()
-        gl.domElement.addEventListener('webglcontextlost', (event) => {
-          event.preventDefault()
-          setContextLost(true)
-        })
-        if (new URLSearchParams(window.location.search).get('fault') === 'webgl' && !injectedWebglFault.current) {
-          injectedWebglFault.current = true
-          window.setTimeout(() => gl.domElement.dispatchEvent(new Event('webglcontextlost', { cancelable: true })), 250)
-        }
-      }}
-    >
-      <color attach="background" args={['#6f35a4']} />
-      <fog attach="fog" args={['#7f49b2', 18, 34]} />
-      <ambientLight intensity={0.78} />
-      <hemisphereLight args={['#edc9ff', '#321b4d', 1.7]} />
-      <directionalLight position={[7, 10, 9]} intensity={3.7} color="#fff0ff" castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
-      <directionalLight position={[-6, 6, 5]} intensity={2.2} color="#da8cff" />
-      <directionalLight position={[-5, 8, -9]} intensity={2.8} color="#f4cfff" />
-      <pointLight position={[-1.05, 1.25, 3.15]} intensity={12} distance={5.5} decay={2} color="#ff36dc" />
-      <pointLight position={[1.05, 1.25, 3.15]} intensity={12} distance={5.5} decay={2} color="#ff36dc" />
+  return <div className="model-stage" ref={stageRef} data-hotspot-open={String(Boolean(props.activeHotspot))}>
+    <Canvas frameloop="demand" shadows dpr={props.qualityTier === 'high' ? [1, 1.75] : [1, 1.25]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl, camera }) => {
+      const perspective = camera as PerspectiveCamera
+      gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true
+      camera.position.copy(DEFAULT_POSITION); camera.lookAt(DEFAULT_TARGET)
+      perspective.fov = 38; perspective.near = .1; perspective.far = 1200; perspective.updateProjectionMatrix()
+      gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true) })
+      if (new URLSearchParams(window.location.search).get('fault') === 'webgl' && !injectedWebglFault.current) { injectedWebglFault.current = true; window.setTimeout(() => gl.domElement.dispatchEvent(new Event('webglcontextlost', { cancelable: true })), 250) }
+    }}>
+      <color attach="background" args={['#7c44ab']} />
+      <fog attach="fog" args={['#b373cf', 24, 100]} />
+      <StudioSky />
+      <ambientLight intensity={.7} />
+      <hemisphereLight args={['#edd5ff', '#49314d', 1.7]} />
+      <directionalLight position={[7, 10, 9]} intensity={2.5} color="#fff4ed" castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={9} shadow-camera-bottom={-8} shadow-bias={-.0004} />
+      <directionalLight position={[-6, 6, 5]} intensity={1.2} color="#d7a4ef" />
+      <directionalLight position={[-5, 8, -9]} intensity={1.8} color="#f4d8ff" />
+      <pointLight position={[-1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
+      <pointLight position={[1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
       <Suspense fallback={null}>
-        <VehicleModel vehicle={props.vehicle} addonVisible={props.addonVisible} hotspotOpen={props.hotspotOpen} markerRef={markerRef} stageRef={stageRef} />
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.04]} receiveShadow>
-          <planeGeometry args={[40, 40]} />
-          <MeshReflectorMaterial color="#624080" roughness={0.28} metalness={0.72} blur={[280, 90]} resolution={1024} mixBlur={1.5} mixStrength={2.4} depthScale={1.2} minDepthThreshold={0.3} maxDepthThreshold={1.5} mirror={0.45} />
+        <VehicleModel {...props} markers={markers} stageRef={stageRef} />
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.035, 0]} receiveShadow>
+          <planeGeometry args={[2000, 2000]} />
+          <MeshReflectorMaterial color="#624080" roughness={.58} metalness={.18} blur={[600, 300]} resolution={props.qualityTier === 'high' ? 1024 : 512} mixBlur={1} mixStrength={1.5} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.4} />
         </mesh>
-        <ContactShadows position={[0, 0.025, 0]} opacity={0.52} scale={18} blur={2.2} far={8} color="#220d38" />
+        <ContactShadows key={String(props.addonVisible)} position={[0, .005, 0]} opacity={.48} scale={16} blur={2.8} far={7} color="#30143e" frames={1} resolution={256} />
       </Suspense>
-      <CameraController vehicle={props.vehicle} hotspotOpen={props.hotspotOpen} statusRef={stageRef} reducedMotion={reducedMotion} />
+      <CameraController statusRef={stageRef} reducedMotion={reducedMotion} />
+      <CameraMotionBlur reducedMotion={reducedMotion} statusRef={stageRef} />
     </Canvas>
-    <button
-      ref={markerRef}
-      className="hotspot-marker model-marker"
-      aria-label={`Open ${props.vehicle.hotspots[0].label}`}
-      onPointerDown={(event) => { pointerStart.current = [event.clientX, event.clientY] }}
-      onPointerUp={(event) => {
-        if (!pointerStart.current) return
-        const moved = Math.hypot(event.clientX - pointerStart.current[0], event.clientY - pointerStart.current[1])
-        pointerStart.current = null
-        if (moved < 8) props.onHotspot()
-      }}
-    ><span>+</span></button>
-    {props.hotspotOpen && <aside className="anchored-hotspot-card"><button onClick={props.onHotspot} aria-label={`Close hotspot ${props.vehicle.hotspots[0].label}`}><span>−</span>{props.vehicle.hotspots[0].label}</button><div><p>{props.vehicle.hotspots[0].description}</p><small>Demonstration content</small></div></aside>}
+    {props.vehicle.hotspots.map(hotspot => {
+      const open = props.activeHotspot === hotspot.id
+      const panelId = `hotspot-${hotspot.id}`
+      return <div key={hotspot.id} ref={element => { if (element) markers.current.set(hotspot.id, element); else markers.current.delete(hotspot.id) }} className={`vehicle-hotspot ${open ? 'is-open' : ''}`} data-hotspot-id={hotspot.id}>
+        <button className="hotspot-header" aria-label={`${open ? 'Close' : 'Open'} hotspot ${hotspot.label}`} aria-expanded={open} aria-controls={panelId} onClick={() => props.onHotspot(open ? null : hotspot.id)}><span className="accordion-icon" aria-hidden="true" /><span className="hotspot-title-text">{hotspot.label}</span></button>
+        <div id={panelId} className="hotspot-description" aria-hidden={!open} inert={!open}><div><p>{hotspot.description}</p><small>Demonstration content</small></div></div>
+      </div>
+    })}
   </div>
 }
 

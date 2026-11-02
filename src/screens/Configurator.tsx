@@ -4,17 +4,20 @@ import { seedVehicle } from '../content/seed'
 import { signalModule } from '../modules/lifecycle'
 
 export function Configurator({ onExit, qualityTier = 'standard' }: { onExit: () => void; qualityTier?: 'standard' | 'high' }) {
-  const [addonVisible, setAddonVisible] = useState(false)
-  const [hotspotOpen, setHotspotOpen] = useState(false)
+  const [activeAddon, setActiveAddon] = useState<number | null>(null)
+  const [activeHotspot, setActiveHotspot] = useState<string | null>(null)
   useEffect(() => {
     signalModule('module:ready', 'jltv')
     return () => signalModule('module:exit', 'jltv')
   }, [])
-  return <main id="main-content" className={`configurator ${hotspotOpen ? 'hotspot-active' : ''}`}>
-    <header className="topbar over-model"><button className="wordmark" onClick={onExit}>NEXUS</button><p>JLTV CONFIGURATOR</p><button className="back-button" onClick={onExit}>← All platforms</button></header>
-    <ModelStage vehicle={seedVehicle} addonVisible={addonVisible} hotspotOpen={hotspotOpen} qualityTier={qualityTier} onHotspot={() => setHotspotOpen((value) => !value)} onExit={onExit} />
+  return <main id="main-content" className="configurator">
+    <header className="experience-navigation"><button className="back-button" onClick={onExit}>← Return to hub</button></header>
+    <ModelStage vehicle={seedVehicle} addonVisible={activeAddon === 1} activeHotspot={activeHotspot} qualityTier={qualityTier} onHotspot={setActiveHotspot} onExit={onExit} />
     <section className="vehicle-heading"><p className="eyebrow">TACTICAL VEHICLE · INTERACTIVE MODEL</p><h1>JLTV</h1><p>Drag to rotate · Pinch or scroll to zoom</p></section>
-    <aside className="bottom-config"><span>Configuration</span><button className={!addonVisible ? 'selected' : ''} onClick={() => setAddonVisible(false)}>Bare vehicle</button><button className={addonVisible ? 'selected' : ''} onClick={() => setAddonVisible(true)}>Addon 1 <small>temporary · not MXR</small></button></aside>
-    <div className="hotspot-legend"><span className="pulse-dot" /> Select markers to inspect vehicle zones</div>
+    <aside className="configuration-controls" aria-label="Vehicle configuration">
+      <h2>Configuration</h2>
+      <div className="bottom-config" role="group" aria-label="Add-ons">{[1, 2, 3].map(addon => <button key={addon} className={activeAddon === addon ? 'selected' : ''} aria-pressed={activeAddon === addon} onClick={() => setActiveAddon(current => current === addon ? null : addon)}>Add-on {addon}{addon > 1 && <small>Placeholder</small>}</button>)}</div>
+      <p className="configuration-status" role="status">{activeAddon === null ? 'Bare vehicle' : activeAddon === 1 ? 'Add-on 1 attached' : `Add-on ${activeAddon} selected · preview coming soon`}</p>
+    </aside>
   </main>
 }

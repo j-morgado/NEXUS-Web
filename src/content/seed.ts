@@ -30,13 +30,12 @@ export const seedVehicle = vehicleSchema.parse({
   modelUrl: '/assets/jltv-runtime.glb',
   vehicleNode: 'JLTV',
   addons: [{ id: 'addon-1', label: 'Addon 1 · temporary demonstrator', nodeName: 'Addon 1', mountAnchor: 'roof-system-anchor' }],
-  hotspots: [{
-    id: 'crew-protection',
-    label: 'Cab area overview',
-    description: 'Demonstration hotspot location. Final product-approved terminology, placement and capability evidence are pending.',
-    position: [0.85, 2.25, 2.2],
-    camera: { position: [4.8, 3.9, 5.5], target: [0, 2.5, 0] },
-  }],
+  hotspots: [
+    { id: 'crew-protection', label: 'Cab area overview', description: 'Explore the crew compartment and protected cab. Demonstration content; final product-approved capability details are pending.', position: [1.15, 2.25, 1.35], camera: { position: [4.8, 3.9, 5.5], target: [0, 2.5, 0] } },
+    { id: 'front-system', label: 'Front system', description: 'Inspect the front assembly and vehicle integration points. Demonstration content; final specifications are pending.', position: [-0.7, 1.35, 3.15], camera: { position: [4.8, 3.9, 5.5], target: [0, 1.5, 2] } },
+    { id: 'mobility', label: 'Mobility system', description: 'Explore the wheel and suspension area. Demonstration content; final mobility information is pending.', position: [1.35, 1.05, 1.8], camera: { position: [4.8, 3.9, 5.5], target: [1, 1, 1] } },
+    { id: 'rear-system', label: 'Rear system', description: 'Inspect the rear platform and mission integration area. Demonstration content; final configuration details are pending.', position: [-1.15, 1.9, -2.5], camera: { position: [-5, 3, -6], target: [0, 1.5, -2] } },
+  ],
 })
 
 export const seedEventConfig = eventConfigSchema.parse({
