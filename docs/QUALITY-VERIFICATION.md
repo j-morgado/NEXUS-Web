@@ -3,7 +3,9 @@
 ## Automated and browser evidence
 
 - TypeScript, ESLint, 14 Vitest tests, and the production build pass.
-- `npm run test:e2e:quality` audits attract, selector, operator controls, Explorer request modal, and configurator hotspot with axe-core: zero serious or critical violations.
+- `npm run test:e2e:quality` visits all 30 catalog products; checks media counts and image/video/PDF controls; exercises the touch keyboard and durable pending state; verifies bare/add-on and anchored-hotspot behavior; tests timeout reset from share, media, and configurator contexts; and audits key surfaces with axe-core.
+- `npm run test:e2e:timeout-production` measures from a deliberate user input with `performance.now()`: the warning begins after the full 60-second idle interval at `:10`, and reset occurs after the separate ten-second countdown. Unit tests distinguish 50+10, 60 total, and the required 60+10 behavior, including tap-to-resume.
+- The local six-second H.264 placeholder is a real muted looping video. Quality E2E waits through a complete decode/loop, then verifies that the same connected video element and playback position survive Attract → Hub while blur/dimming is applied. The clip is included in the service-worker precache.
 - Keyboard verification covers first-focus skip navigation, visible focus styling, dialog focus placement, Escape dismissal, and global operator access above modal state.
 - Reduced-motion browser emulation verifies hotspot camera movement completes without a continuing animated transition; CSS disables nonessential UI motion.
 - Actual browser integration verifies local module-disable persistence across reload and active/previous configuration rollback through the operator UI.

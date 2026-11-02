@@ -40,7 +40,7 @@ export const eventConfigSchema = z.object({
   id: z.string(),
   version: z.string(),
   inactivitySeconds: z.number().min(10),
-  warningSeconds: z.literal(5),
+  warningSeconds: z.literal(10),
   enabledModuleIds: z.array(z.string()).min(1),
   activeBundleVersion: z.string(),
   previousBundleVersion: z.string().nullable(),

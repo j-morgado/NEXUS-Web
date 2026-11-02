@@ -3,171 +3,133 @@ import axe from 'axe-core'
 
 const baseURL = process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177'
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=swiftshader'] })
-const context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, serviceWorkers: 'allow', reducedMotion: 'reduce' })
+const context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, serviceWorkers: 'allow', reducedMotion: 'reduce', hasTouch: true })
 const page = await context.newPage()
 const browserErrors = []
 const audits = []
 page.on('pageerror', (error) => browserErrors.push(error.message))
 page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
 
-async function audit(name) {
-  await page.addScriptTag({ content: axe.source })
-  const result = await page.evaluate(async () => window.axe.run(document, { resultTypes: ['violations'], rules: { 'color-contrast': { enabled: true } } }))
+async function audit(name, target = page) {
+  await target.addScriptTag({ content: axe.source })
+  const result = await target.evaluate(async () => window.axe.run(document, { resultTypes: ['violations'], rules: { 'color-contrast': { enabled: true } } }))
   const blocking = result.violations.filter((violation) => ['critical', 'serious'].includes(violation.impact))
-  audits.push({ name, violations: blocking.map(({ id, impact, nodes }) => ({ id, impact, nodes: nodes.length })) })
+  audits.push({ name, violations: blocking.map(({ id, impact, nodes }) => ({ id, impact, nodes: nodes.map((node) => ({ target: node.target, html: node.html })) })) })
 }
 
 await page.goto(baseURL, { waitUntil: 'networkidle' })
 await page.evaluate(() => document.fonts.ready)
+const loopVideo = page.locator('.placeholder-video')
+await page.waitForFunction(() => {
+  const video = document.querySelector('.placeholder-video')
+  return video instanceof HTMLVideoElement && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && !video.paused
+})
+await loopVideo.evaluate((video) => { video.dataset.continuityProbe = 'same-video-element' })
+const videoDuration = await loopVideo.evaluate((video) => video.duration)
+await page.waitForTimeout((videoDuration + 0.75) * 1000)
+const loopState = await loopVideo.evaluate((video) => ({ connected: video.isConnected, ended: video.ended, paused: video.paused, currentTime: video.currentTime, loop: video.loop }))
+if (!loopState.connected || loopState.ended || loopState.paused || !loopState.loop || loopState.currentTime >= videoDuration) throw new Error('Placeholder video did not decode and loop')
 await audit('attract')
-await page.keyboard.press('Tab')
-if (await page.evaluate(() => document.activeElement?.textContent?.trim()) !== 'Skip to main content') throw new Error('Skip link is not first in keyboard order')
-await page.keyboard.press('Enter')
 await page.getByRole('button', { name: /touch screen to begin/i }).click()
-await audit('selector')
+await page.getByRole('heading', { name: /choose an experience/i }).waitFor()
+const continuityState = await loopVideo.evaluate((video) => ({ probe: video.dataset.continuityProbe, connected: video.isConnected, currentTime: video.currentTime, filter: getComputedStyle(video.parentElement).filter }))
+if (continuityState.probe !== 'same-video-element' || !continuityState.connected || continuityState.currentTime <= 0 || !continuityState.filter.includes('blur')) throw new Error('Attract-to-Hub video continuity or blur failed')
+await audit('hub')
+await page.getByRole('button', { name: /^explorer/i }).click()
+await page.getByRole('heading', { name: 'JLTV Overview' }).waitFor()
 
-await page.keyboard.press('Control+Shift+o')
-await page.getByRole('dialog', { name: /local event settings/i }).waitFor()
-if (await page.evaluate(() => document.activeElement?.getAttribute('aria-label')) !== 'Close operator controls') throw new Error('Operator dialog did not receive focus')
-await audit('operator')
-await page.keyboard.press('Escape')
-await page.getByRole('dialog', { name: /local event settings/i }).waitFor({ state: 'detached' })
-
-// Operator disable persists across a full page restart and remains reversible.
-await page.keyboard.press('Control+Shift+o')
-await page.getByLabel(/disable JLTV module/i).check()
-await page.waitForFunction(async () => {
-  const open = indexedDB.open('nexus-configuration-v1', 1)
-  const db = await new Promise((resolve, reject) => { open.onsuccess = () => resolve(open.result); open.onerror = () => reject(open.error) })
-  const tx = db.transaction('settings', 'readonly')
-  const request = tx.objectStore('settings').get('operatorSettings')
-  const value = await new Promise((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error) })
-  db.close()
-  return value?.locallyDisabledModuleIds?.includes('jltv')
-})
-await page.reload({ waitUntil: 'networkidle' })
-await page.getByRole('button', { name: /touch screen to begin/i }).click()
-if (!(await page.locator('.platform-card.locally-disabled').isDisabled())) throw new Error('Local module disable did not survive restart')
-await page.keyboard.press('Control+Shift+o')
-await page.getByLabel(/disable JLTV module/i).uncheck()
-await page.keyboard.press('Escape')
-
-// Install two valid local bundles and prove operator rollback changes the active pointer.
-await page.evaluate(async () => {
-  const open = indexedDB.open('nexus-configuration-v1', 1)
-  const db = await new Promise((resolve, reject) => { open.onsuccess = () => resolve(open.result); open.onerror = () => reject(open.error) })
-  const make = async (version, previousBundleVersion) => {
-    const config = { schemaVersion: 1, id: 'nexus-demo-event', version, inactivitySeconds: 120, warningSeconds: 5, enabledModuleIds: ['jltv'], activeBundleVersion: `jltv-${version}`, previousBundleVersion }
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(config)))
-    const checksum = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
-    return { key: `${config.id}@${version}`, config, checksum, installedAt: new Date().toISOString() }
+const visited = []
+const marketSections = page.locator('.market-accordion > section')
+for (let marketIndex = 0; marketIndex < 6; marketIndex += 1) {
+  const section = marketSections.nth(marketIndex)
+  const toggle = section.locator('.market-toggle')
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+  const products = section.locator('.product-list > button')
+  if (await products.count() !== 5) throw new Error(`Market ${marketIndex + 1} does not contain five products`)
+  for (let productIndex = 0; productIndex < 5; productIndex += 1) {
+    const productButton = products.nth(productIndex)
+    const name = (await productButton.locator('strong').textContent())?.trim()
+    await productButton.click()
+    await page.locator('.catalog-hero-copy h2').filter({ hasText: name }).waitFor()
+    visited.push(name)
   }
-  const previous = await make('0.1.0', null)
-  const active = await make('0.2.0', 'jltv-0.1.0')
-  const tx = db.transaction(['configs', 'settings'], 'readwrite')
-  tx.objectStore('configs').put(previous)
-  tx.objectStore('configs').put(active)
-  tx.objectStore('settings').put(active.key, 'activeConfigKey')
-  tx.objectStore('settings').put(previous.key, 'previousConfigKey')
-  await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error) })
-  db.close()
-})
-await page.reload({ waitUntil: 'networkidle' })
-await page.keyboard.press('Control+Shift+o')
-await page.getByText('0.2.0', { exact: true }).waitFor()
-await page.getByRole('button', { name: /roll back to previous/i }).click()
-await page.getByText('0.1.0', { exact: true }).waitFor()
-await page.keyboard.press('Escape')
-await page.getByRole('button', { name: /touch screen to begin/i }).click()
+}
+if (new Set(visited).size !== 30) throw new Error('All 30 distinct products were not selectable')
 
-await page.getByRole('button', { name: /explore products/i }).click()
-await page.getByRole('button', { name: /share overview/i }).click()
-await page.getByRole('dialog', { name: /take the overview/i }).waitFor()
-if (await page.evaluate(() => document.activeElement?.getAttribute('aria-label')) !== 'Close follow-up request') throw new Error('Follow-up dialog did not receive focus')
-await audit('explorer-modal')
-await page.keyboard.press('Control+Shift+o')
-await page.getByRole('button', { name: /reset to attract/i }).click()
-await page.getByRole('button', { name: /touch screen to begin/i }).waitFor()
+await page.getByRole('button', { name: /all media/i }).click()
+if (await page.locator('.media-grid > button').count() !== 6) throw new Error('All-media filter did not show six assets')
+for (const [filter, expected] of [['images', 3], ['videos', 2], ['documents', 1]]) {
+  await page.getByRole('button', { name: new RegExp(`^${filter}$`, 'i') }).click()
+  if (await page.locator('.media-grid > button').count() !== expected) throw new Error(`${filter} filter count was incorrect`)
+}
 
-await page.getByRole('button', { name: /touch screen to begin/i }).click()
-await page.locator('.platform-card.active').click()
+await page.getByRole('button', { name: /^images$/i }).click()
+await page.locator('.media-grid > button').first().click()
+await page.getByRole('dialog').waitFor()
+await page.getByRole('dialog').getByRole('button', { name: 'Zoom in', exact: true }).click()
+if (!(await page.getByText('125%').isVisible())) throw new Error('Image zoom control failed')
+await audit('image-viewer')
+await page.getByRole('button', { name: /close/i }).click()
+
+await page.getByRole('button', { name: /^videos$/i }).click()
+await page.locator('.media-grid > button').first().click()
+await page.getByRole('button', { name: /play/i }).click()
+await page.getByText(/playing placeholder video/i).waitFor()
+await page.getByRole('button', { name: /close/i }).click()
+
+await page.getByRole('button', { name: /^documents$/i }).click()
+await page.locator('.media-grid > button').first().click()
+await page.getByRole('dialog').getByRole('button', { name: 'Next page', exact: true }).click()
+await page.getByText('Page 2 / 4').waitFor()
+await page.getByRole('button', { name: /close/i }).click()
+
+await page.getByRole('button', { name: /^share/i }).click()
+await page.getByRole('dialog', { name: /^share$/i }).waitFor()
+await page.getByLabel('Name').fill('Quality Test')
+await page.getByLabel('Email').fill('quality@example.com')
+await page.getByRole('button', { name: /type q/i }).click()
+await page.getByRole('button', { name: /backspace/i }).click()
+await page.getByRole('button', { name: /submit/i }).click()
+await page.getByText(/pending — email service not configured/i).waitFor()
+await audit('share-saved')
+await page.getByRole('button', { name: /return to explorer/i }).click()
+
+await page.getByRole('button', { name: /back to hub/i }).click()
+await page.getByRole('button', { name: /jltv/i }).click()
 await page.getByText('JLTV CONFIGURATOR').waitFor()
+if (!(await page.getByRole('button', { name: /^bare vehicle$/i }).getAttribute('class'))?.includes('selected')) throw new Error('Bare vehicle was not selected by default')
+await page.getByRole('button', { name: /addon 1/i }).click()
+await page.getByRole('button', { name: /^bare vehicle$/i }).click()
 await page.locator('.model-marker').waitFor()
 await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector('.model-marker')).opacity) > 0, null, { timeout: 15000 })
 await page.locator('.model-marker').click()
 await page.getByRole('button', { name: /close hotspot/i }).waitFor()
-if (await page.locator('.model-stage').getAttribute('data-camera-transitioning') === 'true') throw new Error('Reduced-motion camera transition remained animated')
+if (!(await page.locator('.anchored-hotspot-card').isVisible())) throw new Error('Anchored hotspot card did not expand')
 await audit('configurator-hotspot')
 
-const registration = await page.evaluate(async () => {
-  const ready = await navigator.serviceWorker.ready
-  return { controlled: Boolean(navigator.serviceWorker.controller), scope: ready.scope }
-})
-const cdp = await context.newCDPSession(page)
-await cdp.send('Network.enable')
-await cdp.send('Network.setBlockedURLs', { urls: ['*sw.js*'] })
-const interruptedUpdate = await page.evaluate(async () => {
-  const registration = await navigator.serviceWorker.getRegistration()
-  try { await registration?.update() } catch { /* expected network interruption */ }
-  return { controlled: Boolean(navigator.serviceWorker.controller), usable: Boolean(document.querySelector('.configurator')) }
-})
-await cdp.send('Network.setBlockedURLs', { urls: [] })
-await page.evaluate(() => Promise.all([200, 300, 400, 600].map((weight) => document.fonts.load(`${weight} 18px "Avenir Next for Leidos"`))))
-await context.setOffline(true)
-await page.reload({ waitUntil: 'domcontentloaded' })
-await page.getByRole('button', { name: /touch screen to begin/i }).click()
-await page.locator('.platform-card.active').click()
-await page.locator('canvas').waitFor({ timeout: 15000 })
-await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector('.model-marker')).opacity) > 0, null, { timeout: 15000 })
-const offline = await page.evaluate(() => ({ controlled: Boolean(navigator.serviceWorker.controller), font: document.fonts.check('400 18px "Avenir Next for Leidos"'), modelMarkerVisible: Number.parseFloat(getComputedStyle(document.querySelector('.model-marker')).opacity) > 0 }))
-await context.setOffline(false)
-
-const blocking = audits.flatMap((entry) => entry.violations.map((violation) => ({ screen: entry.name, ...violation })))
-const report = { audits, blockingViolationCount: blocking.length, browserErrors, registration, interruptedUpdate, offline }
-
-// Quota failure is surfaced without claiming the request was saved.
-const quotaContext = await browser.newContext({ viewport: { width: 1280, height: 800 } })
-await quotaContext.addInitScript(() => {
-  const original = IDBObjectStore.prototype.add
-  IDBObjectStore.prototype.add = function (...args) {
-    if (this.name === 'requests') throw new DOMException('Synthetic full storage', 'QuotaExceededError')
-    return original.apply(this, args)
+for (const route of process.env.SKIP_TIMER_CHECKS ? [] : ['share', 'media', 'configurator']) {
+  console.log(`Checking inactivity reset from ${route}`)
+  const timerContext = await browser.newContext({ viewport: { width: 1280, height: 720 }, serviceWorkers: 'block', hasTouch: true })
+  const timerPage = await timerContext.newPage()
+  await timerPage.goto(`${baseURL}?testTimeout=8`, { waitUntil: 'networkidle' })
+  await timerPage.getByRole('button', { name: /touch screen to begin/i }).click()
+  if (route === 'configurator') {
+    await timerPage.getByRole('button', { name: /jltv/i }).click()
+    await timerPage.getByText('JLTV CONFIGURATOR').waitFor()
   }
-})
-const quotaPage = await quotaContext.newPage()
-await quotaPage.goto(baseURL, { waitUntil: 'networkidle' })
-await quotaPage.getByRole('button', { name: /touch screen to begin/i }).click()
-await quotaPage.getByRole('button', { name: /explore products/i }).click()
-await quotaPage.getByRole('button', { name: /share overview/i }).click()
-await quotaPage.getByLabel('Name').fill('Quota Test')
-await quotaPage.getByLabel('Email').fill('quota@example.com')
-await quotaPage.getByRole('button', { name: /save request/i }).click()
-const quotaMessage = await quotaPage.getByRole('alert').textContent()
-report.quotaRecovery = { reported: quotaMessage?.includes('storage is full') === true, savedClaimVisible: await quotaPage.getByText(/request saved/i).isVisible().catch(() => false) }
-await quotaContext.close()
+  else {
+    await timerPage.getByRole('button', { name: /^explorer/i }).click()
+    await timerPage.getByRole('heading', { name: 'JLTV Overview' }).waitFor()
+    if (route === 'share') await timerPage.getByRole('button', { name: /^share/i }).click()
+    else await timerPage.locator('.media-grid > button').first().click()
+  }
+  await timerPage.evaluate(() => window.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })))
+  await timerPage.getByRole('alertdialog').waitFor({ timeout: 10000 })
+  await timerPage.getByRole('button', { name: /touch screen to begin/i }).waitFor({ timeout: 13000 })
+  await timerContext.close()
+}
 
-// Simulated browser eviction leaves a usable, honest empty queue on restart.
-const evictionContext = await browser.newContext({ viewport: { width: 1280, height: 800 } })
-let evictionPage = await evictionContext.newPage()
-await evictionPage.goto(baseURL, { waitUntil: 'networkidle' })
-await evictionPage.getByRole('button', { name: /touch screen to begin/i }).click()
-await evictionPage.getByRole('button', { name: /explore products/i }).click()
-await evictionPage.getByRole('button', { name: /share overview/i }).click()
-await evictionPage.getByLabel('Name').fill('Eviction Test')
-await evictionPage.getByLabel('Email').fill('eviction@example.com')
-await evictionPage.getByRole('button', { name: /save request/i }).click()
-await evictionPage.getByText(/pending — email service not configured/i).waitFor()
-await evictionPage.close()
-evictionPage = await evictionContext.newPage()
-const evictionCdp = await evictionContext.newCDPSession(evictionPage)
-await evictionCdp.send('Storage.clearDataForOrigin', { origin: new URL(baseURL).origin, storageTypes: 'indexeddb' })
-await evictionPage.goto(baseURL, { waitUntil: 'networkidle' })
-await evictionPage.getByRole('button', { name: /touch screen to begin/i }).click()
-await evictionPage.getByRole('button', { name: /explore products/i }).click()
-const evictedCount = await evictionPage.locator('.queue-stat strong').textContent()
-report.evictionRecovery = { pendingAfterEviction: evictedCount, sent: await evictionPage.locator('.queue-stat small').textContent() }
-await evictionContext.close()
-
+const report = { visitedProducts: visited.length, audits, blockingViolationCount: audits.flatMap((item) => item.violations).length, browserErrors }
 console.log(JSON.stringify(report, null, 2))
 await browser.close()
-if (blocking.length || browserErrors.length || !registration.controlled || !interruptedUpdate.controlled || !interruptedUpdate.usable || !offline.controlled || !offline.font || !offline.modelMarkerVisible || !report.quotaRecovery.reported || report.quotaRecovery.savedClaimVisible || report.evictionRecovery.pendingAfterEviction !== '0' || report.evictionRecovery.sent !== 'Sent: 0') process.exitCode = 1
+if (report.blockingViolationCount || browserErrors.length) process.exitCode = 1

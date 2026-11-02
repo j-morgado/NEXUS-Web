@@ -36,7 +36,7 @@ const database = () => openDB(DB_NAME, 1, {
 })
 
 const defaultSettings: OperatorSettings = {
-  inactivitySeconds: seedEventConfig.inactivitySeconds,
+  inactivitySeconds: 60,
   qualityTier: 'standard',
   updateChecksEnabled: true,
   locallyDisabledModuleIds: [],

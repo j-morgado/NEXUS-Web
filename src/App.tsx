@@ -15,7 +15,7 @@ export default function App() {
   const [route, setRoute] = useState<Route>('attract')
   const [operatorOpen, setOperatorOpen] = useState(false)
   const [sessionEpoch, setSessionEpoch] = useState(0)
-  const [settings, setSettings] = useState<OperatorSettings>({ inactivitySeconds: 120, qualityTier: 'standard', updateChecksEnabled: true, locallyDisabledModuleIds: [] })
+  const [settings, setSettings] = useState<OperatorSettings>({ inactivitySeconds: 60, qualityTier: 'standard', updateChecksEnabled: true, locallyDisabledModuleIds: [] })
   const [configState, setConfigState] = useState<ConfigState | null>(null)
   const operatorCloseRef = useRef<HTMLButtonElement>(null)
   const go = useCallback((next: Route) => {
@@ -47,8 +47,9 @@ export default function App() {
 
   useEffect(() => { if (operatorOpen) operatorCloseRef.current?.focus() }, [operatorOpen])
 
-  return <InactivityGuard timeoutSeconds={settings.inactivitySeconds} warningSeconds={5} onReset={reset}>
+  return <InactivityGuard timeoutSeconds={60} warningSeconds={10} onReset={reset}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
+    <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/nexus-placeholder-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
     <div key={sessionEpoch} data-quality-tier={settings.qualityTier}>
       {route === 'attract' && <Attract onBegin={() => go('selector')} />}
       {route === 'selector' && <Selector onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset} jltvDisabled={settings.locallyDisabledModuleIds.includes('jltv')} />}
@@ -59,7 +60,7 @@ export default function App() {
     </div>
     <button className="operator-trigger" onClick={() => setOperatorOpen((value) => !value)} aria-label="Open operator controls">•••</button>
     {operatorOpen && <aside className="operator-panel" role="dialog" aria-modal="false" aria-labelledby="operator-title"><button ref={operatorCloseRef} className="close" onClick={() => setOperatorOpen(false)} aria-label="Close operator controls">×</button><p className="eyebrow">OPERATOR CONTROLS</p><h2 id="operator-title">Local event settings</h2>
-      <label>Inactivity reset<select value={settings.inactivitySeconds} onChange={(event) => updateSettings({ ...settings, inactivitySeconds: Number(event.target.value) })}><option value="120">2 minutes</option><option value="300">5 minutes</option><option value="600">10 minutes</option></select></label>
+      <label>Inactivity reset<select value="60" disabled><option value="60">1 minute + 10 second warning</option></select></label>
       <label>Visual quality<select value={settings.qualityTier} onChange={(event) => updateSettings({ ...settings, qualityTier: event.target.value as OperatorSettings['qualityTier'] })}><option value="standard">Standard</option><option value="high">High</option></select></label>
       <label className="operator-check"><input type="checkbox" checked={settings.updateChecksEnabled} onChange={(event) => updateSettings({ ...settings, updateChecksEnabled: event.target.checked })} /> Check for published updates when online</label>
       <label className="operator-check"><input type="checkbox" checked={settings.locallyDisabledModuleIds.includes('jltv')} onChange={(event) => updateSettings({ ...settings, locallyDisabledModuleIds: event.target.checked ? ['jltv'] : [] })} /> Disable JLTV module on this device</label>

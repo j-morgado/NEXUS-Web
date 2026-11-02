@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, useGLTF } from '@react-three/drei'
+import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF } from '@react-three/drei'
 import { Suspense, useEffect, useMemo, useRef, useState, type ElementRef, type RefObject } from 'react'
 import type { Group, Object3D, PerspectiveCamera } from 'three'
 import { Box3, Raycaster, Vector2, Vector3 } from 'three'
@@ -9,8 +9,8 @@ type Props = { vehicle: Vehicle; addonVisible: boolean; hotspotOpen: boolean; qu
 type MarkerRef = RefObject<HTMLButtonElement | null>
 type OrbitHandle = ElementRef<typeof OrbitControls>
 
-const DEFAULT_POSITION = new Vector3(7.8, 5.4, 8.8)
-const DEFAULT_TARGET = new Vector3(0, 2, 0)
+const DEFAULT_POSITION = new Vector3(6.45, 3.75, 7.15)
+const DEFAULT_TARGET = new Vector3(0, 1.65, 0)
 
 function CameraController({ vehicle, hotspotOpen, statusRef, reducedMotion }: { vehicle: Vehicle; hotspotOpen: boolean; statusRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
   const { camera } = useThree()
@@ -88,7 +88,7 @@ function CameraController({ vehicle, hotspotOpen, statusRef, reducedMotion }: { 
   />
 }
 
-function VehicleModel({ vehicle, addonVisible, hotspotOpen, markerRef }: Omit<Props, 'onExit' | 'onHotspot'> & { markerRef: MarkerRef }) {
+function VehicleModel({ vehicle, addonVisible, hotspotOpen, markerRef, stageRef }: Omit<Props, 'onExit' | 'onHotspot'> & { markerRef: MarkerRef; stageRef: RefObject<HTMLDivElement | null> }) {
   const faultMode = new URLSearchParams(window.location.search).get('fault')
   const modelUrl = faultMode === 'model' ? '/assets/corrupted-demo.glb' : vehicle.modelUrl
   const gltf = useGLTF(modelUrl)
@@ -98,6 +98,11 @@ function VehicleModel({ vehicle, addonVisible, hotspotOpen, markerRef }: Omit<Pr
       if ('geometry' in object) {
         const mesh = object as Object3D & { geometry?: { clone: () => unknown } }
         if (mesh.geometry) mesh.geometry = mesh.geometry.clone() as typeof mesh.geometry
+      }
+      if ('isMesh' in object) {
+        const mesh = object as Object3D & { castShadow: boolean; receiveShadow: boolean }
+        mesh.castShadow = true
+        mesh.receiveShadow = true
       }
       if ('material' in object) {
         const mesh = object as Object3D & { material?: { clone: () => unknown } | { clone: () => unknown }[] }
@@ -132,11 +137,18 @@ function VehicleModel({ vehicle, addonVisible, hotspotOpen, markerRef }: Omit<Pr
     const firstHit = raycaster.intersectObject(rootScene, true)[0]
     const occluded = Boolean(firstHit && firstHit.distance < markerDistance - 0.32)
     const inside = markerNdc.z > -1 && markerNdc.z < 1 && Math.abs(markerNdc.x) <= 1.03 && Math.abs(markerNdc.y) <= 1.03
-    const visible = inside && !occluded && !hotspotOpen
+    const visible = inside && !occluded
     element.style.left = `${(markerNdc.x * 0.5 + 0.5) * size.width}px`
     element.style.top = `${(-markerNdc.y * 0.5 + 0.5) * size.height}px`
+    const markerLeft = (markerNdc.x * 0.5 + 0.5) * size.width
+    const markerTop = (-markerNdc.y * 0.5 + 0.5) * size.height
+    stageRef.current?.style.setProperty('--marker-left', `${markerLeft}px`)
+    stageRef.current?.style.setProperty('--marker-top', `${markerTop}px`)
+    const cardLeft = markerLeft < size.width / 2 ? markerLeft - 448 : markerLeft + 56
+    stageRef.current?.style.setProperty('--card-left', `${Math.max(28, Math.min(size.width - 448, cardLeft))}px`)
+    stageRef.current?.style.setProperty('--card-top', `${Math.max(120, Math.min(size.height - 330, markerTop - 56))}px`)
     element.style.opacity = visible ? '1' : '0'
-    element.style.pointerEvents = visible ? 'auto' : 'none'
+    element.style.pointerEvents = visible && !hotspotOpen ? 'auto' : 'none'
   })
 
   useEffect(() => () => {
@@ -198,19 +210,22 @@ export function ModelStage(props: Props) {
         }
       }}
     >
-      <color attach="background" args={['#0b0d14']} />
-      <fog attach="fog" args={['#0b0d14', 14, 28]} />
-      <ambientLight intensity={0.62} />
-      <hemisphereLight args={['#c7bdff', '#17101f', 1.2]} />
-      <directionalLight position={[7, 10, 9]} intensity={3.1} castShadow />
-      <directionalLight position={[-6, 6, 5]} intensity={1.65} color="#b9aaff" />
-      <directionalLight position={[-5, 8, -9]} intensity={2.25} color="#f2dcff" />
+      <color attach="background" args={['#6f35a4']} />
+      <fog attach="fog" args={['#7f49b2', 18, 34]} />
+      <ambientLight intensity={0.78} />
+      <hemisphereLight args={['#edc9ff', '#321b4d', 1.7]} />
+      <directionalLight position={[7, 10, 9]} intensity={3.7} color="#fff0ff" castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
+      <directionalLight position={[-6, 6, 5]} intensity={2.2} color="#da8cff" />
+      <directionalLight position={[-5, 8, -9]} intensity={2.8} color="#f4cfff" />
+      <pointLight position={[-1.05, 1.25, 3.15]} intensity={12} distance={5.5} decay={2} color="#ff36dc" />
+      <pointLight position={[1.05, 1.25, 3.15]} intensity={12} distance={5.5} decay={2} color="#ff36dc" />
       <Suspense fallback={null}>
-        <VehicleModel vehicle={props.vehicle} addonVisible={props.addonVisible} hotspotOpen={props.hotspotOpen} markerRef={markerRef} />
+        <VehicleModel vehicle={props.vehicle} addonVisible={props.addonVisible} hotspotOpen={props.hotspotOpen} markerRef={markerRef} stageRef={stageRef} />
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.04]} receiveShadow>
-          <circleGeometry args={[12, 96]} />
-          <meshStandardMaterial color="#10141d" roughness={0.75} metalness={0.2} />
+          <planeGeometry args={[40, 40]} />
+          <MeshReflectorMaterial color="#624080" roughness={0.28} metalness={0.72} blur={[280, 90]} resolution={1024} mixBlur={1.5} mixStrength={2.4} depthScale={1.2} minDepthThreshold={0.3} maxDepthThreshold={1.5} mirror={0.45} />
         </mesh>
+        <ContactShadows position={[0, 0.025, 0]} opacity={0.52} scale={18} blur={2.2} far={8} color="#220d38" />
       </Suspense>
       <CameraController vehicle={props.vehicle} hotspotOpen={props.hotspotOpen} statusRef={stageRef} reducedMotion={reducedMotion} />
     </Canvas>
@@ -225,7 +240,8 @@ export function ModelStage(props: Props) {
         pointerStart.current = null
         if (moved < 8) props.onHotspot()
       }}
-    ><span>01</span></button>
+    ><span>+</span></button>
+    {props.hotspotOpen && <aside className="anchored-hotspot-card"><button onClick={props.onHotspot} aria-label={`Close hotspot ${props.vehicle.hotspots[0].label}`}><span>−</span>{props.vehicle.hotspots[0].label}</button><div><p>{props.vehicle.hotspots[0].description}</p><small>Demonstration content</small></div></aside>}
   </div>
 }
 
