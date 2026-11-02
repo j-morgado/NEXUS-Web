@@ -28,7 +28,7 @@ export function createGroundTextures() {
     let value = 0
     for (const layer of layers) value += noise(u, v, layer.cells, layer.values) * layer.weight
     const patch = Math.max(0, Math.min(1, (value - .36) / .28))
-    const roughness = Math.round((.4 + .6 * patch) * 255)
+    const roughness = Math.round((.55 + .3 * patch) * 255)
     roughnessData.set([roughness, roughness, roughness, 255], (y * size + x) * 4)
   }
   const texture = (data: Uint8Array) => {
