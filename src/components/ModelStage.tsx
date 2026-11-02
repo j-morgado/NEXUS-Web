@@ -1,14 +1,16 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF } from '@react-three/drei'
-import { Suspense, useEffect, useMemo, useRef, useState, type ElementRef, type RefObject } from 'react'
-import { BackSide, Box3, Color, DoubleSide, FrontSide, Mesh, MeshStandardMaterial, Raycaster, Vector2, Vector3, type Object3D, type PerspectiveCamera } from 'three'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ElementRef, type RefObject } from 'react'
+import { BackSide, Box3, Color, DoubleSide, FrontSide, Mesh, MeshStandardMaterial, Raycaster, Vector2, Vector3, type Material, type Object3D, type PerspectiveCamera } from 'three'
 import type { Vehicle } from '../domain/schemas'
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
 import { CameraMotionBlur } from './CameraMotionBlur'
+import { createGroundTextures } from './groundTextures'
 
 type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; qualityTier?: 'standard' | 'high'; onHotspot: (id: string | null) => void; onExit: () => void }
 type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
 type OrbitHandle = ElementRef<typeof OrbitControls>
+const STUDIO_HORIZON = '#9254b1'
 const DEFAULT_POSITION = new Vector3(7.1, 2.8, 9.2)
 const DEFAULT_TARGET = new Vector3(-.6, 2.0, 0)
 
@@ -29,7 +31,7 @@ function CameraController({ statusRef, reducedMotion }: { statusRef: RefObject<H
 function StudioSky() {
   return <mesh renderOrder={-1}>
     <sphereGeometry args={[450, 32, 16]} />
-    <shaderMaterial side={BackSide} depthWrite={false} toneMapped={false} uniforms={{ horizonColor: { value: new Color('#b373cf') }, zenithColor: { value: new Color('#512491') } }}
+    <shaderMaterial side={BackSide} depthWrite={false} toneMapped={false} uniforms={{ horizonColor: { value: new Color(STUDIO_HORIZON) }, zenithColor: { value: new Color('#401d73') } }}
       vertexShader={`varying vec3 vDirection; void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`}
       fragmentShader={`
         varying vec3 vDirection;
@@ -40,6 +42,28 @@ function StudioSky() {
           #include <colorspace_fragment>
         }
       `} />
+  </mesh>
+}
+
+function StudioGround({ qualityTier }: { qualityTier?: 'standard' | 'high' }) {
+  const textures = useMemo(createGroundTextures, [])
+  const configureGround = useCallback((material: Material | null) => {
+    if (!material || material.userData.surfaceUvPatched) return
+    material.userData.surfaceUvPatched = true
+    const compile = material.onBeforeCompile.bind(material)
+    material.onBeforeCompile = (shader, renderer) => {
+      compile(shader, renderer)
+      // Drei's reflection blend uses raw UVs; honor the repeating roughness UVs
+      // just like the physical roughness map, so grain stays world-scaled.
+      shader.fragmentShader = shader.fragmentShader.replace('texture2D( roughnessMap, vUv )', 'texture2D( roughnessMap, vRoughnessMapUv )')
+    }
+    material.customProgramCacheKey = () => 'nexus-ground-surface-v1'
+    material.needsUpdate = true
+  }, [])
+  useEffect(() => () => { textures.roughness.dispose() }, [textures])
+  return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.035, 0]} receiveShadow>
+    <planeGeometry args={[2000, 2000]} />
+    <MeshReflectorMaterial ref={configureGround} color="#3a234d" roughness={.9} roughnessMap={textures.roughness} metalness={.12} blur={[240, 100]} resolution={qualityTier === 'high' ? 1024 : 512} mixBlur={1.15} mixStrength={1.3} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.3} />
   </mesh>
 }
 
@@ -190,11 +214,11 @@ export function ModelStage(props: Props) {
       gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true) })
       if (new URLSearchParams(window.location.search).get('fault') === 'webgl' && !injectedWebglFault.current) { injectedWebglFault.current = true; window.setTimeout(() => gl.domElement.dispatchEvent(new Event('webglcontextlost', { cancelable: true })), 250) }
     }}>
-      <color attach="background" args={['#7c44ab']} />
-      <fog attach="fog" args={['#b373cf', 18, 90]} />
+      <color attach="background" args={['#64358d']} />
+      <fog attach="fog" args={[STUDIO_HORIZON, 18, 90]} />
       <StudioSky />
-      <ambientLight intensity={.7} />
-      <hemisphereLight args={['#edd5ff', '#49314d', 1.7]} />
+      <ambientLight intensity={.6} />
+      <hemisphereLight args={['#edd5ff', '#49314d', 1.6]} />
       <directionalLight position={[7, 10, 9]} intensity={2.5} color="#fff4ed" castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={9} shadow-camera-bottom={-8} shadow-bias={-.0004} />
       <directionalLight position={[-6, 6, 5]} intensity={1.2} color="#d7a4ef" />
       <directionalLight position={[-5, 8, -9]} intensity={1.8} color="#f4d8ff" />
@@ -202,10 +226,7 @@ export function ModelStage(props: Props) {
       <pointLight position={[1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
       <Suspense fallback={null}>
         <VehicleModel {...props} markers={markers} stageRef={stageRef} />
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.035, 0]} receiveShadow>
-          <planeGeometry args={[2000, 2000]} />
-          <MeshReflectorMaterial color="#624080" roughness={.58} metalness={.18} blur={[600, 300]} resolution={props.qualityTier === 'high' ? 1024 : 512} mixBlur={1} mixStrength={1.5} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.4} />
-        </mesh>
+        <StudioGround qualityTier={props.qualityTier} />
         <ContactShadows key={String(props.addonVisible)} position={[0, .005, 0]} opacity={.48} scale={16} blur={2.8} far={7} color="#30143e" frames={1} resolution={256} />
       </Suspense>
       <CameraController statusRef={stageRef} reducedMotion={reducedMotion} />
