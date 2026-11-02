@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { MediaViewer } from '../components/MediaViewer'
 import { catalogMarkets, type CatalogMedia, type CatalogProduct, type MediaKind } from '../content/catalog'
 import { createEmailPreview } from '../services/emailTemplate'
-import { enqueueRequest, listRequests, QueuePersistenceError } from '../services/requestQueue'
+import { enqueueRequest, QueuePersistenceError } from '../services/requestQueue'
 
 type Overlay = 'none' | 'share' | 'saved' | 'media'
 type MediaFilter = 'all' | MediaKind
@@ -27,11 +27,9 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   const [activeField, setActiveField] = useState<'name' | 'email'>('name')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [pendingCount, setPendingCount] = useState(0)
   const closeRef = useRef<HTMLButtonElement>(null)
   const preview = useMemo(() => createEmailPreview(emailProduct(product)), [product])
   const visibleMedia = filter === 'all' ? product.media : product.media.filter((item) => item.kind === filter)
-  useEffect(() => { void listRequests().then((items) => setPendingCount(items.length)) }, [])
   useEffect(() => { if (overlay !== 'none') closeRef.current?.focus() }, [overlay])
   const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setFilter('all'); setOpenFeature(0); setOverlay('none') }
   const openMedia = (media: CatalogMedia) => { setSelectedMedia(media); setOverlay('media') }
@@ -41,7 +39,7 @@ export function Explorer({ onExit }: { onExit: () => void }) {
     if (name.trim().length < 2) return setError('Enter a name with at least two characters.')
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError('Enter a valid email address.')
     setSubmitting(true)
-    try { await enqueueRequest({ name, email, productId: product.id }); setPendingCount((await listRequests()).length); setOverlay('saved') }
+    try { await enqueueRequest({ name, email, productId: product.id }); setOverlay('saved') }
     catch (failure) { setError(failure instanceof QueuePersistenceError && failure.reason === 'quota' ? 'This device storage is full. The request was not saved.' : 'Local storage is unavailable. The request was not saved.') }
     finally { setSubmitting(false) }
   }
@@ -60,7 +58,8 @@ export function Explorer({ onExit }: { onExit: () => void }) {
             <div className="accordion-content"><div className="product-list">{market.products.map((item) => <button key={item.id} className={product.id === item.id ? 'selected' : ''} onClick={() => chooseProduct(item)}><i style={{ background: item.media[0].accent }} /><span><strong>{item.name}</strong><small>{item.designation}</small></span></button>)}</div></div>
           </div>
         </section>
-      })}</div><div className="pending-indicator" aria-label={`${pendingCount} locally saved requests`}>{pendingCount} pending · Sent 0</div></aside>
+      })}</div></aside>
+    <div className="catalog-product">
     <section className="catalog-information">
       <div className="catalog-hero"><div className="hero-media-placeholder" role="img" aria-label={product.heroVideoLabel} /><img className="explorer-mark" src="/assets/reference/leidos-mark-light.svg" alt="Leidos" /><div className="catalog-hero-copy"><p>{product.marketName} system</p><h2>{product.name}</h2><h3>{product.designation}</h3><p className="catalog-description">{product.description}</p></div><div className="catalog-hero-footer"><section className="catalog-specifications" aria-label="Specifications"><h4>Specifications</h4><div className="catalog-specs">{product.specs.map((spec) => <div key={spec.name}><b>{spec.name}</b><span>{spec.value}</span></div>)}</div></section><button className="outline-pill" onClick={() => setOverlay('share')}>Share <span>→</span></button></div></div>
       <div className="catalog-lower"><section className="catalog-features" aria-label="Product features">{product.features.map((feature, index) => {
@@ -72,8 +71,9 @@ export function Explorer({ onExit }: { onExit: () => void }) {
         </article>
       })}</section><section className="catalog-media" aria-label="Product media"><div className="media-tabs">{(['all', 'image', 'video', 'pdf'] as const).map((kind) => <button key={kind} className={filter === kind ? 'selected' : ''} onClick={() => setFilter(kind)}>{kind === 'all' ? 'All media' : kind === 'pdf' ? 'Documents' : `${kind}s`}</button>)}</div><div className="media-grid">{visibleMedia.map((media) => <button key={media.id} onClick={() => openMedia(media)}><div style={{ background: `linear-gradient(145deg, ${media.accent}, #191329)` }}><span>{media.kind}</span><i>◇</i></div><strong>{media.name}</strong></button>)}</div></section></div>
     </section>
-    </div>
     <footer className="catalog-footer"><button className="back-to-hub" onClick={onExit}>← Back to hub</button></footer>
+    </div>
+    </div>
     {overlay !== 'none' && <div className="explorer-overlay">
       {overlay === 'media' && <MediaViewer media={selectedMedia} items={product.media} onSelect={setSelectedMedia} onClose={closeMedia} />}
       {(overlay === 'share' || overlay === 'saved') && <section className="share-lightbox" role="dialog" aria-modal="true" aria-labelledby="share-title"><header><h2 id="share-title">Share</h2><p>To receive more information regarding this product please fill out the following information.</p></header><button ref={closeRef} className="overlay-x" onClick={() => setOverlay('none')} aria-label="Close share dialog">×</button>{overlay === 'share' ? <><div className="share-form" data-email-subject={preview.subject}><label>Full name<input aria-label="Name" value={name} onFocus={() => setActiveField('name')} onChange={(event) => setName(event.target.value)} /></label><label>Email address<input aria-label="Email" type="email" value={email} onFocus={() => setActiveField('email')} onChange={(event) => setEmail(event.target.value)} /></label>{error && <p role="alert">{error}</p>}<button className="outline-pill" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'} <span>→</span></button></div><TouchKeyboard value={keyboardValue} onChange={setKeyboardValue} /></> : <div className="share-saved"><h3>Request saved locally.</h3><p>Pending — email service not configured. It has not been sent or delivered.</p><button className="outline-pill" onClick={() => { setName(''); setEmail(''); setOverlay('none') }}>Return to Explorer</button></div>}</section>}
