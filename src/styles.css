@@ -1186,17 +1186,20 @@ footer {
 .product-list small { color: #d7d1df; font-size: 10px; }
 .pending-indicator { margin-top: auto; padding: 12px 18px; color: #aaa3b5; font-size: 11px; }
 .catalog-information { min-width: 0; min-height: 0; display: grid; grid-template-rows: 56% 44%; }
-.catalog-hero { position: relative; overflow: hidden; background: #08070c; }
+.catalog-hero { position: relative; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 24px 18px; background: #08070c; }
 .hero-media-placeholder { position: absolute; inset: 0; display: grid; place-items: end center; padding: 24px; background: radial-gradient(circle at 78% 55%,#2e2840,transparent 30%),linear-gradient(110deg,#251846 0,#251846 34%,rgba(37,24,70,.54) 58%,rgba(0,0,0,.9) 100%); }
 .hero-media-placeholder span { color: rgba(255,255,255,.42); font-size: 11px; text-transform: uppercase; }
 .explorer-mark { position: absolute; z-index: 2; right: 28px; top: 24px; width: 62px; }
-.catalog-hero-copy { position: absolute; z-index: 2; left: 18px; top: 24px; bottom: 0; width: 48%; padding: 0 0 22px; overflow: auto; }
+.catalog-hero-copy { position: relative; z-index: 2; flex: 1; min-height: 0; width: min(720px, calc(100% - 100px)); overflow: auto; }
 .catalog-hero-copy > p:first-child { margin: 0; color: #9a72ea; font-size: 15px; letter-spacing: .15em; text-transform: uppercase; }
 .catalog-hero-copy h2 { margin: 3px 0 0; font-size: 46px; line-height: 1; font-weight: 300; text-transform: uppercase; }
 .catalog-hero-copy h3 { margin: 6px 0 14px; color: #8e65e7; font-size: 22px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .catalog-description { max-width: 610px; margin: 0 0 15px; color: #ded9e4; font-size: 15px; line-height: 1.55; }
-.catalog-hero-copy h4 { margin: 0 0 8px; color: #9a72ea; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; }
-.catalog-specs { display: grid; grid-template-columns: repeat(3,minmax(120px,1fr)); gap: 8px 20px; margin: 0 0 13px; }
+.catalog-specifications h4 { margin: 0 0 8px; color: #9a72ea; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; }
+.catalog-hero-footer { position: relative; z-index: 2; flex: none; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.catalog-specifications { flex: 1; min-width: 0; max-width: 650px; }
+.catalog-hero-footer > button { flex: none; }
+.catalog-specs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px 20px; margin: 0; }
 .catalog-specs div { display: grid; gap: 2px; font-size: 13px; }
 .catalog-specs span { color: #d2cbdc; }
 .catalog-lower { min-height: 0; display: grid; grid-template-columns: 40% 60%; gap: 18px; padding: 16px 18px 0; overflow: hidden; background: #110530; }
@@ -1724,4 +1727,10 @@ footer {
   .video-scrubber { order: 2; flex-basis: 100%; }
   .media-viewer-footer { gap: 8px; }
   .media-viewer-footer .lightbox-close { padding: 10px 18px; }
+}
+
+@media (max-width: 620px) {
+  .catalog-hero-footer { gap: 14px; }
+  .catalog-specs { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px 12px; }
+  .catalog-hero-footer > button { padding: 10px 18px; gap: 12px; }
 }
