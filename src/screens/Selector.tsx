@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-export function Selector({ onJLTV, onExplorer, onReset, jltvDisabled = false }: { onJLTV: () => void; onExplorer: () => void; onReset: () => void; jltvDisabled?: boolean }) {
+export function Selector({ onJLTV, onExplorer, jltvDisabled = false }: { onJLTV: () => void; onExplorer: () => void; onReset: () => void; jltvDisabled?: boolean }) {
   const carouselRef = useRef<HTMLElement>(null)
   const [edges, setEdges] = useState({ start: true, end: false })
 
@@ -33,7 +33,6 @@ export function Selector({ onJLTV, onExplorer, onReset, jltvDisabled = false }: 
   }
 
   return <main id="main-content" className="reference-hub">
-    <button className="hub-home" onClick={onReset} aria-label="NEXUS return to attract">NEXUS</button>
     <img className="reference-logo" src="/assets/reference/leidos-logo-light.svg" alt="Leidos" />
     <h1>Choose an Experience</h1>
     <div className="hub-experiences">
