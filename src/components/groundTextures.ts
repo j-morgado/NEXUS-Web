@@ -27,7 +27,7 @@ export function createGroundTextures() {
   const texture = (data: Uint8Array) => {
     const result = new DataTexture(data, size, size, RGBAFormat)
     result.wrapS = result.wrapT = RepeatWrapping
-    result.repeat.set(160, 160)
+    result.repeat.set(320, 320)
     result.generateMipmaps = true
     result.minFilter = LinearMipmapLinearFilter
     result.magFilter = LinearFilter
