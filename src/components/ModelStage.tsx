@@ -1,13 +1,14 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF } from '@react-three/drei'
+import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF, useProgress } from '@react-three/drei'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ElementRef, type RefObject } from 'react'
 import { BackSide, Box3, Color, DoubleSide, FrontSide, Mesh, MeshStandardMaterial, Raycaster, Vector2, Vector3, type Material, type Object3D, type PerspectiveCamera } from 'three'
 import type { Vehicle } from '../domain/schemas'
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
 import { CameraMotionBlur } from './CameraMotionBlur'
 import { createGroundTextures } from './groundTextures'
+import { SceneReadiness } from './SceneReadiness'
 
-type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; qualityTier?: 'standard' | 'high'; onHotspot: (id: string | null) => void; onExit: () => void }
+type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; qualityTier?: 'standard' | 'high'; onHotspot: (id: string | null) => void; onExit: () => void; onReadyChange: (ready: boolean) => void; onProgress: (progress: number) => void }
 type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
 type OrbitHandle = ElementRef<typeof OrbitControls>
 const STUDIO_HORIZON = '#9254b1'
@@ -183,6 +184,8 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
 }
 
 export function ModelStage(props: Props) {
+  const { active: loadingAssets, progress: assetProgress } = useProgress()
+  useEffect(() => { props.onProgress(loadingAssets ? Math.min(90, assetProgress * .9) : 90) }, [loadingAssets, assetProgress, props.onProgress])
   const [contextLost, setContextLost] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const markers = useRef(new Map<string, HTMLDivElement>())
@@ -203,15 +206,16 @@ export function ModelStage(props: Props) {
     return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', escape) }
   }, [props.activeHotspot, props.onHotspot])
 
-  if (contextLost) return <section className="model-failure" role="alert"><p className="eyebrow">3D MODULE INTERRUPTED</p><h2>The vehicle view needs to restart.</h2><p>Your selected configuration is preserved. Retry the renderer or return to the hub.</p><div><button className="primary-cta" onClick={() => setContextLost(false)}>Retry 3D view <span>↻</span></button><button className="recovery-back" onClick={props.onExit}>Return to hub</button></div></section>
+  if (contextLost) return <section className="model-failure" role="alert"><p className="eyebrow">3D MODULE INTERRUPTED</p><h2>The vehicle view needs to restart.</h2><p>Your selected configuration is preserved. Retry the renderer or return to the hub.</p><div><button className="primary-cta" onClick={() => { props.onReadyChange(false); props.onProgress(90); setContextLost(false) }}>Retry 3D view <span>↻</span></button><button className="recovery-back" onClick={props.onExit}>Return to hub</button></div></section>
 
   return <div className="model-stage" ref={stageRef} data-hotspot-open={String(Boolean(props.activeHotspot))}>
     <Canvas frameloop="demand" shadows dpr={props.qualityTier === 'high' ? [1, 1.75] : [1, 1.25]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl, camera }) => {
+      props.onReadyChange(false)
       const perspective = camera as PerspectiveCamera
       gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true
       camera.position.copy(DEFAULT_POSITION); camera.lookAt(DEFAULT_TARGET)
       perspective.fov = 38; perspective.near = .1; perspective.far = 1200; perspective.updateProjectionMatrix()
-      gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true) })
+      gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true); props.onReadyChange(true) })
       if (new URLSearchParams(window.location.search).get('fault') === 'webgl' && !injectedWebglFault.current) { injectedWebglFault.current = true; window.setTimeout(() => gl.domElement.dispatchEvent(new Event('webglcontextlost', { cancelable: true })), 250) }
     }}>
       <color attach="background" args={['#64358d']} />
@@ -228,6 +232,7 @@ export function ModelStage(props: Props) {
         <VehicleModel {...props} markers={markers} stageRef={stageRef} />
         <StudioGround qualityTier={props.qualityTier} />
         <ContactShadows key={String(props.addonVisible)} position={[0, .005, 0]} opacity={.48} scale={16} blur={2.8} far={7} color="#30143e" frames={1} resolution={256} />
+        <SceneReadiness onReady={props.onReadyChange} onProgress={props.onProgress} />
       </Suspense>
       <CameraController statusRef={stageRef} reducedMotion={reducedMotion} />
       <CameraMotionBlur reducedMotion={reducedMotion} statusRef={stageRef} />

@@ -5,6 +5,7 @@ import { recordUsage } from './services/analytics'
 import { getConfigState, getOperatorSettings, rollbackEventConfig, saveOperatorSettings, type ConfigState, type OperatorSettings } from './services/configStore'
 import { Attract } from './screens/Attract'
 import { Selector } from './screens/Selector'
+import { LoadingScreen } from './components/LoadingScreen'
 
 const Configurator = lazy(() => import('./screens/Configurator').then((module) => ({ default: module.Configurator })))
 const Explorer = lazy(() => import('./screens/Explorer').then((module) => ({ default: module.Explorer })))
@@ -53,7 +54,7 @@ export default function App() {
     <div key={sessionEpoch} data-quality-tier={settings.qualityTier}>
       {route === 'attract' && <Attract onBegin={() => go('selector')} />}
       {route === 'selector' && <Selector onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset} jltvDisabled={settings.locallyDisabledModuleIds.includes('jltv')} />}
-      <Suspense fallback={<main className="route-loader"><span>NEXUS</span><p>Loading experience…</p></main>}>
+      <Suspense fallback={<LoadingScreen />}>
         {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')}><Configurator onExit={() => go('selector')} qualityTier={settings.qualityTier} /></ModuleBoundary>}
         {route === 'explorer' && <Explorer onExit={() => go('selector')} />}
       </Suspense>

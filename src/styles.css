@@ -1666,3 +1666,18 @@ footer {
 }
 
 .hotspot-header:focus-visible { outline-offset: -3px; }
+
+.experience-loading { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: #110530; color: #fff; text-align: center; }
+.experience-loading > div { width: min(320px, 72vw); }
+.experience-loading p { margin: 0 0 22px; font-size: 24px; font-weight: 400; }
+.experience-progress { height: 6px; overflow: hidden; background: #302056; border-radius: 6px; }
+.experience-progress > span { display: block; height: 100%; background: #734cdd; border-radius: inherit; transition: width 180ms ease; }
+.experience-progress.is-indeterminate > span { width: 35%; animation: experience-progress 1.2s ease-in-out infinite; }
+@keyframes experience-progress { from { transform: translateX(-100%); } to { transform: translateX(386%); } }
+.experience-content { position: absolute; inset: 0; visibility: hidden; opacity: 0; }
+.experience-content.is-ready { visibility: visible; opacity: 1; transition: opacity 200ms ease; }
+.experience-content[data-ready="false"] .vehicle-hotspot { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .experience-progress > span, .experience-content.is-ready { transition: none; }
+  .experience-progress.is-indeterminate > span { animation: none; width: 100%; opacity: .65; }
+}
