@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 type Props = { timeoutSeconds: number; warningSeconds: number; onReset: () => void; children: ReactNode }
@@ -38,8 +39,8 @@ export function InactivityGuard({ timeoutSeconds, warningSeconds, onReset, child
 
   return <>
     {children}
-    {remaining !== null && <div className="timeout-scrim"><button className="timeout-warning" role="alertdialog" aria-label="Session timeout warning" onClick={resetTimer}>
+    {remaining !== null && createPortal(<div className="timeout-scrim"><button className="timeout-warning" role="alertdialog" aria-label="Session timeout warning" onClick={resetTimer}>
       <strong>Are you still there?</strong><span className="timeout-count">:{String(remaining).padStart(2, '0')}</span><small>Tap to dismiss</small>
-    </button></div>}
+    </button></div>, document.body)}
   </>
 }

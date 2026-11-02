@@ -1248,8 +1248,10 @@ footer {
 .share-saved { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 620px; padding: 50px; border: 2px solid #734cdd; background: #201535; text-align: center; }
 .share-saved h3 { font-size: 34px; font-weight: 300; }
 
-.timeout-scrim { position: fixed; z-index: 180; inset: 0; display: grid; place-items: center; background: rgba(25,24,31,.95); }
-.timeout-scrim .timeout-warning { position: static; translate: none; width: 594px; height: 318px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 0; padding: 40px 24px 30px; border: 2px solid #734cdd; background: #38265b; color: white; box-shadow: none; text-transform: uppercase; }
+.timeout-scrim { position: fixed; z-index: 1100; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(17,5,48,.74); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: timeout-backdrop 1200ms ease-out both; }
+@keyframes timeout-backdrop { from { background-color: rgba(17,5,48,0); backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); } to { background-color: rgba(17,5,48,.74); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } }
+@keyframes timeout-dialog { from { opacity: 0; } to { opacity: 1; } }
+.timeout-scrim .timeout-warning { position: static; transform: none; translate: none; width: min(594px, 100%); height: min(318px, calc(100svh - 32px)); max-height: 100%; animation: timeout-dialog 350ms ease-out both; display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 0; padding: 40px 24px 30px; border: 2px solid #734cdd; background: #38265b; color: white; box-shadow: none; text-transform: uppercase; }
 .timeout-warning strong { font-size: 27px; letter-spacing: .06em; }
 .timeout-warning .timeout-count { color: white; font-size: 70px; font-weight: 300; }
 .timeout-warning small { font-size: 21px; letter-spacing: .04em; }

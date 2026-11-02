@@ -24,3 +24,7 @@ The current configurator route is approximately 994.90 KB minified / 274.33 KB g
 - The interrupted-update test verifies retention of the active service worker, not signed remote publication or device-fleet management.
 - No completed NEXUS Unity experience exists, so Unity parity is not an acceptance criterion. `NEXUS-POC` is behavioral context only. Visual acceptance uses the supplied NEXUS styleframes and available wireframes, while the approved Leidos system governs colors, fonts, and components. Exact fidelity to inaccessible Figma frames is not claimed.
 - Target integrated-GPU and 43-inch touch acceptance remains pending physical hardware.
+
+## Timeout presentation
+
+The warning is portaled to the document body and centered against the viewport, with the obsolete sideways transform removed. Its 350ms opacity entrance runs independently from a 1200ms background darkening and 12px backdrop blur. The dialog fits mobile widths and reduced-motion preferences suppress the animation. `node scripts/timeout-presentation-e2e.mjs` verifies centering at 1280×720, 960×640, and 390×844; intermediate/final animation styles; dismissal; reduced motion; and expiry back to attract. Existing idle/countdown timing remains unchanged.
