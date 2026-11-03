@@ -81,7 +81,7 @@ function StudioGround({ qualityTier }: { qualityTier?: 'standard' | 'high' }) {
     for (const texture of [roughness, normal]) {
       texture.colorSpace = NoColorSpace
       texture.wrapS = texture.wrapT = RepeatWrapping
-      texture.repeat.set(320, 320)
+      texture.repeat.set(160, 160)
       texture.generateMipmaps = true
       texture.minFilter = LinearMipmapLinearFilter
       texture.magFilter = LinearFilter
