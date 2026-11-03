@@ -96,7 +96,7 @@ await page.getByRole('button', { name: /return to explorer/i }).click()
 
 await page.getByRole('button', { name: /back to hub/i }).click()
 await page.getByRole('button', { name: /jltv/i }).click()
-await page.getByRole('button', { name: /return to hub/i }).waitFor()
+await page.getByRole('button', { name: /^hub$/i }).waitFor()
 if (await page.locator('.bottom-config [aria-pressed="true"]').count()) throw new Error('Bare vehicle was not the default')
 await page.getByRole('button', { name: /^add-on 1$/i }).click()
 await page.getByRole('button', { name: /^add-on 1$/i }).click()
@@ -114,7 +114,7 @@ for (const route of process.env.SKIP_TIMER_CHECKS ? [] : ['share', 'media', 'con
   await timerPage.getByRole('button', { name: /touch screen to begin/i }).click()
   if (route === 'configurator') {
     await timerPage.getByRole('button', { name: /jltv/i }).click()
-    await timerPage.getByRole('button', { name: /return to hub/i }).waitFor()
+    await timerPage.getByRole('button', { name: /^hub$/i }).waitFor()
   }
   else {
     await timerPage.getByRole('button', { name: /^explorer/i }).click()

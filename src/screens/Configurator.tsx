@@ -16,9 +16,9 @@ export function Configurator({ onExit, qualityTier = 'standard' }: { onExit: () 
   return <main id="main-content" className="configurator" aria-busy={!sceneReady}>
     {!sceneReady && <LoadingScreen progress={loadingProgress} />}
     <div className={`experience-content ${sceneReady ? 'is-ready' : ''}`} data-ready={sceneReady} aria-hidden={!sceneReady} inert={!sceneReady}>
-    <header className="experience-navigation"><button className="back-button" onClick={onExit}>← Return to hub</button></header>
+    <nav className="experience-navigation" aria-label="Experience navigation"><button className="back-button" onClick={onExit}>HUB</button></nav>
     <ModelStage vehicle={seedVehicle} addonVisible={activeAddon === 1} activeHotspot={activeHotspot} qualityTier={qualityTier} onHotspot={setActiveHotspot} onExit={onExit} onReadyChange={setSceneReady} onProgress={setLoadingProgress} />
-    <section className="vehicle-heading"><p className="eyebrow">TACTICAL VEHICLE · INTERACTIVE MODEL</p><h1>JLTV</h1><p>Drag to rotate · Pinch or scroll to zoom</p></section>
+    <section className="vehicle-heading"><p className="eyebrow">TACTICAL VEHICLE · INTERACTIVE MODEL</p><h1>JLTV</h1></section>
     <aside className="configuration-controls" aria-label="Vehicle configuration">
       <h2>Configuration</h2>
       <div className="bottom-config" role="group" aria-label="Add-ons">{[1, 2, 3].map(addon => <button key={addon} className={activeAddon === addon ? 'selected' : ''} aria-pressed={activeAddon === addon} onClick={() => setActiveAddon(current => current === addon ? null : addon)}>Add-on {addon}{addon > 1 && <small>Placeholder</small>}</button>)}</div>

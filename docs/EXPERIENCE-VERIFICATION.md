@@ -4,7 +4,7 @@ The supplied purple studio reference informs the procedural sky gradient, horizo
 
 ## Behavior
 
-- A single Return to hub action replaces the obsolete top navigation. Vehicle title and interaction instructions sit at the top left.
+- A single HUB button at the bottom left replaces the obsolete top navigation. The vehicle title sits at the top left; the rotation/zoom instruction line is removed.
 - Configuration has three mutually exclusive, toggle-off add-ons. The default is bare. Add-on 1 controls the actual attachment; Add-ons 2/3 are explicitly labeled placeholders and remove the real attachment when selected.
 - Four projected markers expand in place into purple-header panels. Selection does not modify the camera or orbit target. Only one panel opens; outside pointer input, Escape, and occlusion close it. Occluded markers become inert immediately and fade visually over one second.
 - Camera motion blur uses five depth-reprojected samples capped at two physical pixels. It runs only during camera movement and is disabled for reduced motion. When stationary the same output pass uses a single unblurred sample, keeping fog and sky color processing consistent.

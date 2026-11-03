@@ -1633,7 +1633,7 @@ footer {
 }
 
 /* Experience module: overlay controls stay clear of the vehicle's interaction area. */
-.experience-navigation { position: absolute; z-index: 15; top: 24px; right: 32px; }
+.experience-navigation { position: absolute; z-index: 15; left: 32px; bottom: 24px; }
 .experience-navigation .back-button { border: 2px solid #fff; border-radius: 50px; background: rgba(37,24,70,.72); padding: 10px 24px; }
 .configurator .vehicle-heading { z-index: 10; top: 36px; left: 4vw; bottom: auto; max-width: 48vw; }
 .configurator .vehicle-heading .eyebrow { color: #eed7ff; margin-bottom: 16px; }
@@ -1658,13 +1658,13 @@ footer {
 .is-open .hotspot-description { grid-template-rows: 1fr; }
 .hotspot-header:enabled:is(:hover,:active) { background-color: #734cdd; color: #fff; filter: none; }
 @media (max-width: 620px) {
-  .experience-navigation { top: 18px; right: 16px; }
+  .experience-navigation { left: 16px; bottom: 18px; }
   .experience-navigation .back-button { font-size: 12px; min-height: 44px; padding: 8px 16px; }
   .configurator .vehicle-heading { top: 82px; left: 20px; max-width: calc(100vw - 40px); }
   .configurator .vehicle-heading .eyebrow { font-size: 10px; margin-bottom: 8px; }
   .configurator .vehicle-heading h1 { font-size: 52px; }
   .configurator .vehicle-heading > p:last-child { font-size: 12px; }
-  .configuration-controls { width: calc(100% - 32px); }
+  .configuration-controls { width: calc(100% - 32px); bottom: 84px; }
   .configuration-controls .bottom-config button { min-width: 0; flex: 1; padding: 8px 12px; font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
