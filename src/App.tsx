@@ -86,7 +86,7 @@ export default function App() {
 
   return <InactivityGuard timeoutSeconds={60} warningSeconds={10} onReset={reset}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
-    <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/nexus-placeholder-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
+    <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/attract-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
     <div key={sessionEpoch} inert={!!transition} aria-busy={!!transition} data-quality-tier={settings.qualityTier}>
       {route === 'attract' && <Attract onBegin={() => go('selector')} />}
       {route === 'selector' && <Selector onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset} jltvDisabled={settings.locallyDisabledModuleIds.includes('jltv')} />}
