@@ -109,7 +109,7 @@ export default function App() {
       {route === 'attract' && <Attract onBegin={begin} />}
       {route === 'selector' && <Selector animateEntrance={hubEntrance} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset}  />}
       <Suspense fallback={null}>
-        {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} visual={settings.visual} showPerformanceStats={settings.showPerformanceStats} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
+        {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} hotspotMode={settings.hotspotMode} visual={settings.visual} showPerformanceStats={settings.showPerformanceStats} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
         {route === 'explorer' && <><Explorer active={!transition} onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></>}
         {route === 'selector' && <DestinationReady onReady={markReady} />}
       </Suspense>

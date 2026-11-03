@@ -1,3 +1,4 @@
+import type { HotspotMode } from '../domain/schemas'
 import { useRef, useEffect, useState } from 'react'
 import type { OperatorSettings } from '../services/configStore'
 import { visualPresets, type VisualSettings, type QualityTier } from '../services/visualSettings'
@@ -43,6 +44,7 @@ export function DevOptions({ settings, onChange, onClose, updateAvailable }: Pro
       <label>Planar reflection resolution<select aria-label="Planar reflection resolution" disabled={!settings.visual.planarReflections} value={settings.visual.reflectionResolution} onChange={event => visual({ reflectionResolution: Number(event.target.value) as VisualSettings['reflectionResolution'] })}>{[256, 512, 1024].map(value => <option key={value}>{value}</option>)}</select></label>
       <label>Shadow resolution<select aria-label="Shadow resolution" value={settings.visual.shadowResolution} onChange={event => visual({ shadowResolution: Number(event.target.value) as VisualSettings['shadowResolution'] })}>{[512, 1024, 2048].map(value => <option key={value}>{value}</option>)}</select></label>
     </fieldset>
+    <fieldset><legend>Hotspots</legend><label>Preview mode<select aria-label="Hotspot preview mode" value={settings.hotspotMode} onChange={event => save({ ...settings, hotspotMode: event.target.value as HotspotMode })}><option value="in-place">In place</option><option value="zoom-in-place">Zoom in place</option><option value="zoom-sidebar">Zoom side bar</option></select></label></fieldset>
     <fieldset><legend>Updates</legend><label className="operator-check"><input type="checkbox" checked={settings.updateChecksEnabled} onChange={event => save({ ...settings, updateChecksEnabled: event.target.checked })} />Check for updates at startup</label>
       <div className="dev-update-actions"><button disabled={busy} onClick={() => void update(false)}>Check for updates</button><button disabled={busy} onClick={() => void update(true)}>Update now</button></div>
       {(message || updateAvailable) && <p role="status">{message || 'An update is ready to install.'}</p>}

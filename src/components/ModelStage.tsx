@@ -1,38 +1,26 @@
 import { visualPresets, type VisualSettings } from '../services/visualSettings'
 /* eslint-disable react-hooks/immutability -- React Three Fiber requires imperative scene, renderer, and frame-state updates. */
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF, useProgress, useTexture } from '@react-three/drei'
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ElementRef, type RefObject } from 'react'
+import { ContactShadows, MeshReflectorMaterial, useGLTF, useProgress, useTexture } from '@react-three/drei'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { BackSide, Box3, Color, DoubleSide, FrontSide, Mesh, MeshDepthMaterial, MeshStandardMaterial, RGBADepthPacking, Raycaster, NoColorSpace, RepeatWrapping, LinearFilter, LinearMipmapLinearFilter, Vector2, Vector3, type Material, type Object3D, type PerspectiveCamera } from 'three'
-import type { Vehicle } from '../domain/schemas'
+import type { Vehicle, HotspotMode } from '../domain/schemas'
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
+import { HotspotCamera } from './HotspotCamera'
+import { sidebarWidth } from './hotspotCamera'
 import { CameraMotionBlur } from './CameraMotionBlur'
 import { SceneReadiness } from './SceneReadiness'
 import { AddonTransition } from './AddonTransition'
 import { applyAddonDissolve, createAddonUniforms } from './addonDissolve'
 
-type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; qualityTier?: 'standard' | 'high'; visual?: VisualSettings; showPerformanceStats?: boolean; onHotspot: (id: string | null) => void; onExit: () => void; onReadyChange: (ready: boolean) => void; onProgress: (progress: number) => void }
+type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; hotspotMode?: HotspotMode; qualityTier?: 'standard' | 'high'; visual?: VisualSettings; showPerformanceStats?: boolean; onHotspot: (id: string | null) => void; onExit: () => void; onReadyChange: (ready: boolean) => void; onProgress: (progress: number) => void }
 type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
-type OrbitHandle = ElementRef<typeof OrbitControls>
 const STUDIO_HORIZON = '#9254b1'
 const STUDIO_FOG_NEAR = 18
 const STUDIO_FOG_FAR = 90
 const DEFAULT_POSITION = new Vector3(7.1, 2.8, 9.2)
 const DEFAULT_TARGET = new Vector3(-.6, 2.0, 0)
 
-function CameraController({ statusRef, reducedMotion }: { statusRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
-  const controls = useRef<OrbitHandle>(null)
-  useFrame(({ camera }) => {
-    const status = statusRef.current
-    if (!status || !controls.current) return
-    status.dataset.cameraPosition = camera.position.toArray().map(value => value.toFixed(4)).join(',')
-    status.dataset.cameraTarget = controls.current.target.toArray().map(value => value.toFixed(4)).join(',')
-    status.dataset.cameraDistance = camera.position.distanceTo(controls.current.target).toFixed(4)
-
-  })
-  // Hotspots never change the camera or target: the user's orbit and zoom are preserved.
-  return <OrbitControls ref={controls} enablePan={false} enableDamping={!reducedMotion} dampingFactor={.085} minDistance={5.5} maxDistance={16} minPolarAngle={.55} maxPolarAngle={1.535} target={DEFAULT_TARGET} />
-}
 
 function StudioSky() {
   return <mesh renderOrder={-1}>
@@ -115,7 +103,7 @@ function StudioGround({ visual }: { visual: VisualSettings }) {
   </mesh>
 }
 
-function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef, onHotspot, reducedMotion }: Omit<Props, 'onExit'> & { markers: MarkerRefs; stageRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
+function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef, onHotspot, hotspotMode = 'in-place', modelOffsetRef, sidebarReady, reducedMotion }: Omit<Props, 'onExit'> & { markers: MarkerRefs; sidebarReady: boolean; modelOffsetRef: RefObject<Vector3>; stageRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
   const faultMode = new URLSearchParams(window.location.search).get('fault')
   const gltf = useGLTF(faultMode === 'model' ? '/assets/corrupted-demo.glb' : vehicle.modelUrl)
   const [addonUniforms] = useState(() => createAddonUniforms(addonVisible))
@@ -174,10 +162,13 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
     const center = box.getCenter(new Vector3())
     return new Vector3(-center.x, -box.min.y, -center.z)
   }, [box])
-  const scratch = useMemo(() => ({ world: new Vector3(), ndc: new Vector3(), pointer: new Vector2(), ray: new Raycaster(), elapsed: Infinity }), [])
+  const selectedMode = vehicle.hotspots.find(hotspot => hotspot.id === activeHotspot)?.mode ?? hotspotMode
+  const sidebarOpen = !!activeHotspot && selectedMode === 'zoom-sidebar'
+  const scratch = useMemo(() => ({ world: new Vector3(), ndc: new Vector3(), pointer: new Vector2(), ray: new Raycaster(), elapsed: Infinity, heights: new Map<string, number>(), morphs: new Map<string, number>() }), [])
   const { camera, size, gl, invalidate } = useThree()
   const closedOccluded = useRef<string | null>(null)
   useEffect(() => {
+    modelOffsetRef.current.copy(modelOffset)
     gl.shadowMap.needsUpdate = true
     invalidate()
     if (stageRef.current) {
@@ -185,13 +176,18 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
       stageRef.current.dataset.modelReady = 'true'
       stageRef.current.dataset.modelNodes = JSON.stringify(scene.children.map(node => ({ name: node.name, type: node.type, visible: node.visible, children: node.children.map(child => ({ name: child.name, visible: child.visible })) })))
     }
-  }, [addonVisible, box, gl, invalidate, modelOffset, scene, stageRef, vehicle.addons])
+  }, [addonVisible, box, gl, invalidate, modelOffset, modelOffsetRef, scene, stageRef, vehicle.addons])
 
   useFrame((_, delta) => {
     scratch.elapsed += delta
     const checkOcclusion = scratch.elapsed >= .05
     if (checkOcclusion) { scratch.elapsed = 0; scene.updateWorldMatrix(true, true) }
     if (!activeHotspot) closedOccluded.current = null
+    // Batch layout reads before moving any marker to avoid a forced layout per hotspot.
+    for (const hotspot of vehicle.hotspots) {
+      const body = markers.current.get(hotspot.id)?.querySelector<HTMLElement>('.hotspot-description > div')
+      scratch.heights.set(hotspot.id, 42 + (body?.scrollHeight ?? 0))
+    }
     for (const hotspot of vehicle.hotspots) {
       const element = markers.current.get(hotspot.id)
       if (!element) continue
@@ -199,9 +195,35 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
       scratch.ndc.copy(scratch.world).project(camera)
       const left = (scratch.ndc.x * .5 + .5) * size.width
       const top = (-scratch.ndc.y * .5 + .5) * size.height
-      element.style.left = `${left}px`
-      element.style.top = `${top}px`
-      const panelWidth = Math.min(360, size.width - 32)
+      const selectedSidebar = sidebarOpen && activeHotspot === hotspot.id
+      const sidebar = selectedSidebar && sidebarReady
+      const panelWidth = selectedSidebar ? sidebarWidth(size.width) : Math.min(360, size.width - 32)
+      const before = scratch.morphs.get(hotspot.id) ?? 0
+      const destination = sidebar ? 1 : 0
+      const step = reducedMotion ? 1 : Math.min(delta, .05) / .65
+      const progress = destination > before ? Math.min(1, before + step) : Math.max(0, before - step)
+      scratch.morphs.set(hotspot.id, progress)
+      const ease = progress * progress * (3 - 2 * progress)
+      if (before > 0 || progress > 0 || sidebar) {
+        const width = sidebarWidth(size.width)
+        const height = Math.max(160, size.height - (size.width < 700 ? 214 : 134))
+        element.style.transition = 'opacity .5s linear'
+        element.style.left = `${left + (size.width - width - 24 - left) * ease}px`
+        element.style.top = `${top + (24 - top) * ease}px`
+        element.style.width = `${42 + (width - 42) * ease}px`
+        element.style.height = `${42 + (height - 42) * ease}px`
+        element.style.transform = `translate(${-21 * (1 - ease)}px, ${-21 * (1 - ease)}px)`
+        element.style.backgroundColor = '#fff'
+      } else {
+        element.style.left = `${left}px`; element.style.top = `${top}px`
+        element.style.width = ''; element.style.height = ''; element.style.transform = ''
+        element.style.transition = ''; element.style.backgroundColor = ''
+      }
+      element.dataset.morphProgress = String(progress)
+      if (progress !== destination) invalidate()
+      element.style.setProperty('--hotspot-width', `${panelWidth}px`)
+      element.style.setProperty('--sidebar-height', `${Math.max(160, size.height - (size.width < 700 ? 214 : 134))}px`)
+      element.style.setProperty('--hotspot-open-height', `${scratch.heights.get(hotspot.id)}px`)
       element.style.setProperty('--hotspot-shift', `${Math.min(0, size.width - 16 - (left - 21 + panelWidth))}px`)
       element.style.setProperty('--hotspot-rise', `${Math.min(0, size.height - 390 - top)}px`)
       if (!checkOcclusion) continue
@@ -215,14 +237,15 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
       })
       const occluded = Boolean(firstHit && firstHit.distance < distance - .14)
       const inside = scratch.ndc.z > -1 && scratch.ndc.z < 1 && Math.abs(scratch.ndc.x) <= 1 && Math.abs(scratch.ndc.y) <= 1
-      const visible = inside && !occluded
+      const transitioning = stageRef.current?.dataset.cameraTransitioning === 'true'
+      const visible = selectedSidebar || (inside && !occluded && (!sidebarOpen || activeHotspot === hotspot.id))
       element.style.opacity = visible ? '1' : '0'
       element.style.pointerEvents = visible ? 'auto' : 'none'
       element.inert = !visible
       element.setAttribute('aria-hidden', String(!visible))
       element.dataset.occluded = String(occluded)
       element.dataset.visible = String(visible)
-      if (!visible && activeHotspot === hotspot.id && closedOccluded.current !== hotspot.id) {
+      if ((!inside || occluded) && !transitioning && activeHotspot === hotspot.id && closedOccluded.current !== hotspot.id) {
         closedOccluded.current = hotspot.id
         onHotspot(null)
       }
@@ -261,6 +284,18 @@ export function ModelStage(props: Props) {
   useEffect(() => { props.onProgress(loadingAssets ? Math.min(90, assetProgress * .9) : 90) }, [loadingAssets, assetProgress, props.onProgress])
   const [contextLost, setContextLost] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const modelOffsetRef = useRef(new Vector3())
+  const activeDefinition = props.vehicle.hotspots.find(hotspot => hotspot.id === props.activeHotspot)
+  const activeMode = activeDefinition?.mode ?? props.hotspotMode ?? 'in-place'
+  const sidebarOpen = !!activeDefinition && activeMode === 'zoom-sidebar'
+  const [sidebarReadyId, setSidebarReadyId] = useState<string | null>(null)
+  const sidebarReady = sidebarOpen && sidebarReadyId === props.activeHotspot
+  const [sidebarTransitionId, setSidebarTransitionId] = useState<string | null>(null)
+  useEffect(() => {
+    if (sidebarReady) { setSidebarTransitionId(props.activeHotspot); return }
+    const timer = window.setTimeout(() => setSidebarTransitionId(null), 650)
+    return () => clearTimeout(timer)
+  }, [sidebarReady, props.activeHotspot])
   const markers = useRef(new Map<string, HTMLDivElement>())
   const stageRef = useRef<HTMLDivElement>(null)
   const injectedWebglFault = useRef(false)
@@ -272,12 +307,37 @@ export function ModelStage(props: Props) {
   }, [])
   useEffect(() => {
     if (!props.activeHotspot) return
-    const dismiss = (event: PointerEvent) => { if (!(event.target instanceof Element) || !event.target.closest('.vehicle-hotspot')) props.onHotspot(null) }
+    const pointers = new Map<number, { x: number; y: number }>()
+    let dragged = false
+    const dismiss = (event: PointerEvent) => {
+      if (event.target instanceof Element && event.target.closest('.vehicle-hotspot')) return
+      if (activeMode === 'in-place' || !(event.target instanceof HTMLCanvasElement)) { props.onHotspot(null); return }
+      if (pointers.size) dragged = true
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    }
+    const move = (event: PointerEvent) => {
+      const start = pointers.get(event.pointerId)
+      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) dragged = true
+    }
+    const release = (event: PointerEvent) => {
+      if (!pointers.has(event.pointerId)) return
+      const start = pointers.get(event.pointerId)!
+      if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) dragged = true
+      pointers.delete(event.pointerId)
+      if (!pointers.size) { if (!dragged && event.type !== 'pointercancel') props.onHotspot(null); dragged = false }
+    }
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') props.onHotspot(null) }
     document.addEventListener('pointerdown', dismiss)
+    document.addEventListener('pointermove', move)
+    document.addEventListener('pointerup', release)
+    document.addEventListener('pointercancel', release)
     document.addEventListener('keydown', escape)
-    return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', escape) }
-  }, [props.activeHotspot, props.onHotspot])
+    return () => {
+      document.removeEventListener('pointerdown', dismiss); document.removeEventListener('pointermove', move)
+      document.removeEventListener('pointerup', release); document.removeEventListener('pointercancel', release)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [props.activeHotspot, props.onHotspot, activeMode])
 
   if (contextLost) return <section className="model-failure" role="alert"><p className="eyebrow">3D MODULE INTERRUPTED</p><h2>The vehicle view needs to restart.</h2><p>Your selected configuration is preserved. Retry the renderer or return to the hub.</p><div><button className="primary-cta" onClick={() => { props.onReadyChange(false); props.onProgress(90); setContextLost(false) }}>Retry 3D view <span>↻</span></button><button className="recovery-back" onClick={props.onExit}>Return to hub</button></div></section>
 
@@ -302,21 +362,22 @@ export function ModelStage(props: Props) {
       <pointLight position={[-1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
       <pointLight position={[1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
       <Suspense fallback={null}>
-        <VehicleModel {...props} reducedMotion={reducedMotion} markers={markers} stageRef={stageRef} />
+        <VehicleModel {...props} reducedMotion={reducedMotion} markers={markers} modelOffsetRef={modelOffsetRef} sidebarReady={sidebarReady} stageRef={stageRef} />
         <StudioGround visual={visual} />
         <ContactShadows key={String(props.addonVisible)} position={[0, .005, 0]} opacity={.48} scale={16} blur={2.8} far={7} color="#30143e" frames={1} resolution={256} />
         <SceneReadiness onReady={props.onReadyChange} onProgress={props.onProgress} />
       </Suspense>
-      <CameraController statusRef={stageRef} reducedMotion={reducedMotion} />
+      <HotspotCamera onFocusReady={setSidebarReadyId} vehicle={props.vehicle} activeHotspot={props.activeHotspot} mode={props.hotspotMode ?? 'in-place'} modelOffset={modelOffsetRef} statusRef={stageRef} reducedMotion={reducedMotion} />
       <ShadowQuality resolution={visual.shadowResolution} />
       <CameraMotionBlur visual={visual} showPerformanceStats={props.showPerformanceStats ?? false} reducedMotion={reducedMotion} statusRef={stageRef} />
     </Canvas>
     {props.vehicle.hotspots.map(hotspot => {
       const open = props.activeHotspot === hotspot.id
+      const sidebar = open && sidebarReady
       const panelId = `hotspot-${hotspot.id}`
-      return <div key={hotspot.id} ref={element => { if (element) markers.current.set(hotspot.id, element); else markers.current.delete(hotspot.id) }} className={`vehicle-hotspot ${open ? 'is-open' : ''}`} data-hotspot-id={hotspot.id}>
+      return <div key={hotspot.id} ref={element => { if (element) markers.current.set(hotspot.id, element); else markers.current.delete(hotspot.id) }} className={`vehicle-hotspot ${open && (!sidebarOpen || sidebarReady) ? 'is-open' : ''} ${sidebar ? 'is-sidebar' : ''} ${sidebarTransitionId === hotspot.id ? 'is-morphing' : ''}`} data-hotspot-id={hotspot.id}>
         <button className="hotspot-header" aria-label={`${open ? 'Close' : 'Open'} hotspot ${hotspot.label}`} aria-expanded={open} aria-controls={panelId} onClick={() => props.onHotspot(open ? null : hotspot.id)}><span className="accordion-icon" aria-hidden="true" /><span className="hotspot-title-text">{hotspot.label}</span></button>
-        <div id={panelId} className="hotspot-description" aria-hidden={!open} inert={!open}><div><p>{hotspot.description}</p><small>Demonstration content</small></div></div>
+        <div id={panelId} role={sidebar ? 'region' : undefined} aria-label={sidebar ? `${hotspot.label} details` : undefined} className="hotspot-description" aria-hidden={!open || (sidebarOpen && !sidebarReady)} inert={!open || (sidebarOpen && !sidebarReady)}><div tabIndex={sidebar ? 0 : undefined}><p>{hotspot.description}</p>{sidebar && hotspot.details?.map(section => <section className="hotspot-detail-section" key={section.heading}><h3>{section.heading}</h3><p>{section.text}</p></section>)}<small>Demonstration content</small></div></div>
       </div>
     })}
   </div>

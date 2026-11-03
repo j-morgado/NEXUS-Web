@@ -1,13 +1,14 @@
 import { visualSettingsSchema, visualPresets } from './visualSettings'
 import { openDB } from 'idb'
 import { z } from 'zod'
-import { eventConfigSchema, type EventConfig } from '../domain/schemas'
+import { eventConfigSchema, hotspotModeSchema, type EventConfig } from '../domain/schemas'
 import { seedEventConfig } from '../content/seed'
 
 const operatorSettingsSchema = z.object({
   inactivitySeconds: z.number().int().min(30).max(900),
   qualityTier: z.enum(['low', 'standard', 'high', 'custom']),
   visual: visualSettingsSchema.optional(),
+  hotspotMode: hotspotModeSchema.default('in-place'),
   showPerformanceStats: z.boolean().default(false),
   updateChecksEnabled: z.boolean(),
   locallyDisabledModuleIds: z.array(z.string()),
@@ -43,6 +44,7 @@ export const defaultSettings: OperatorSettings = {
   inactivitySeconds: 60,
   qualityTier: 'standard',
   visual: visualPresets.standard,
+  hotspotMode: 'in-place',
   showPerformanceStats: false,
   updateChecksEnabled: true,
   locallyDisabledModuleIds: [],

@@ -4,9 +4,9 @@ The supplied purple studio reference informs the procedural sky gradient, horizo
 
 ## Behavior
 
-- A single HUB button at the bottom left replaces the obsolete top navigation. The vehicle title sits at the top left; the rotation/zoom instruction line is removed.
+- A single Return to Hub button at the bottom left replaces the obsolete top navigation. The vehicle title sits at the top left; the rotation/zoom instruction line is removed.
 - Configuration has three mutually exclusive, toggle-off add-ons. The default is bare. Add-on 1 controls the actual attachment; Add-ons 2/3 are explicitly labeled placeholders and remove the real attachment when selected.
-- Four projected markers expand in place into purple-header panels. Selection does not modify the camera or orbit target. Only one panel opens; outside pointer input, Escape, and occlusion close it. Occluded markers become inert immediately and fade visually over one second.
+- Four projected markers support In place (default), Zoom in place, and Zoom side bar modes. In place preserves the camera. Zoom modes use a bounded close-up and restore the prior view on dismissal; canvas drags are distinguished from outside clicks. Only one panel opens; outside clicks, Escape, the minus button, and occlusion close it. Occluded markers become inert immediately and fade visually over half a second.
 - Camera motion blur uses five depth-reprojected samples capped at two physical pixels. It runs only during camera movement and is disabled for reduced motion. When stationary the same output pass uses a single unblurred sample, keeping fog and sky color processing consistent.
 
 ## Asset inspection and corrections
@@ -46,3 +46,14 @@ The user-supplied 1024×1024 JPEG roughness and normal maps now replace the gene
 The HUB action shares the hub-page Explorer button geometry: 186×50px pill, 24px left/20px bottom placement, 16px typography, and arrow spacing. HUB uses a leading left-pointing arrow before its label. Its dark variant uses a purple fill with white text/border and the existing dark hover palette. Narrow-screen configuration controls sit above the navigation row to prevent overlap.
 
 Ambient occlusion uses a 16-sample depth-reconstructed hemisphere (0.38-unit radius, 0.018 bias) at half render resolution, with edge-aware filtering and a subtle 45% blend before output tone mapping. It reuses the existing scene depth so alpha cutouts and add-on dissolve visibility remain consistent. The effect fades with distance before the fog horizon and stays active with reduced motion. It adds no geometry pass or idle animation loop; its render target and shader are disposed with the output pipeline. Build and 19 unit tests pass; software WebGL front/rear captures show no shader or browser errors. Target-device frame rates remain unmeasured.
+
+
+## Hotspot modes
+
+Use **Dev Options → Hotspots → Preview mode** to try all three modes on the existing JLTV markers. This device preference is the fallback; content can specify a per-hotspot `mode` of `in-place`, `zoom-in-place`, or `zoom-sidebar`. Existing content without a mode continues to use In place by default. Optional `details: [{ heading, text }]` sections appear in the sidebar and can scroll.
+
+Zoom modes approach the selected model-space anchor from the currently visible side at a nominal 2.8-unit distance. Once the camera arrives, orbit is limited to ±0.22 radians horizontally and ±0.16 vertically, and zoom to 2.35–3.25 units. Pan remains disabled. Closing restores the original position, target, unrestricted orbit bounds, and projection; interrupted transitions retain the original return view. Reduced motion jumps directly to the destination.
+
+Zoom side bar first settles the close-up, then morphs the same marker element into a purple-header right panel, hides the other markers and the vehicle heading, and shifts camera framing left to keep the selected area clear of the panel. Camera and morph advance with demand-rendered frames, with nominal 650ms durations each. Text retains its final layout and is clipped/revealed, never scaled. A narrower phone sidebar keeps a visible camera area and stays above navigation/configuration controls. Raycast dismissal is suspended only during camera transitions.
+
+Build and 29 unit tests pass. `scripts/hotspot-modes-e2e.mjs` passes on the actual software-WebGL scene: unchanged In place camera, bounded close-up movement, drag retention, Escape/outside dismissal, original-view restoration, intermediate morph widths, same-marker identity, purple header, hidden other markers, desktop/phone bounds and no shader/browser errors. Physical target-device performance remains unmeasured.

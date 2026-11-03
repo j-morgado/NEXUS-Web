@@ -17,10 +17,15 @@ export const productSchema = z.object({
   isFiller: z.boolean(),
 })
 
+export const hotspotModeSchema = z.enum(['in-place', 'zoom-in-place', 'zoom-sidebar'])
+export type HotspotMode = z.infer<typeof hotspotModeSchema>
+
 export const hotspotSchema = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string(),
+  mode: hotspotModeSchema.optional(),
+  details: z.array(z.object({ heading: z.string(), text: z.string() })).optional(),
   position: z.tuple([z.number(), z.number(), z.number()]),
   camera: z.object({ position: z.tuple([z.number(), z.number(), z.number()]), target: z.tuple([z.number(), z.number(), z.number()]) }),
 })

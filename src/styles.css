@@ -1860,3 +1860,17 @@ footer {
 .dev-options output { float: right; color: #cdb8f5; font-size: 12px; }
 .dev-update-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .performance-stats { position: fixed; z-index: 90; top: 12px; right: 12px; display: grid; gap: 5px; padding: 12px 16px; background: rgba(17,5,48,.88); color: #fff; font: 12px/1.4 monospace; border: 1px solid #734cdd; pointer-events: none; }
+
+.vehicle-hotspot { height: 42px; transition: opacity .5s linear, width 160ms cubic-bezier(.4,0,.2,1), height 160ms cubic-bezier(.4,0,.2,1), transform 160ms cubic-bezier(.4,0,.2,1); }
+.vehicle-hotspot.is-open { height: var(--hotspot-open-height, 42px); }
+.vehicle-hotspot.is-morphing, .vehicle-hotspot.is-sidebar { transition: opacity .5s linear, left 650ms cubic-bezier(.4,0,.2,1), top 650ms cubic-bezier(.4,0,.2,1), width 650ms cubic-bezier(.4,0,.2,1), height 650ms cubic-bezier(.4,0,.2,1), transform 650ms cubic-bezier(.4,0,.2,1); }
+.vehicle-hotspot.is-sidebar { width: 42px; height: 42px; transform: translate(-21px,-21px); background: #fff; }
+.is-sidebar .hotspot-header { flex-shrink: 0; }
+.is-sidebar .hotspot-description { display: block; height: calc(100% - 42px); }
+.is-sidebar .hotspot-description > div { height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+.hotspot-detail-section h3 { padding: 12px 24px 0; margin: 0; font-size: 16px; color: #734cdd; }
+.hotspot-detail-section p { padding-top: 10px; }
+@media (max-width: 699px) { .is-sidebar .hotspot-title-text { font-size: 11px; white-space: normal; } .is-sidebar .hotspot-description p { padding: 16px 14px; font-size: 13px; } .is-sidebar .hotspot-description small { padding: 0 14px 16px; } }
+@media (prefers-reduced-motion: reduce) { .vehicle-hotspot.is-morphing, .vehicle-hotspot.is-sidebar { transition: none; } }
+.experience-content:has(.vehicle-hotspot.is-sidebar) .vehicle-heading { opacity: 0; pointer-events: none; }
+.configurator .vehicle-heading { transition: opacity 300ms ease; }
