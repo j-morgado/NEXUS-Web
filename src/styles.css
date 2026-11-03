@@ -1874,3 +1874,8 @@ footer {
 @media (prefers-reduced-motion: reduce) { .vehicle-hotspot.is-morphing, .vehicle-hotspot.is-sidebar { transition: none; } }
 .experience-content:has(.vehicle-hotspot.is-sidebar) .vehicle-heading { opacity: 0; pointer-events: none; }
 .configurator .vehicle-heading { transition: opacity 300ms ease; }
+
+.dev-update-actions button { min-height: 44px; padding: 10px 16px; border: 1px solid #a7a3fe; border-radius: 6px; background: #734cdd; color: #fff; font-size: 14px; font-weight: 600; }
+.dev-update-actions button:enabled:is(:hover, :active) { background: #fccfff; border-color: #fccfff; color: #251846; filter: none; }
+.dev-options .dev-update-actions button:disabled { background: #30253f; border-color: #76638c; color: #e0d6ec; opacity: 1; }
+.dev-update-actions button:focus-visible { outline: 3px solid #fccfff; outline-offset: 3px; }
