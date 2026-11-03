@@ -18,7 +18,7 @@ export function Configurator({ onExit, qualityTier = 'standard', managedLoading 
   return <main id="main-content" className="configurator" aria-busy={!sceneReady}>
     {!managedLoading && !sceneReady && <LoadingScreen progress={loadingProgress} />}
     <div className={`experience-content ${sceneReady ? 'is-ready' : ''}`} data-ready={sceneReady} aria-hidden={!sceneReady} inert={!sceneReady}>
-    <nav className="experience-navigation" aria-label="Experience navigation"><button className="experience-hub" onClick={onExit}><span aria-hidden="true">←</span> HUB</button></nav>
+    <nav className="experience-navigation" aria-label="Experience navigation"><button className="experience-hub" onClick={onExit}><span aria-hidden="true">←</span> Return to Hub</button></nav>
     <ModelStage vehicle={seedVehicle} addonVisible={activeAddon === 1} activeHotspot={activeHotspot} qualityTier={qualityTier} onHotspot={setActiveHotspot} onExit={onExit} onReadyChange={setSceneReady} onProgress={setLoadingProgress} />
     <section className="vehicle-heading"><p className="eyebrow">TACTICAL VEHICLE · INTERACTIVE MODEL</p><h1>JLTV</h1></section>
     <aside className="configuration-controls" aria-label="Vehicle configuration">

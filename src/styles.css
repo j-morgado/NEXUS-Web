@@ -1161,7 +1161,7 @@ footer {
 .hub-explorer, .experience-hub { display: inline-flex; align-items: center; justify-content: space-between; gap: 20px; width: 186px; height: 50px; padding: 10px 30px; border: 2px solid #251846; border-radius: 50px; background: #fff; color: #251846; font-size: 16px; line-height: 22px; font-weight: 600; text-transform: uppercase; box-shadow: var(--button-shadow); }
 .hub-explorer { position: absolute; z-index: 4; left: 24px; bottom: 20px; }
 .hub-explorer span, .experience-hub span { display: inline-block; width: 1em; margin: 0; }
-.experience-hub { border-color: #fff; background: #251846; color: #fff; }
+.experience-hub { width: max-content; min-width: 260px; white-space: nowrap; border-color: #fff; background: #251846; color: #fff; }
 .experience-hub:enabled:is(:hover,:active) { border-color: var(--button-outline-hover); color: var(--button-outline-hover); background: #251846; box-shadow: var(--button-shadow-hover); filter: none; }
 
 .catalog-explorer { position: relative; height: 100svh; overflow: hidden; display: flex; flex-direction: column; background: #110530; color: #fff; }

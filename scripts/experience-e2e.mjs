@@ -106,6 +106,6 @@ try {
   const renderer = await canvas.evaluate(element => { const gl = element.getContext('webgl2'); const info = gl?.getExtension('WEBGL_debug_renderer_info'); return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : 'unavailable' })
   console.log(JSON.stringify({ renderer, telemetry: await read(), browserErrors: errors }, null, 2))
   assert.deepEqual(errors, [])
-  await page.getByRole('button', { name: /^HUB$/ }).click()
+  await page.getByRole('button', { name: /^Return to Hub$/ }).click()
   await page.getByRole('heading', { name: 'Choose an Experience' }).waitFor()
 } finally { await browser.close() }
