@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { CatalogMedia } from '../content/catalog'
 
 type Props = { media: CatalogMedia; items: CatalogMedia[]; onSelect: (media: CatalogMedia) => void; onClose: () => void }
@@ -8,6 +8,8 @@ export function MediaViewer({ media, items, onSelect, onClose }: Props) {
   const titleId = useId()
   const frameRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
+  const panRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const [zoom, setZoom] = useState(100)
@@ -46,6 +48,31 @@ export function MediaViewer({ media, items, onSelect, onClose }: Props) {
     }
   }, [zoom, media.id])
 
+  const startPan = (event: PointerEvent<HTMLDivElement>) => {
+    const viewport = event.currentTarget
+    // Touch keeps native scrolling and momentum; pointer capture keeps mouse drags
+    // attached to the viewer even when the cursor leaves its bounds.
+    if (media.kind === 'video' || zoom <= 100 || event.button !== 0 || event.pointerType === 'touch') return
+    if (viewport.scrollWidth <= viewport.clientWidth && viewport.scrollHeight <= viewport.clientHeight) return
+    event.preventDefault()
+    viewport.focus({ preventScroll: true })
+    viewport.setPointerCapture(event.pointerId)
+    panRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop }
+    setDragging(true)
+  }
+  const movePan = (event: PointerEvent<HTMLDivElement>) => {
+    const pan = panRef.current
+    if (!pan || pan.pointerId !== event.pointerId) return
+    event.currentTarget.scrollLeft = pan.left - (event.clientX - pan.x)
+    event.currentTarget.scrollTop = pan.top - (event.clientY - pan.y)
+  }
+  const endPan = (event: PointerEvent<HTMLDivElement>) => {
+    if (panRef.current?.pointerId !== event.pointerId) return
+    panRef.current = null
+    setDragging(false)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
   const toggleFullscreen = async () => {
     if (document.fullscreenElement === frameRef.current) { await document.exitFullscreen(); return }
     if (expanded) { setExpanded(false); return }
@@ -83,7 +110,7 @@ export function MediaViewer({ media, items, onSelect, onClose }: Props) {
   }}>
     <header><h2 id={titleId}>{media.name}</h2><p>{media.description}</p></header>
     <div ref={frameRef} className={`media-viewer ${expanded ? 'is-expanded' : ''}`} role="region" aria-label={`${media.name} viewing area`}>
-      <div className="media-viewport" ref={viewportRef} role={media.kind === 'video' ? undefined : 'region'} tabIndex={media.kind === 'video' ? undefined : 0} aria-label={media.kind === 'video' ? undefined : 'Zoomed media, scroll to pan'}>
+      <div className={`media-viewport ${media.kind !== 'video' && zoom > 100 ? 'is-pannable' : ''} ${dragging ? 'is-panning' : ''}`} ref={viewportRef} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan} onLostPointerCapture={endPan} onDragStart={event => event.preventDefault()} role={media.kind === 'video' ? undefined : 'region'} tabIndex={media.kind === 'video' ? undefined : 0} aria-label={media.kind === 'video' ? undefined : 'Zoomed media, drag or scroll to pan'}>
         {media.kind === 'video' ? <div className="media-video-stage">
           <video key={media.id} ref={videoRef} src="/assets/nexus-placeholder-loop.mp4" playsInline preload="metadata" aria-label={media.name}
             onLoadedMetadata={event => setDuration(Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0)}

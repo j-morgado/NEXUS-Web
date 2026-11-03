@@ -1739,3 +1739,6 @@ footer {
 @media (max-width: 900px) {
   .configurator .configuration-controls { bottom: 88px; }
 }
+
+.media-viewport.is-pannable { cursor: grab; user-select: none; }
+.media-viewport.is-panning { cursor: grabbing; }
