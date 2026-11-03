@@ -11,7 +11,7 @@ try {
    const button=opening?document.querySelector('.media-grid > button'):document.querySelector('.lightbox-close')
    button.click()
    await new Promise(resolve=>{
-    function tick(){const panel=document.querySelector('.media-lightbox'),overlay=document.querySelector('.media-overlay');if(panel)values.push({opacity:Number(getComputedStyle(panel).opacity),blur:parseFloat(getComputedStyle(overlay).backdropFilter.replace('blur(',''))});if(performance.now()-start<550)requestAnimationFrame(tick);else resolve()}
+    function tick(){const panel=document.querySelector('.media-lightbox'),overlay=document.querySelector('.media-overlay');if(panel)values.push({opacity:Number(getComputedStyle(panel).opacity),blur:parseFloat(getComputedStyle(overlay).backdropFilter.replace('blur(',''))});if(performance.now()-start<1250)requestAnimationFrame(tick);else resolve()}
     requestAnimationFrame(tick)
    });return values
   },opening)

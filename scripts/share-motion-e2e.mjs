@@ -9,7 +9,7 @@ try {
  const open=async()=>{await page.getByRole('button',{name:/^Share/}).click();await page.locator('.share-overlay').waitFor()}
  await open()
  const frames=await page.locator('.share-overlay').evaluate(e=>{
-  const panel=e.querySelector('.share-lightbox');const backdrop=e.getAnimations()[0],content=panel.getAnimations()[0];backdrop.pause();content.pause();backdrop.currentTime=87.5;content.currentTime=87.5;
+  const panel=e.querySelector('.share-lightbox');const backdrop=e.getAnimations()[0],content=panel.getAnimations()[0];backdrop.pause();content.pause();backdrop.currentTime=262.5;content.currentTime=262.5;
   const result={opacity:Number(getComputedStyle(panel).opacity),blur:getComputedStyle(e).backdropFilter,bg:getComputedStyle(e).backgroundColor};backdrop.finish();content.finish();return result
  })
  assert(frames.opacity>0&&frames.opacity<1);assert.notEqual(frames.blur,'blur(0px)');assert.notEqual(frames.blur,'blur(12px)')

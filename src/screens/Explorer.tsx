@@ -40,12 +40,12 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
     marketIntroTimer.current = window.setTimeout(() => {
       marketsIntroduced.current = true
       setOpenMarket(catalogMarkets[0].id)
-    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 210 + (catalogMarkets.length - 1) * 35)
+    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 630 + (catalogMarkets.length - 1) * 105)
     return () => clearTimeout(marketIntroTimer.current)
   }, [active])
   useEffect(() => {
     if (!active) return
-    featureIntroTimer.current = window.setTimeout(() => setOpenFeature(0), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 210 + (product.features.length - 1) * 35)
+    featureIntroTimer.current = window.setTimeout(() => setOpenFeature(0), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 630 + (product.features.length - 1) * 105)
     return () => clearTimeout(featureIntroTimer.current)
   }, [active, product.id, product.features.length])
   useEffect(() => {
@@ -63,7 +63,7 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
       setOverlay('none')
       setOverlayClosing(false)
       if (overlay !== 'media') shareTriggerRef.current?.focus({ preventScroll: true })
-    }, reduced ? 0 : overlay === 'media' ? 300 : 150)
+    }, reduced ? 0 : overlay === 'media' ? 900 : 450)
     return () => clearTimeout(timer)
   }, [overlayClosing, overlay])
   const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setOpenFeature(-1); setOverlay('none'); setOverlayClosing(false) }
@@ -87,7 +87,7 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
       <div className="market-accordion">{catalogMarkets.map((market, marketIndex) => {
         const expanded = openMarket === market.id
         const panelId = `${accordionId}-market-${market.id}`
-        return <section key={market.id} className="market-entrance" style={{ '--entrance-delay': `${marketIndex * 35}ms` } as CSSProperties}>
+        return <section key={market.id} className="market-entrance" style={{ '--entrance-delay': `${marketIndex * 105}ms` } as CSSProperties}>
           <button className="market-toggle" aria-expanded={expanded} aria-controls={panelId} onClick={() => { clearTimeout(marketIntroTimer.current); marketsIntroduced.current = true; setOpenMarket(current => current === market.id ? '' : market.id) }}><span>{market.name}</span><b className="accordion-icon" aria-hidden="true" /></button>
           <div id={panelId} className={`accordion-panel ${expanded ? 'is-open' : ''}`} aria-hidden={!expanded} inert={!expanded}>
             <div className="accordion-content"><div className="product-list">{market.products.map((item) => <button key={item.id} className={product.id === item.id ? 'selected' : ''} onClick={() => chooseProduct(item)}><i style={{ background: item.media[0].accent }} /><span><strong>{item.name}</strong><small>{item.designation}</small></span></button>)}</div></div>
@@ -100,7 +100,7 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
       <div className="catalog-lower"><section key={`features-${product.id}`} className="catalog-features" aria-label="Product features">{product.features.map((feature, index) => {
         const expanded = openFeature === index
         const panelId = `${accordionId}-feature-${index}`
-        return <article className="catalog-feature" key={feature.name} style={{ '--entrance-delay': `${index * 35}ms` } as CSSProperties}>
+        return <article className="catalog-feature" key={feature.name} style={{ '--entrance-delay': `${index * 105}ms` } as CSSProperties}>
           <button aria-expanded={expanded} aria-controls={panelId} onClick={() => { clearTimeout(featureIntroTimer.current); setOpenFeature(current => current === index ? -1 : index) }}><span>{feature.name}</span><b className="accordion-icon" aria-hidden="true" /></button>
           <div id={panelId} className={`accordion-panel ${expanded ? 'is-open' : ''}`} aria-hidden={!expanded} inert={!expanded}><div className="accordion-content"><p>{feature.description}</p></div></div>
         </article>
