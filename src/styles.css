@@ -1158,8 +1158,11 @@ footer {
 .hub-arrows { flex: 0 0 60px; display: flex; justify-content: center; gap: 54px; margin-right: 7.25vw; }
 .hub-arrows button { border: 0; background: transparent; color: rgba(255,255,255,.72); font-size: 52px; font-weight: 200; min-width: 60px; min-height: 60px; line-height: 1; cursor: pointer; }
 .hub-arrows button:disabled { opacity: .3; cursor: default; }
-.hub-explorer { position: absolute; z-index: 4; left: 24px; bottom: 20px; min-height: 50px; padding: 10px 30px; border: 2px solid #251846; border-radius: 50px; background: #fff; color: #251846; font-weight: 600; text-transform: uppercase; }
-.hub-explorer span { margin-left: 20px; }
+.hub-explorer, .experience-hub { display: inline-flex; align-items: center; justify-content: space-between; gap: 20px; width: 186px; height: 50px; padding: 10px 30px; border: 2px solid #251846; border-radius: 50px; background: #fff; color: #251846; font-size: 16px; line-height: 22px; font-weight: 600; text-transform: uppercase; box-shadow: var(--button-shadow); }
+.hub-explorer { position: absolute; z-index: 4; left: 24px; bottom: 20px; }
+.hub-explorer span, .experience-hub span { display: inline-block; width: 1em; margin: 0; }
+.experience-hub { border-color: #fff; background: #251846; color: #fff; }
+.experience-hub:enabled:is(:hover,:active) { border-color: var(--button-outline-hover); color: var(--button-outline-hover); background: #251846; box-shadow: var(--button-shadow-hover); filter: none; }
 
 .catalog-explorer { position: relative; height: 100svh; overflow: hidden; display: flex; flex-direction: column; background: #110530; color: #fff; }
 .catalog-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 380px minmax(0, 1fr); overflow: hidden; }
@@ -1633,8 +1636,7 @@ footer {
 }
 
 /* Experience module: overlay controls stay clear of the vehicle's interaction area. */
-.experience-navigation { position: absolute; z-index: 15; left: 32px; bottom: 24px; }
-.experience-navigation .back-button { border: 2px solid #fff; border-radius: 50px; background: rgba(37,24,70,.72); padding: 10px 24px; }
+.experience-navigation { position: absolute; z-index: 15; left: 24px; bottom: 20px; }
 .configurator .vehicle-heading { z-index: 10; top: 36px; left: 4vw; bottom: auto; max-width: 48vw; }
 .configurator .vehicle-heading .eyebrow { color: #eed7ff; margin-bottom: 16px; }
 .configurator .vehicle-heading > p:last-child { color: #f1e6f9; font-size: 14px; line-height: 1.5; }
@@ -1658,8 +1660,6 @@ footer {
 .is-open .hotspot-description { grid-template-rows: 1fr; }
 .hotspot-header:enabled:is(:hover,:active) { background-color: #734cdd; color: #fff; filter: none; }
 @media (max-width: 620px) {
-  .experience-navigation { left: 16px; bottom: 18px; }
-  .experience-navigation .back-button { font-size: 12px; min-height: 44px; padding: 8px 16px; }
   .configurator .vehicle-heading { top: 82px; left: 20px; max-width: calc(100vw - 40px); }
   .configurator .vehicle-heading .eyebrow { font-size: 10px; margin-bottom: 8px; }
   .configurator .vehicle-heading h1 { font-size: 52px; }
@@ -1734,4 +1734,8 @@ footer {
   .catalog-hero-footer { gap: 14px; }
   .catalog-specs { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px 12px; }
   .catalog-hero-footer > button { padding: 10px 18px; gap: 12px; }
+}
+
+@media (max-width: 900px) {
+  .configurator .configuration-controls { bottom: 88px; }
 }
