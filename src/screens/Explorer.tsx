@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { MediaGallery } from '../components/MediaGallery'
 import { MediaViewer } from '../components/MediaViewer'
 import { catalogMarkets, type CatalogMedia, type CatalogProduct } from '../content/catalog'
@@ -14,11 +14,11 @@ function TouchKeyboard({ value, onChange }: { value: string; onChange: (value: s
   return <div className="touch-keyboard" aria-label="Touch keyboard">{rows.map((row) => <div key={row}>{[...row].map((key) => <button type="button" key={key} onClick={() => onChange(value + key)} aria-label={`Type ${key}`}>{key}</button>)}</div>)}<div><button type="button" className="key-wide" onClick={() => onChange(value.slice(0, -1))}>Backspace</button><button type="button" className="key-space" onClick={() => onChange(value + ' ')}>Space</button></div></div>
 }
 
-export function Explorer({ onExit }: { onExit: () => void }) {
+export function Explorer({ onExit, active = true }: { onExit: () => void; active?: boolean }) {
   const accordionId = useId()
-  const [openMarket, setOpenMarket] = useState('land')
+  const [openMarket, setOpenMarket] = useState('')
   const [product, setProduct] = useState(catalogMarkets[0].products[0])
-  const [openFeature, setOpenFeature] = useState(0)
+  const [openFeature, setOpenFeature] = useState(-1)
   const [shareClosing, setShareClosing] = useState(false)
   const shareTriggerRef = useRef<HTMLButtonElement>(null)
   const [overlay, setOverlay] = useState<Overlay>('none')
@@ -28,9 +28,25 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   const [activeField, setActiveField] = useState<'name' | 'email'>('name')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const marketIntroTimer = useRef<number | undefined>(undefined)
+  const featureIntroTimer = useRef<number | undefined>(undefined)
+  const marketsIntroduced = useRef(false)
   const closeRef = useRef<HTMLButtonElement>(null)
   const preview = useMemo(() => createEmailPreview(emailProduct(product)), [product])
   useEffect(() => { if (overlay !== 'none') closeRef.current?.focus() }, [overlay])
+  useEffect(() => {
+    if (!active || marketsIntroduced.current) return
+    marketIntroTimer.current = window.setTimeout(() => {
+      marketsIntroduced.current = true
+      setOpenMarket(catalogMarkets[0].id)
+    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 420 + (catalogMarkets.length - 1) * 70)
+    return () => clearTimeout(marketIntroTimer.current)
+  }, [active])
+  useEffect(() => {
+    if (!active) return
+    featureIntroTimer.current = window.setTimeout(() => setOpenFeature(0), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 420 + (product.features.length - 1) * 70)
+    return () => clearTimeout(featureIntroTimer.current)
+  }, [active, product.id, product.features.length])
   const closeShare = useCallback(() => setShareClosing(true), [])
   useEffect(() => {
     if (!shareClosing) return
@@ -42,7 +58,7 @@ export function Explorer({ onExit }: { onExit: () => void }) {
     }, reduced ? 0 : 300)
     return () => clearTimeout(timer)
   }, [shareClosing])
-  const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setOpenFeature(0); setOverlay('none'); setShareClosing(false) }
+  const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setOpenFeature(-1); setOverlay('none'); setShareClosing(false) }
   const openMedia = (media: CatalogMedia) => { setSelectedMedia(media); setOverlay('media') }
   const closeMedia = useCallback(() => setOverlay('none'), [])
   const submit = async () => {
@@ -57,14 +73,14 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   const keyboardValue = activeField === 'name' ? name : email
   const setKeyboardValue = activeField === 'name' ? setName : setEmail
 
-  return <main id="main-content" className="catalog-explorer">
+  return <main id="main-content" className={`catalog-explorer ${active ? 'is-presenting' : ''}`}>
     <div className="catalog-body">
     <aside className="catalog-nav"><header><h1>Explorer</h1><p>Browse our catalogue of products and services, their related features, details, media and more.</p></header>
-      <div className="market-accordion">{catalogMarkets.map((market) => {
+      <div className="market-accordion">{catalogMarkets.map((market, marketIndex) => {
         const expanded = openMarket === market.id
         const panelId = `${accordionId}-market-${market.id}`
-        return <section key={market.id}>
-          <button className="market-toggle" aria-expanded={expanded} aria-controls={panelId} onClick={() => setOpenMarket(current => current === market.id ? '' : market.id)}><span>{market.name}</span><b className="accordion-icon" aria-hidden="true" /></button>
+        return <section key={market.id} className="market-entrance" style={{ '--entrance-delay': `${marketIndex * 70}ms` } as CSSProperties}>
+          <button className="market-toggle" aria-expanded={expanded} aria-controls={panelId} onClick={() => { clearTimeout(marketIntroTimer.current); marketsIntroduced.current = true; setOpenMarket(current => current === market.id ? '' : market.id) }}><span>{market.name}</span><b className="accordion-icon" aria-hidden="true" /></button>
           <div id={panelId} className={`accordion-panel ${expanded ? 'is-open' : ''}`} aria-hidden={!expanded} inert={!expanded}>
             <div className="accordion-content"><div className="product-list">{market.products.map((item) => <button key={item.id} className={product.id === item.id ? 'selected' : ''} onClick={() => chooseProduct(item)}><i style={{ background: item.media[0].accent }} /><span><strong>{item.name}</strong><small>{item.designation}</small></span></button>)}</div></div>
           </div>
@@ -72,15 +88,15 @@ export function Explorer({ onExit }: { onExit: () => void }) {
       })}</div></aside>
     <div className="catalog-product">
     <section className="catalog-information">
-      <div className="catalog-hero"><div className="hero-media-placeholder" role="img" aria-label={product.heroVideoLabel} /><img className="explorer-mark" src="/assets/reference/leidos-mark-light.svg" alt="Leidos" /><div className="catalog-hero-copy"><p>{product.marketName} system</p><h2>{product.name}</h2><h3>{product.designation}</h3><p className="catalog-description">{product.description}</p></div><div className="catalog-hero-footer"><section className="catalog-specifications" aria-label="Specifications"><h4>Specifications</h4><div className="catalog-specs">{product.specs.map((spec) => <div key={spec.name}><b>{spec.name}</b><span>{spec.value}</span></div>)}</div></section><button ref={shareTriggerRef} className="outline-pill" onClick={() => { setShareClosing(false); setOverlay('share') }}>Share <span>→</span></button></div></div>
-      <div className="catalog-lower"><section className="catalog-features" aria-label="Product features">{product.features.map((feature, index) => {
+      <div key={product.id} className="catalog-hero"><div className="hero-media-placeholder" role="img" aria-label={product.heroVideoLabel} /><img className="explorer-mark" src="/assets/reference/leidos-mark-light.svg" alt="Leidos" /><div className="catalog-hero-copy"><p>{product.marketName} system</p><h2>{product.name}</h2><h3>{product.designation}</h3><p className="catalog-description">{product.description}</p></div><div className="catalog-hero-footer"><section className="catalog-specifications" aria-label="Specifications"><h4>Specifications</h4><div className="catalog-specs">{product.specs.map((spec) => <div key={spec.name}><b>{spec.name}</b><span>{spec.value}</span></div>)}</div></section><button ref={shareTriggerRef} className="outline-pill" onClick={() => { setShareClosing(false); setOverlay('share') }}>Share <span>→</span></button></div></div>
+      <div className="catalog-lower"><section key={`features-${product.id}`} className="catalog-features" aria-label="Product features">{product.features.map((feature, index) => {
         const expanded = openFeature === index
         const panelId = `${accordionId}-feature-${index}`
-        return <article className="catalog-feature" key={feature.name}>
-          <button aria-expanded={expanded} aria-controls={panelId} onClick={() => setOpenFeature(current => current === index ? -1 : index)}><span>{feature.name}</span><b className="accordion-icon" aria-hidden="true" /></button>
+        return <article className="catalog-feature" key={feature.name} style={{ '--entrance-delay': `${index * 70}ms` } as CSSProperties}>
+          <button aria-expanded={expanded} aria-controls={panelId} onClick={() => { clearTimeout(featureIntroTimer.current); setOpenFeature(current => current === index ? -1 : index) }}><span>{feature.name}</span><b className="accordion-icon" aria-hidden="true" /></button>
           <div id={panelId} className={`accordion-panel ${expanded ? 'is-open' : ''}`} aria-hidden={!expanded} inert={!expanded}><div className="accordion-content"><p>{feature.description}</p></div></div>
         </article>
-      })}</section><MediaGallery key={product.id} items={product.media} onOpen={openMedia} /></div>
+      })}</section><MediaGallery key={`gallery-${product.id}`} items={product.media} onOpen={openMedia} /></div>
     </section>
     <footer className="catalog-footer"><button className="back-to-hub" onClick={onExit}>← Back to hub</button></footer>
     </div>

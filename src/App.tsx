@@ -99,7 +99,7 @@ export default function App() {
       {route === 'selector' && <Selector animateEntrance={hubEntrance} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset} jltvDisabled={settings.locallyDisabledModuleIds.includes('jltv')} />}
       <Suspense fallback={null}>
         {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} qualityTier={settings.qualityTier} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
-        {route === 'explorer' && <><Explorer onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></>}
+        {route === 'explorer' && <><Explorer active={!transition} onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></>}
         {route === 'selector' && <DestinationReady onReady={markReady} />}
       </Suspense>
     </div>

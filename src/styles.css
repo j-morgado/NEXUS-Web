@@ -1775,3 +1775,17 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   .share-overlay, .share-overlay .share-lightbox { animation: none; }
 }
+
+.market-entrance, .catalog-feature { animation: explorer-item-enter 420ms var(--entrance-delay, 0ms) cubic-bezier(.22,1,.36,1) both; }
+.catalog-hero-copy > *, .catalog-hero-footer { animation: explorer-copy-enter 500ms ease both; }
+.catalog-hero-copy > :nth-child(1) { animation-delay: 0ms; }
+.catalog-hero-copy > :nth-child(2) { animation-delay: 90ms; }
+.catalog-hero-copy > :nth-child(3) { animation-delay: 180ms; }
+.catalog-hero-copy > :nth-child(4) { animation-delay: 270ms; }
+.catalog-hero-footer { animation-delay: 360ms; }
+.catalog-explorer:not(.is-presenting) :is(.market-entrance, .catalog-feature, .catalog-hero-copy > *, .catalog-hero-footer) { animation-play-state: paused; }
+@keyframes explorer-item-enter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes explorer-copy-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .market-entrance, .catalog-feature, .catalog-hero-copy > *, .catalog-hero-footer { animation: none; }
+}
