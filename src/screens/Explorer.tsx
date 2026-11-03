@@ -19,6 +19,8 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   const [openMarket, setOpenMarket] = useState('land')
   const [product, setProduct] = useState(catalogMarkets[0].products[0])
   const [openFeature, setOpenFeature] = useState(0)
+  const [shareClosing, setShareClosing] = useState(false)
+  const shareTriggerRef = useRef<HTMLButtonElement>(null)
   const [overlay, setOverlay] = useState<Overlay>('none')
   const [selectedMedia, setSelectedMedia] = useState<CatalogMedia>(product.media[0])
   const [name, setName] = useState('')
@@ -29,7 +31,18 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const preview = useMemo(() => createEmailPreview(emailProduct(product)), [product])
   useEffect(() => { if (overlay !== 'none') closeRef.current?.focus() }, [overlay])
-  const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setOpenFeature(0); setOverlay('none') }
+  const closeShare = useCallback(() => setShareClosing(true), [])
+  useEffect(() => {
+    if (!shareClosing) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const timer = window.setTimeout(() => {
+      setOverlay('none')
+      setShareClosing(false)
+      shareTriggerRef.current?.focus({ preventScroll: true })
+    }, reduced ? 0 : 300)
+    return () => clearTimeout(timer)
+  }, [shareClosing])
+  const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setOpenFeature(0); setOverlay('none'); setShareClosing(false) }
   const openMedia = (media: CatalogMedia) => { setSelectedMedia(media); setOverlay('media') }
   const closeMedia = useCallback(() => setOverlay('none'), [])
   const submit = async () => {
@@ -59,7 +72,7 @@ export function Explorer({ onExit }: { onExit: () => void }) {
       })}</div></aside>
     <div className="catalog-product">
     <section className="catalog-information">
-      <div className="catalog-hero"><div className="hero-media-placeholder" role="img" aria-label={product.heroVideoLabel} /><img className="explorer-mark" src="/assets/reference/leidos-mark-light.svg" alt="Leidos" /><div className="catalog-hero-copy"><p>{product.marketName} system</p><h2>{product.name}</h2><h3>{product.designation}</h3><p className="catalog-description">{product.description}</p></div><div className="catalog-hero-footer"><section className="catalog-specifications" aria-label="Specifications"><h4>Specifications</h4><div className="catalog-specs">{product.specs.map((spec) => <div key={spec.name}><b>{spec.name}</b><span>{spec.value}</span></div>)}</div></section><button className="outline-pill" onClick={() => setOverlay('share')}>Share <span>→</span></button></div></div>
+      <div className="catalog-hero"><div className="hero-media-placeholder" role="img" aria-label={product.heroVideoLabel} /><img className="explorer-mark" src="/assets/reference/leidos-mark-light.svg" alt="Leidos" /><div className="catalog-hero-copy"><p>{product.marketName} system</p><h2>{product.name}</h2><h3>{product.designation}</h3><p className="catalog-description">{product.description}</p></div><div className="catalog-hero-footer"><section className="catalog-specifications" aria-label="Specifications"><h4>Specifications</h4><div className="catalog-specs">{product.specs.map((spec) => <div key={spec.name}><b>{spec.name}</b><span>{spec.value}</span></div>)}</div></section><button ref={shareTriggerRef} className="outline-pill" onClick={() => { setShareClosing(false); setOverlay('share') }}>Share <span>→</span></button></div></div>
       <div className="catalog-lower"><section className="catalog-features" aria-label="Product features">{product.features.map((feature, index) => {
         const expanded = openFeature === index
         const panelId = `${accordionId}-feature-${index}`
@@ -72,9 +85,11 @@ export function Explorer({ onExit }: { onExit: () => void }) {
     <footer className="catalog-footer"><button className="back-to-hub" onClick={onExit}>← Back to hub</button></footer>
     </div>
     </div>
-    {overlay !== 'none' && <div className="explorer-overlay">
+    {overlay !== 'none' && <div className={`explorer-overlay ${overlay === 'share' || overlay === 'saved' ? 'share-overlay' : ''} ${shareClosing ? 'is-closing' : ''}`} onClick={event => {
+      if ((overlay === 'share' || overlay === 'saved') && event.target instanceof Element && !event.target.closest('.share-form, .touch-keyboard, .share-saved')) closeShare()
+    }} onKeyDown={event => { if (event.key === 'Escape' && (overlay === 'share' || overlay === 'saved')) { event.stopPropagation(); closeShare() } }}>
       {overlay === 'media' && <MediaViewer media={selectedMedia} items={product.media} onSelect={setSelectedMedia} onClose={closeMedia} />}
-      {(overlay === 'share' || overlay === 'saved') && <section className="share-lightbox" role="dialog" aria-modal="true" aria-labelledby="share-title"><header><h2 id="share-title">Share</h2><p>To receive more information regarding this product please fill out the following information.</p></header><button ref={closeRef} className="overlay-x" onClick={() => setOverlay('none')} aria-label="Close share dialog">×</button>{overlay === 'share' ? <><div className="share-form" data-email-subject={preview.subject}><label>Full name<input aria-label="Name" value={name} onFocus={() => setActiveField('name')} onChange={(event) => setName(event.target.value)} /></label><label>Email address<input aria-label="Email" type="email" value={email} onFocus={() => setActiveField('email')} onChange={(event) => setEmail(event.target.value)} /></label>{error && <p role="alert">{error}</p>}<button className="outline-pill" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'} <span>→</span></button></div><TouchKeyboard value={keyboardValue} onChange={setKeyboardValue} /></> : <div className="share-saved"><h3>Request saved locally.</h3><p>Pending — email service not configured. It has not been sent or delivered.</p><button className="outline-pill" onClick={() => { setName(''); setEmail(''); setOverlay('none') }}>Return to Explorer</button></div>}</section>}
+      {(overlay === 'share' || overlay === 'saved') && <section className="share-lightbox" inert={shareClosing} role="dialog" aria-modal="true" aria-labelledby="share-title"><header><h2 id="share-title">Share</h2><p>To receive more information regarding this product please fill out the following information.</p></header><button ref={closeRef} className="overlay-x" onClick={closeShare} aria-label="Close share dialog">×</button>{overlay === 'share' ? <><div className="share-form" data-email-subject={preview.subject}><label>Full name<input aria-label="Name" value={name} onFocus={() => setActiveField('name')} onChange={(event) => setName(event.target.value)} /></label><label>Email address<input aria-label="Email" type="email" value={email} onFocus={() => setActiveField('email')} onChange={(event) => setEmail(event.target.value)} /></label>{error && <p role="alert">{error}</p>}<button className="outline-pill" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'} <span>→</span></button></div><TouchKeyboard value={keyboardValue} onChange={setKeyboardValue} /></> : <div className="share-saved"><h3>Request saved locally.</h3><p>Pending — email service not configured. It has not been sent or delivered.</p><button className="outline-pill" onClick={() => { setName(''); setEmail(''); closeShare() }}>Return to Explorer</button></div>}</section>}
     </div>}
   </main>
 }

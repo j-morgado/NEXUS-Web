@@ -1763,3 +1763,15 @@ footer {
   .is-entering-from-attract :is(.hub-carousel, h1, .hub-arrows, .hub-card > div, .hub-explorer) { animation: none; }
   .shared-loop-media { transition: none; }
 }
+
+.share-overlay { animation: share-backdrop-in 350ms ease both; }
+.share-overlay .share-lightbox { animation: share-panel-in 350ms ease both; }
+.share-overlay.is-closing { animation: share-backdrop-out 300ms ease both; }
+.share-overlay.is-closing .share-lightbox { animation: share-panel-out 300ms ease both; }
+@keyframes share-backdrop-in { from { background-color: rgba(16,15,23,0); backdrop-filter: blur(0px); } to { background-color: rgba(16,15,23,.9); backdrop-filter: blur(12px); } }
+@keyframes share-backdrop-out { from { background-color: rgba(16,15,23,.9); backdrop-filter: blur(12px); } to { background-color: rgba(16,15,23,0); backdrop-filter: blur(0px); } }
+@keyframes share-panel-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes share-panel-out { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .share-overlay, .share-overlay .share-lightbox { animation: none; }
+}
