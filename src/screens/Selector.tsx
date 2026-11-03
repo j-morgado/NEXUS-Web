@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-export function Selector({ onJLTV, onExplorer, jltvDisabled = false }: { onJLTV: () => void; onExplorer: () => void; onReset: () => void; jltvDisabled?: boolean }) {
+export function Selector({ onJLTV, onExplorer, jltvDisabled = false, animateEntrance = false }: { onJLTV: () => void; onExplorer: () => void; onReset: () => void; jltvDisabled?: boolean; animateEntrance?: boolean }) {
   const carouselRef = useRef<HTMLElement>(null)
   const [edges, setEdges] = useState({ start: true, end: false })
 
@@ -32,7 +32,7 @@ export function Selector({ onJLTV, onExplorer, jltvDisabled = false }: { onJLTV:
     carousel.scrollTo({ left: target, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
   }
 
-  return <main id="main-content" className="reference-hub">
+  return <main id="main-content" className={`reference-hub ${animateEntrance ? 'is-entering-from-attract' : ''}`}>
     <img className="reference-logo" src="/assets/reference/leidos-logo-light.svg" alt="Leidos" />
     <h1>Choose an Experience</h1>
     <div className="hub-experiences">

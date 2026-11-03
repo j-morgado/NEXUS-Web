@@ -1128,7 +1128,7 @@ footer {
 }
 
 /* 2026-11 corrective pass — exact user-selected Nexus reference compositions. */
-.shared-loop-media { position: fixed; z-index: 0; inset: 0; overflow: hidden; background: #251846; transition: filter .55s ease, opacity .35s ease; }
+.shared-loop-media { position: fixed; z-index: 0; inset: 0; overflow: hidden; background: #251846; transition: filter 800ms ease, transform 800ms ease, opacity .35s ease; }
 .shared-loop-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg,rgba(37,24,70,.08),rgba(18,10,35,.42)); pointer-events: none; }
 .placeholder-video { width: 100%; height: 100%; object-fit: cover; }
 .shared-loop-media.is-hub { filter: blur(12px) brightness(.58); transform: scale(1.035); }
@@ -1750,4 +1750,16 @@ footer {
 @keyframes loading-details-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) {
   .experience-loading, .experience-loading > div { animation: none; transition: none; }
+}
+
+/* Direct attract-to-hub choreography, over the uninterrupted video. */
+.is-entering-from-attract .hub-carousel { animation: hub-cards-enter 800ms cubic-bezier(.22,1,.36,1) both; }
+.is-entering-from-attract :is(h1, .hub-arrows, .hub-card > div) { animation: hub-copy-enter 600ms 200ms ease both; }
+.is-entering-from-attract .hub-explorer { animation: hub-explorer-enter 700ms 100ms cubic-bezier(.22,1,.36,1) both; }
+@keyframes hub-cards-enter { from { transform: translateX(100vw); } to { transform: translateX(0); } }
+@keyframes hub-copy-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes hub-explorer-enter { from { transform: translateX(-240px); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .is-entering-from-attract :is(.hub-carousel, h1, .hub-arrows, .hub-card > div, .hub-explorer) { animation: none; }
+  .shared-loop-media { transition: none; }
 }

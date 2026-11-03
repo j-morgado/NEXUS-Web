@@ -26,6 +26,7 @@ type Route = 'attract' | 'selector' | 'jltv' | 'explorer'
 
 export default function App() {
   const [route, setRoute] = useState<Route>('attract')
+  const [hubEntrance, setHubEntrance] = useState(false)
   const [transition, setTransition] = useState<{ next: Route; phase: 'covering' | 'loading' | 'revealing' } | null>(null)
   const [destinationReady, setDestinationReady] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -37,10 +38,16 @@ export default function App() {
   const [configState, setConfigState] = useState<ConfigState | null>(null)
   const operatorCloseRef = useRef<HTMLButtonElement>(null)
   const go = useCallback((next: Route) => {
+    setHubEntrance(false)
     setDestinationReady(false)
     setProgress(0)
     setTransition({ next, phase: 'covering' })
     recordUsage({ type: 'screen-enter', moduleId: next === 'jltv' ? 'jltv' : undefined, productId: next === 'explorer' ? 'jltv-demo' : undefined })
+  }, [])
+  const begin = useCallback(() => {
+    setHubEntrance(true)
+    setRoute('selector')
+    recordUsage({ type: 'screen-enter' })
   }, [])
   const reset = useCallback(() => { setOperatorOpen(false); setSessionEpoch((value) => value + 1); setTransition(null); setRoute('attract') }, [])
 
@@ -88,8 +95,8 @@ export default function App() {
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/attract-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
     <div key={sessionEpoch} inert={!!transition} aria-busy={!!transition} data-quality-tier={settings.qualityTier}>
-      {route === 'attract' && <Attract onBegin={() => go('selector')} />}
-      {route === 'selector' && <Selector onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset} jltvDisabled={settings.locallyDisabledModuleIds.includes('jltv')} />}
+      {route === 'attract' && <Attract onBegin={begin} />}
+      {route === 'selector' && <Selector animateEntrance={hubEntrance} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset} jltvDisabled={settings.locallyDisabledModuleIds.includes('jltv')} />}
       <Suspense fallback={null}>
         {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} qualityTier={settings.qualityTier} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
         {route === 'explorer' && <><Explorer onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></>}
