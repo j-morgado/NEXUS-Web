@@ -30,7 +30,7 @@ describe('local configuration store', () => {
 
   it('persists validated operator choices', async () => {
     await saveOperatorSettings({ inactivitySeconds: 300, qualityTier: 'high', updateChecksEnabled: false, locallyDisabledModuleIds: ['demo'] })
-    expect(await getOperatorSettings()).toEqual({ inactivitySeconds: 300, qualityTier: 'high', updateChecksEnabled: false, locallyDisabledModuleIds: ['demo'] })
+    expect(await getOperatorSettings()).toMatchObject({ inactivitySeconds: 300, qualityTier: 'high', updateChecksEnabled: false, locallyDisabledModuleIds: ['demo'] })
   })
 
   it('writes operator choices synchronously for an immediate reload', async () => {
@@ -38,4 +38,15 @@ describe('local configuration store', () => {
     expect(JSON.parse(localStorage.getItem('nexus-operator-settings-v1') ?? '{}').updateChecksEnabled).toBe(false)
     await pending
   })
+  it('migrates legacy quality settings and persists custom effect choices', async () => {
+    await saveOperatorSettings({ inactivitySeconds: 60, qualityTier: 'high', updateChecksEnabled: true, locallyDisabledModuleIds: [] })
+    const high = await getOperatorSettings()
+    expect(high.visual.ssgi).toBe(true)
+    expect(high.visual.ssaoSamples).toBe(32)
+    const custom = { ...high, qualityTier: 'custom' as const, showPerformanceStats: true, visual: { ...high.visual, ssao: false, ssrSteps: 64, resolutionScale: .75 } }
+    await saveOperatorSettings(custom)
+    expect(await getOperatorSettings()).toEqual(custom)
+    await expect(saveOperatorSettings({ ...custom, visual: { ...custom.visual, ssrSteps: 200 } })).rejects.toThrow()
+  })
+
 })

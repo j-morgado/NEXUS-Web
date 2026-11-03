@@ -1848,3 +1848,15 @@ footer {
   .media-overlay, .media-overlay .media-lightbox { transition: none; }
 }
 .catalog-explorer { --button-duration: 300ms; }
+
+.dev-options { width: min(440px, calc(100vw - 24px)); max-height: calc(100svh - 32px); overflow: auto; padding: 24px; }
+.dev-options h2 { margin: 0 48px 24px 0; }
+.dev-options fieldset { border: 1px solid #5c477e; margin: 20px 0; padding: 14px; min-width: 0; }
+.dev-options legend { color: #cdb8f5; padding: 0 6px; }
+.dev-options label { font-size: 13px; }
+.dev-options .dev-effect { padding: 8px 0 14px; border-bottom: 1px solid #49345e; }
+.dev-options .dev-effect:last-child { border: 0; }
+.dev-options input[type="range"] { width: 100%; accent-color: #a77df5; min-height: 24px; padding: 0; }
+.dev-options output { float: right; color: #cdb8f5; font-size: 12px; }
+.dev-update-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.performance-stats { position: fixed; z-index: 90; top: 12px; right: 12px; display: grid; gap: 5px; padding: 12px 16px; background: rgba(17,5,48,.88); color: #fff; font: 12px/1.4 monospace; border: 1px solid #734cdd; pointer-events: none; }

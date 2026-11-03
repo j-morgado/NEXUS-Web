@@ -6,12 +6,12 @@ export function createAmbientOcclusionMaterial() {
   return new ShaderMaterial({
     depthTest: false, depthWrite: false, blending: NoBlending,
     uniforms: {
-      depthBuffer: { value: null }, projection: { value: new Matrix4() },
+      samples: { value: 16 }, depthBuffer: { value: null }, projection: { value: new Matrix4() },
       inverseProjection: { value: new Matrix4() }, resolution: { value: new Vector2() },
     },
     vertexShader: 'varying vec2 vUv; void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
     fragmentShader: `
-      uniform sampler2D depthBuffer;
+      uniform sampler2D depthBuffer; uniform int samples;
       uniform mat4 projection, inverseProjection;
       uniform vec2 resolution;
       varying vec2 vUv;
@@ -32,8 +32,9 @@ export function createAmbientOcclusionMaterial() {
         vec3 bitangent=cross(n,tangent);
         float angle=fract(sin(dot(floor(gl_FragCoord.xy),vec2(12.9898,78.233)))*43758.5453)*6.283185;
         float occlusion=0.;
-        for(int i=0;i<16;i++) {
-          float f=(float(i)+.5)/16.;
+        for(int i=0;i<32;i++) {
+          if(i>=samples) break;
+          float f=(float(i)+.5)/float(samples);
           float a=float(i)*2.399963+angle;
           vec3 direction=tangent*cos(a)*sqrt(f)+bitangent*sin(a)*sqrt(f)+n*sqrt(1.-f);
           vec3 samplePosition=p+direction*.38*mix(.2,1.,f);
@@ -43,7 +44,7 @@ export function createAmbientOcclusionMaterial() {
           float z=positionAt(uv).z;
           occlusion+=step(samplePosition.z+.018,z)*(1.-smoothstep(.15,.38,abs(z-p.z)));
         }
-        float ao=1.-occlusion/16.*(1.-smoothstep(25.,60.,-p.z));
+        float ao=1.-occlusion/float(samples)*(1.-smoothstep(25.,60.,-p.z));
         gl_FragColor=vec4(vec3(ao),1.);
       }`,
   })

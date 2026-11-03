@@ -4,7 +4,7 @@
 
 - Zod schemas in `src/domain` version product, vehicle/addon/hotspot, event config, and module bridge messages.
 - Seed content is separate from rendering. Future CMS publication can hydrate the same schemas without changing module UI.
-- Shell routing, inactivity reset, local queue, usage events, and operator controls are services around the configurator module.
+- Shell routing, inactivity reset, local queue, usage events, and Dev Options are services around the configurator module.
 - `modules/contract.ts` defines explicit ready/exit/error/activity lifecycle and disposal hooks for independently registered modules.
 - Event configuration includes active/previous bundle identifiers now. This is a contract only; secure publishing, compatibility verification, activation, and rollback are deferred.
 

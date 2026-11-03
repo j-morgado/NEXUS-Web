@@ -1,3 +1,4 @@
+import { visualSettingsSchema, visualPresets } from './visualSettings'
 import { openDB } from 'idb'
 import { z } from 'zod'
 import { eventConfigSchema, type EventConfig } from '../domain/schemas'
@@ -5,10 +6,12 @@ import { seedEventConfig } from '../content/seed'
 
 const operatorSettingsSchema = z.object({
   inactivitySeconds: z.number().int().min(30).max(900),
-  qualityTier: z.enum(['standard', 'high']),
+  qualityTier: z.enum(['low', 'standard', 'high', 'custom']),
+  visual: visualSettingsSchema.optional(),
+  showPerformanceStats: z.boolean().default(false),
   updateChecksEnabled: z.boolean(),
   locallyDisabledModuleIds: z.array(z.string()),
-})
+}).transform(settings => ({ ...settings, visual: settings.visual ?? visualPresets[settings.qualityTier === 'custom' ? 'standard' : settings.qualityTier] }))
 
 const bundleSchema = z.object({
   key: z.string(),
@@ -36,9 +39,11 @@ const database = () => openDB(DB_NAME, 1, {
   },
 })
 
-const defaultSettings: OperatorSettings = {
+export const defaultSettings: OperatorSettings = {
   inactivitySeconds: 60,
   qualityTier: 'standard',
+  visual: visualPresets.standard,
+  showPerformanceStats: false,
   updateChecksEnabled: true,
   locallyDisabledModuleIds: [],
 }

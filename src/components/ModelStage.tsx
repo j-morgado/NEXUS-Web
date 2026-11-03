@@ -1,3 +1,4 @@
+import { visualPresets, type VisualSettings } from '../services/visualSettings'
 /* eslint-disable react-hooks/immutability -- React Three Fiber requires imperative scene, renderer, and frame-state updates. */
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF, useProgress, useTexture } from '@react-three/drei'
@@ -10,7 +11,7 @@ import { SceneReadiness } from './SceneReadiness'
 import { AddonTransition } from './AddonTransition'
 import { applyAddonDissolve, createAddonUniforms } from './addonDissolve'
 
-type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; qualityTier?: 'standard' | 'high'; onHotspot: (id: string | null) => void; onExit: () => void; onReadyChange: (ready: boolean) => void; onProgress: (progress: number) => void }
+type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; qualityTier?: 'standard' | 'high'; visual?: VisualSettings; showPerformanceStats?: boolean; onHotspot: (id: string | null) => void; onExit: () => void; onReadyChange: (ready: boolean) => void; onProgress: (progress: number) => void }
 type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
 type OrbitHandle = ElementRef<typeof OrbitControls>
 const STUDIO_HORIZON = '#9254b1'
@@ -75,7 +76,7 @@ function StudioSky() {
   </mesh>
 }
 
-function StudioGround({ qualityTier }: { qualityTier?: 'standard' | 'high' }) {
+function StudioGround({ visual }: { visual: VisualSettings }) {
   const [roughnessSource, normalSource] = useTexture(['/assets/ground/roughness.jpg', '/assets/ground/normal.jpg'])
   const textures = useMemo(() => {
     const roughness = roughnessSource.clone(), normal = normalSource.clone()
@@ -110,7 +111,7 @@ function StudioGround({ qualityTier }: { qualityTier?: 'standard' | 'high' }) {
   useEffect(() => () => { textures.roughness.dispose(); textures.normal.dispose() }, [textures])
   return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.035, 0]} receiveShadow>
     <planeGeometry args={[2000, 2000]} />
-    <MeshReflectorMaterial ref={configureGround} color="#3a234d" roughness={.5} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(.5, .5)} metalness={.12} blur={[140, 60]} resolution={qualityTier === 'high' ? 1024 : 512} mixBlur={1.15} mixStrength={1.3} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.3} />
+    {visual.planarReflections ? <MeshReflectorMaterial key={visual.reflectionResolution} ref={configureGround} color="#3a234d" roughness={.5} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(.5, .5)} metalness={.12} blur={[140, 60]} resolution={visual.reflectionResolution} mixBlur={1.15} mixStrength={1.3} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.3} /> : <meshStandardMaterial color="#3a234d" roughness={.5} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(.5, .5)} metalness={.12} />}
   </mesh>
 }
 
@@ -239,7 +240,23 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
   return <group position={modelOffset}><primitive object={scene} /><AddonTransition addon={addon} visible={addonVisible} uniforms={addonUniforms} offset={modelOffset} reducedMotion={reducedMotion} stageRef={stageRef} /></group>
 }
 
+function ShadowQuality({ resolution }: { resolution: number }) {
+  const { scene, gl, invalidate } = useThree()
+  useEffect(() => {
+    scene.traverse(object => {
+      const light = object as Object3D & { shadow?: { mapSize: Vector2; map: { dispose: () => void } | null } }
+      if (!light.shadow) return
+      light.shadow.map?.dispose(); light.shadow.map = null
+      light.shadow.mapSize.set(resolution, resolution)
+    })
+    gl.shadowMap.needsUpdate = true
+    invalidate()
+  }, [resolution, scene, gl, invalidate])
+  return null
+}
+
 export function ModelStage(props: Props) {
+  const visual = props.visual ?? visualPresets[props.qualityTier ?? 'standard']
   const { active: loadingAssets, progress: assetProgress } = useProgress()
   useEffect(() => { props.onProgress(loadingAssets ? Math.min(90, assetProgress * .9) : 90) }, [loadingAssets, assetProgress, props.onProgress])
   const [contextLost, setContextLost] = useState(false)
@@ -265,7 +282,7 @@ export function ModelStage(props: Props) {
   if (contextLost) return <section className="model-failure" role="alert"><p className="eyebrow">3D MODULE INTERRUPTED</p><h2>The vehicle view needs to restart.</h2><p>Your selected configuration is preserved. Retry the renderer or return to the hub.</p><div><button className="primary-cta" onClick={() => { props.onReadyChange(false); props.onProgress(90); setContextLost(false) }}>Retry 3D view <span>↻</span></button><button className="recovery-back" onClick={props.onExit}>Return to hub</button></div></section>
 
   return <div className="model-stage" ref={stageRef} data-hotspot-open={String(Boolean(props.activeHotspot))}>
-    <Canvas frameloop="demand" shadows dpr={props.qualityTier === 'high' ? [1, 1.75] : [1, 1.25]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl, camera }) => {
+    <Canvas frameloop="demand" shadows dpr={[1, visual.maxDpr]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl, camera }) => {
       props.onReadyChange(false)
       const perspective = camera as PerspectiveCamera
       gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true
@@ -279,19 +296,20 @@ export function ModelStage(props: Props) {
       <StudioSky />
       <ambientLight intensity={.6} />
       <hemisphereLight args={['#edd5ff', '#49314d', 1.6]} />
-      <directionalLight position={[7, 10, 9]} intensity={2.5} color="#fff4ed" castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={9} shadow-camera-bottom={-8} shadow-bias={-.0004} />
+      <directionalLight position={[7, 10, 9]} intensity={2.5} color="#fff4ed" castShadow shadow-mapSize-width={visual.shadowResolution} shadow-mapSize-height={visual.shadowResolution} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={9} shadow-camera-bottom={-8} shadow-bias={-.0004} />
       <directionalLight position={[-6, 6, 5]} intensity={1.2} color="#d7a4ef" />
       <directionalLight position={[-5, 8, -9]} intensity={1.8} color="#f4d8ff" />
       <pointLight position={[-1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
       <pointLight position={[1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
       <Suspense fallback={null}>
         <VehicleModel {...props} reducedMotion={reducedMotion} markers={markers} stageRef={stageRef} />
-        <StudioGround qualityTier={props.qualityTier} />
+        <StudioGround visual={visual} />
         <ContactShadows key={String(props.addonVisible)} position={[0, .005, 0]} opacity={.48} scale={16} blur={2.8} far={7} color="#30143e" frames={1} resolution={256} />
         <SceneReadiness onReady={props.onReadyChange} onProgress={props.onProgress} />
       </Suspense>
       <CameraController statusRef={stageRef} reducedMotion={reducedMotion} />
-      <CameraMotionBlur reducedMotion={reducedMotion} statusRef={stageRef} />
+      <ShadowQuality resolution={visual.shadowResolution} />
+      <CameraMotionBlur visual={visual} showPerformanceStats={props.showPerformanceStats ?? false} reducedMotion={reducedMotion} statusRef={stageRef} />
     </Canvas>
     {props.vehicle.hotspots.map(hotspot => {
       const open = props.activeHotspot === hotspot.id

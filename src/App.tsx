@@ -1,9 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { DevOptions } from './components/DevOptions'
+import { PerformanceStats } from './components/PerformanceStats'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { InactivityGuard } from './components/InactivityGuard'
 import { ModuleBoundary } from './components/ModuleBoundary'
 import { recordUsage } from './services/analytics'
-import { getConfigState, getOperatorSettings, rollbackEventConfig, saveOperatorSettings, type ConfigState, type OperatorSettings } from './services/configStore'
-import { activatePublishedUpdate, checkForPublishedUpdate, registerOfflineWorker } from './services/serviceWorker'
+import { defaultSettings, getConfigState, getOperatorSettings, saveOperatorSettings, type OperatorSettings } from './services/configStore'
+import { checkForPublishedUpdate, registerOfflineWorker } from './services/serviceWorker'
 import { Attract } from './screens/Attract'
 import { Selector } from './screens/Selector'
 import { LoadingScreen } from './components/LoadingScreen'
@@ -35,11 +37,9 @@ export default function App() {
   const sceneReady = useCallback((ready: boolean) => setDestinationReady(ready), [])
   const [operatorOpen, setOperatorOpen] = useState(false)
   const [sessionEpoch, setSessionEpoch] = useState(0)
-  const [settings, setSettings] = useState<OperatorSettings>({ inactivitySeconds: 60, qualityTier: 'standard', updateChecksEnabled: true, locallyDisabledModuleIds: [] })
-  const [configState, setConfigState] = useState<ConfigState | null>(null)
+  const [settings, setSettings] = useState<OperatorSettings>(defaultSettings)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [updateAvailable, setUpdateAvailable] = useState(false)
-  const operatorCloseRef = useRef<HTMLButtonElement>(null)
   const go = useCallback((next: Route) => {
     setHubEntrance(false)
     setDestinationReady(false)
@@ -72,9 +72,8 @@ export default function App() {
   }, [transition, destinationReady])
 
   useEffect(() => {
-    Promise.all([getOperatorSettings(), getConfigState()]).then(([storedSettings, storedConfig]) => {
+    Promise.all([getOperatorSettings(), getConfigState()]).then(([storedSettings]) => {
       setSettings(storedSettings)
-      setConfigState(storedConfig)
       setSettingsLoaded(true)
     }).catch((error) => { setSettingsLoaded(true); console.error('Local configuration recovery failed', error) })
   }, [])
@@ -93,13 +92,13 @@ export default function App() {
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOperatorOpen(false)
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'o') setOperatorOpen((value) => !value)
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'd') { event.preventDefault(); setOperatorOpen((value) => !value) }
     }
     window.addEventListener('keydown', shortcut)
     return () => window.removeEventListener('keydown', shortcut)
   }, [])
 
-  useEffect(() => { if (operatorOpen) operatorCloseRef.current?.focus() }, [operatorOpen])
+
 
 
 
@@ -108,23 +107,18 @@ export default function App() {
     <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/attract-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
     <div key={sessionEpoch} inert={!!transition} aria-busy={!!transition} data-quality-tier={settings.qualityTier}>
       {route === 'attract' && <Attract onBegin={begin} />}
-      {route === 'selector' && <Selector animateEntrance={hubEntrance} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset} jltvDisabled={settings.locallyDisabledModuleIds.includes('jltv')} />}
+      {route === 'selector' && <Selector animateEntrance={hubEntrance} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset}  />}
       <Suspense fallback={null}>
-        {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} qualityTier={settings.qualityTier} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
+        {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} visual={settings.visual} showPerformanceStats={settings.showPerformanceStats} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
         {route === 'explorer' && <><Explorer active={!transition} onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></>}
         {route === 'selector' && <DestinationReady onReady={markReady} />}
       </Suspense>
     </div>
     {transition && <LoadingScreen phase={transition.phase} progress={destinationReady ? 100 : progress} />}
-    <button className="operator-trigger" onClick={() => setOperatorOpen((value) => !value)} aria-label="Open operator controls">•••</button>
-    {operatorOpen && <aside className="operator-panel" role="dialog" aria-modal="false" aria-labelledby="operator-title"><button ref={operatorCloseRef} className="close" onClick={() => setOperatorOpen(false)} aria-label="Close operator controls">×</button><p className="eyebrow">OPERATOR CONTROLS</p><h2 id="operator-title">Local event settings</h2>
-      <label>Inactivity reset<select value="60" disabled><option value="60">1 minute + 10 second warning</option></select></label>
-      <label>Visual quality<select value={settings.qualityTier} onChange={(event) => updateSettings({ ...settings, qualityTier: event.target.value as OperatorSettings['qualityTier'] })}><option value="standard">Standard</option><option value="high">High</option></select></label>
-      <label className="operator-check"><input type="checkbox" checked={settings.updateChecksEnabled} onChange={(event) => updateSettings({ ...settings, updateChecksEnabled: event.target.checked })} /> Run an explicit update check at startup</label>
-      <button disabled={!settings.updateChecksEnabled} onClick={() => void checkForPublishedUpdate()}>Check now</button>
-      {updateAvailable && <button onClick={async () => { reset(); await activatePublishedUpdate() }}>Activate downloaded update</button>}
-      <label className="operator-check"><input type="checkbox" checked={settings.locallyDisabledModuleIds.includes('jltv')} onChange={(event) => updateSettings({ ...settings, locallyDisabledModuleIds: event.target.checked ? ['jltv'] : [] })} /> Disable JLTV module on this device</label>
-      <div className="operator-config"><strong>Active configuration</strong><span>{configState?.active.config.version ?? 'Loading…'}</span><small>Previous: {configState?.previous?.config.version ?? 'none'} · verified local bundle</small></div>
-      <button disabled={!configState?.previous} onClick={async () => setConfigState(await rollbackEventConfig())}>Roll back to previous</button><button onClick={reset}>Reset to attract</button><p>Shortcut: Ctrl + Shift + O</p><small>Preferences are local and persistent. Update checking is explicit; a downloaded update activates only from this panel. This convenience menu is not a security boundary or a CMS.</small></aside>}
+    <button className="operator-trigger" onClick={() => setOperatorOpen((value) => !value)} aria-label="Open Dev Options">•••</button>
+    {operatorOpen && settingsLoaded && <DevOptions settings={settings} onChange={updateSettings} onClose={() => setOperatorOpen(false)} updateAvailable={updateAvailable} />}
+    {operatorOpen && !settingsLoaded && <aside className="operator-panel" role="status">Loading Dev Options…</aside>}
+    {settings.showPerformanceStats && <PerformanceStats sceneActive={route === 'jltv'} />}
+
   </InactivityGuard>
 }
