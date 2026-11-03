@@ -24,7 +24,6 @@ export function Configurator({ onExit, qualityTier = 'standard', managedLoading 
     <aside className="configuration-controls" aria-label="Vehicle configuration">
       <h2>Configuration</h2>
       <div className="bottom-config" role="group" aria-label="Add-ons">{[1, 2, 3].map(addon => <button key={addon} className={activeAddon === addon ? 'selected' : ''} aria-pressed={activeAddon === addon} onClick={() => setActiveAddon(current => current === addon ? null : addon)}>Add-on {addon}{addon > 1 && <small>Placeholder</small>}</button>)}</div>
-      <p className="configuration-status" role="status">{activeAddon === null ? 'Bare vehicle' : activeAddon === 1 ? 'Add-on 1 attached' : `Add-on ${activeAddon} selected · preview coming soon`}</p>
     </aside>
     </div>
   </main>

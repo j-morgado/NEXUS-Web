@@ -27,7 +27,7 @@ describe('experience configuration', () => {
     expect(pressed()).toEqual(['false', 'false', 'true'])
     fireEvent.click(buttons[2])
     expect(pressed()).toEqual(['false', 'false', 'false'])
-    expect(screen.getByRole('status')).toHaveTextContent('Bare vehicle')
+    expect(screen.queryByText('Bare vehicle')).not.toBeInTheDocument()
     fireEvent.click(buttons[0]); fireEvent.click(buttons[0])
     expect(screen.getByTestId('attachment')).toHaveAttribute('data-visible', 'false')
   })
