@@ -91,7 +91,7 @@ export default function App() {
 
   useEffect(() => { if (operatorOpen) operatorCloseRef.current?.focus() }, [operatorOpen])
 
-  return <InactivityGuard timeoutSeconds={60} warningSeconds={10} onReset={reset}>
+  return <InactivityGuard enabled={route !== 'attract'} timeoutSeconds={60} warningSeconds={10} onReset={reset}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/attract-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
     <div key={sessionEpoch} inert={!!transition} aria-busy={!!transition} data-quality-tier={settings.qualityTier}>
