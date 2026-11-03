@@ -38,3 +38,7 @@ Add-on 1 now uses a reversible world-space 65mm voxel dissolve with a luminous p
 The horizon now contains three procedural mountain-ridge layers in the studio palette. Integer angular frequencies keep the profiles seamless through a full 360-degree orbit; depth layering and base haze integrate the silhouettes with the existing fog and ground. The mountains use the existing sky shader and add no external asset downloads or additional scene draw calls.
 
 Mountain haze now uses the same horizon color and 18–90-unit distance-fog curve as the ground, with separate virtual distances for each ridge layer. A continuous low-altitude fog field is applied after compositing sky and mountains, so lower slopes converge to the ground fog color instead of fading into a differently colored sky strip. Distant ridgelines receive softer edges and stronger atmospheric attenuation.
+
+## Supplied ground maps
+
+The user-supplied 1024×1024 JPEG roughness and normal maps now replace the generated surface texture and bump approximation. Both are sampled as non-color data with matching 320× repeat (6.25-unit surface tiles), mipmapping, and anisotropic filtering. The normal scale is 0.35 on each tangent axis. The reflector shader uses transformed UVs for both maps and applies normal scale as amplitude, keeping the reflected texture aligned with the physical material. Both assets preload alongside the vehicle and remain inside the scene readiness gate. The original downloaded bytes are retained in `public/assets/ground/roughness.jpg` and `normal.jpg`.

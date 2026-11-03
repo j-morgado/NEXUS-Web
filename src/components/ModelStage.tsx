@@ -1,11 +1,10 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF, useProgress } from '@react-three/drei'
+import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF, useProgress, useTexture } from '@react-three/drei'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ElementRef, type RefObject } from 'react'
-import { BackSide, Box3, Color, DoubleSide, FrontSide, Mesh, MeshDepthMaterial, MeshStandardMaterial, RGBADepthPacking, Raycaster, Vector2, Vector3, type Material, type Object3D, type PerspectiveCamera } from 'three'
+import { BackSide, Box3, Color, DoubleSide, FrontSide, Mesh, MeshDepthMaterial, MeshStandardMaterial, RGBADepthPacking, Raycaster, NoColorSpace, RepeatWrapping, LinearFilter, LinearMipmapLinearFilter, Vector2, Vector3, type Material, type Object3D, type PerspectiveCamera } from 'three'
 import type { Vehicle } from '../domain/schemas'
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
 import { CameraMotionBlur } from './CameraMotionBlur'
-import { createGroundTextures } from './groundTextures'
 import { SceneReadiness } from './SceneReadiness'
 import { AddonTransition } from './AddonTransition'
 import { applyAddonDissolve, createAddonUniforms } from './addonDissolve'
@@ -76,7 +75,21 @@ function StudioSky() {
 }
 
 function StudioGround({ qualityTier }: { qualityTier?: 'standard' | 'high' }) {
-  const textures = useMemo(createGroundTextures, [])
+  const [roughnessSource, normalSource] = useTexture(['/assets/ground/roughness.jpg', '/assets/ground/normal.jpg'])
+  const textures = useMemo(() => {
+    const roughness = roughnessSource.clone(), normal = normalSource.clone()
+    for (const texture of [roughness, normal]) {
+      texture.colorSpace = NoColorSpace
+      texture.wrapS = texture.wrapT = RepeatWrapping
+      texture.repeat.set(320, 320)
+      texture.generateMipmaps = true
+      texture.minFilter = LinearMipmapLinearFilter
+      texture.magFilter = LinearFilter
+      texture.anisotropy = 8
+      texture.needsUpdate = true
+    }
+    return { roughness, normal }
+  }, [roughnessSource, normalSource])
   const configureGround = useCallback((material: Material | null) => {
     if (!material || material.userData.surfaceUvPatched) return
     material.userData.surfaceUvPatched = true
@@ -84,16 +97,19 @@ function StudioGround({ qualityTier }: { qualityTier?: 'standard' | 'high' }) {
     material.onBeforeCompile = (shader, renderer) => {
       compile(shader, renderer)
       // Drei's reflection blend uses raw UVs; honor the repeating roughness UVs
-      // just like the physical roughness map, so grain stays world-scaled.
-      shader.fragmentShader = shader.fragmentShader.replace('texture2D( roughnessMap, vUv )', 'texture2D( roughnessMap, vRoughnessMapUv )')
+      // just like the physical roughness and normal maps, so both stay aligned.
+      shader.fragmentShader = shader.fragmentShader
+        .replace('texture2D( roughnessMap, vUv )', 'texture2D( roughnessMap, vRoughnessMapUv )')
+        .replace('texture2D(normalMap, vUv * normalScale)', 'texture2D(normalMap, vNormalMapUv)')
+        .replace('vec3 coord = new_vUv.xyz / new_vUv.w;', 'my_normal.xz *= normalScale;\nvec3 coord = new_vUv.xyz / new_vUv.w;')
     }
-    material.customProgramCacheKey = () => 'nexus-ground-surface-v1'
+    material.customProgramCacheKey = () => 'nexus-ground-surface-v2'
     material.needsUpdate = true
   }, [])
-  useEffect(() => () => { textures.roughness.dispose() }, [textures])
+  useEffect(() => () => { textures.roughness.dispose(); textures.normal.dispose() }, [textures])
   return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.035, 0]} receiveShadow>
     <planeGeometry args={[2000, 2000]} />
-    <MeshReflectorMaterial ref={configureGround} color="#3a234d" roughness={.9} roughnessMap={textures.roughness} bumpMap={textures.roughness} bumpScale={.0008} metalness={.12} blur={[140, 60]} resolution={qualityTier === 'high' ? 1024 : 512} mixBlur={1.15} mixStrength={1.3} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.3} />
+    <MeshReflectorMaterial ref={configureGround} color="#3a234d" roughness={.9} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(.35, .35)} metalness={.12} blur={[140, 60]} resolution={qualityTier === 'high' ? 1024 : 512} mixBlur={1.15} mixStrength={1.3} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.3} />
   </mesh>
 }
 
@@ -288,3 +304,5 @@ export function ModelStage(props: Props) {
 }
 
 useGLTF.preload('/assets/jltv-runtime.glb')
+
+useTexture.preload(['/assets/ground/roughness.jpg', '/assets/ground/normal.jpg'])
