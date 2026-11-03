@@ -1807,16 +1807,16 @@ footer {
   .shared-loop-media { transition: none; }
 }
 
-.share-overlay { animation: share-backdrop-in 175ms ease both; }
-.share-overlay .share-lightbox { animation: share-panel-in 175ms ease both; }
-.share-overlay.is-closing { animation: share-backdrop-out 150ms ease both; }
-.share-overlay.is-closing .share-lightbox { animation: share-panel-out 150ms ease both; }
+.share-overlay, .media-overlay { animation: share-backdrop-in 175ms ease both; }
+.share-overlay .share-lightbox, .media-overlay .media-lightbox { animation: share-panel-in 175ms ease both; }
+.share-overlay.is-closing, .media-overlay.is-closing { animation: share-backdrop-out 150ms ease both; }
+.share-overlay.is-closing .share-lightbox, .media-overlay.is-closing .media-lightbox { animation: share-panel-out 150ms ease both; }
 @keyframes share-backdrop-in { from { background-color: rgba(16,15,23,0); backdrop-filter: blur(0px); } to { background-color: rgba(16,15,23,.9); backdrop-filter: blur(12px); } }
 @keyframes share-backdrop-out { from { background-color: rgba(16,15,23,.9); backdrop-filter: blur(12px); } to { background-color: rgba(16,15,23,0); backdrop-filter: blur(0px); } }
 @keyframes share-panel-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes share-panel-out { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .share-overlay, .share-overlay .share-lightbox { animation: none; }
+  .share-overlay, .share-overlay .share-lightbox, .media-overlay, .media-overlay .media-lightbox { animation: none; }
 }
 
 .market-entrance, .catalog-feature { animation: explorer-item-enter 210ms var(--entrance-delay, 0ms) cubic-bezier(.22,1,.36,1) both; }

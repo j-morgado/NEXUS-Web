@@ -14,6 +14,17 @@ try {
       await page.locator('.media-grid > button').first().click()
       const dialog = page.getByRole('dialog')
       const frame = dialog.locator('.media-viewer'), mediaViewport = frame.locator('.media-viewport'), toolbar = frame.locator('.viewer-controls')
+      const opening = await dialog.evaluate(panel => {
+        const overlay = panel.parentElement
+        const backdropAnimation = overlay.getAnimations()[0], panelAnimation = panel.getAnimations()[0]
+        backdropAnimation.pause(); panelAnimation.pause()
+        backdropAnimation.currentTime = 87.5; panelAnimation.currentTime = 87.5
+        const result = { opacity: Number(getComputedStyle(panel).opacity), blur: getComputedStyle(overlay).backdropFilter }
+        backdropAnimation.finish(); panelAnimation.finish()
+        return result
+      })
+      assert(opening.opacity > 0 && opening.opacity < 1)
+      assert(opening.blur !== 'blur(0px)' && opening.blur !== 'blur(12px)')
       const bounds = await frame.boundingBox(), controls = await toolbar.boundingBox(), clip = await mediaViewport.boundingBox()
       assert(bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= viewport.width && bounds.y + bounds.height <= viewport.height)
       assert(controls.y >= clip.y + clip.height - 1)
@@ -76,6 +87,7 @@ try {
       }
       await page.screenshot({ path: `/tmp/nexus-viewer-${kind}-${viewport.width}.png` })
       await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+      await page.locator('.media-overlay').waitFor({ state: 'detached' })
       assert.equal(await page.getByRole('dialog').count(), 0)
       console.log(`${viewport.width}px ${kind}: bounded viewport/controls, zoom or real seek/playback, fullscreen enter/exit and close passed`)
     }
