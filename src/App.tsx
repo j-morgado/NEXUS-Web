@@ -10,20 +10,56 @@ import { LoadingScreen } from './components/LoadingScreen'
 const Configurator = lazy(() => import('./screens/Configurator').then((module) => ({ default: module.Configurator })))
 const Explorer = lazy(() => import('./screens/Explorer').then((module) => ({ default: module.Explorer })))
 
+function DestinationReady({ onReady }: { onReady: () => void }) {
+  useEffect(() => {
+    let cancelled = false
+    let frame = 0
+    void Promise.all([document.fonts.ready, ...Array.from(document.querySelectorAll<HTMLImageElement>('.catalog-explorer img, .selector img')).map(image => image.decode().catch(() => undefined))]).then(() => {
+      frame = requestAnimationFrame(() => { frame = requestAnimationFrame(() => { if (!cancelled) onReady() }) })
+    })
+    return () => { cancelled = true; cancelAnimationFrame(frame) }
+  }, [onReady])
+  return null
+}
+
 type Route = 'attract' | 'selector' | 'jltv' | 'explorer'
 
 export default function App() {
   const [route, setRoute] = useState<Route>('attract')
+  const [transition, setTransition] = useState<{ next: Route; phase: 'covering' | 'loading' | 'revealing' } | null>(null)
+  const [destinationReady, setDestinationReady] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const markReady = useCallback(() => setDestinationReady(true), [])
+  const sceneReady = useCallback((ready: boolean) => setDestinationReady(ready), [])
   const [operatorOpen, setOperatorOpen] = useState(false)
   const [sessionEpoch, setSessionEpoch] = useState(0)
   const [settings, setSettings] = useState<OperatorSettings>({ inactivitySeconds: 60, qualityTier: 'standard', updateChecksEnabled: true, locallyDisabledModuleIds: [] })
   const [configState, setConfigState] = useState<ConfigState | null>(null)
   const operatorCloseRef = useRef<HTMLButtonElement>(null)
   const go = useCallback((next: Route) => {
-    setRoute(next)
+    setDestinationReady(false)
+    setProgress(0)
+    setTransition({ next, phase: 'covering' })
     recordUsage({ type: 'screen-enter', moduleId: next === 'jltv' ? 'jltv' : undefined, productId: next === 'explorer' ? 'jltv-demo' : undefined })
   }, [])
-  const reset = useCallback(() => { setOperatorOpen(false); setSessionEpoch((value) => value + 1); go('attract') }, [go])
+  const reset = useCallback(() => { setOperatorOpen(false); setSessionEpoch((value) => value + 1); setTransition(null); setRoute('attract') }, [])
+
+  useEffect(() => {
+    if (!transition) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (transition.phase === 'covering') {
+      const timer = window.setTimeout(() => { setRoute(transition.next); setTransition({ ...transition, phase: 'loading' }) }, reduced ? 0 : 300)
+      return () => clearTimeout(timer)
+    }
+    if (transition.phase === 'loading' && destinationReady) {
+      const timer = window.setTimeout(() => setTransition({ ...transition, phase: 'revealing' }), reduced ? 0 : 250)
+      return () => clearTimeout(timer)
+    }
+    if (transition.phase === 'revealing') {
+      const timer = window.setTimeout(() => setTransition(null), reduced ? 0 : 400)
+      return () => clearTimeout(timer)
+    }
+  }, [transition, destinationReady])
 
   useEffect(() => {
     Promise.all([getOperatorSettings(), getConfigState()]).then(([storedSettings, storedConfig]) => {
@@ -51,14 +87,16 @@ export default function App() {
   return <InactivityGuard timeoutSeconds={60} warningSeconds={10} onReset={reset}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/nexus-placeholder-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
-    <div key={sessionEpoch} data-quality-tier={settings.qualityTier}>
+    <div key={sessionEpoch} inert={!!transition} aria-busy={!!transition} data-quality-tier={settings.qualityTier}>
       {route === 'attract' && <Attract onBegin={() => go('selector')} />}
       {route === 'selector' && <Selector onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset} jltvDisabled={settings.locallyDisabledModuleIds.includes('jltv')} />}
-      <Suspense fallback={<LoadingScreen />}>
-        {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')}><Configurator onExit={() => go('selector')} qualityTier={settings.qualityTier} /></ModuleBoundary>}
-        {route === 'explorer' && <Explorer onExit={() => go('selector')} />}
+      <Suspense fallback={null}>
+        {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} qualityTier={settings.qualityTier} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
+        {route === 'explorer' && <><Explorer onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></>}
+        {route === 'selector' && <DestinationReady onReady={markReady} />}
       </Suspense>
     </div>
+    {transition && <LoadingScreen phase={transition.phase} progress={destinationReady ? 100 : progress} />}
     <button className="operator-trigger" onClick={() => setOperatorOpen((value) => !value)} aria-label="Open operator controls">•••</button>
     {operatorOpen && <aside className="operator-panel" role="dialog" aria-modal="false" aria-labelledby="operator-title"><button ref={operatorCloseRef} className="close" onClick={() => setOperatorOpen(false)} aria-label="Close operator controls">×</button><p className="eyebrow">OPERATOR CONTROLS</p><h2 id="operator-title">Local event settings</h2>
       <label>Inactivity reset<select value="60" disabled><option value="60">1 minute + 10 second warning</option></select></label>

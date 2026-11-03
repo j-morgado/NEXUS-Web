@@ -1676,7 +1676,7 @@ footer {
 .experience-loading { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: #110530; color: #fff; text-align: center; }
 .experience-loading > div { width: min(320px, 72vw); }
 .experience-loading p { margin: 0 0 22px; font-size: 24px; font-weight: 400; }
-.experience-progress { height: 6px; overflow: hidden; background: #302056; border-radius: 6px; }
+.experience-progress { height: 3px; overflow: hidden; background: #302056; border-radius: 0; }
 .experience-progress > span { display: block; height: 100%; background: #734cdd; border-radius: inherit; transition: width 180ms ease; }
 .experience-progress.is-indeterminate > span { width: 35%; animation: experience-progress 1.2s ease-in-out infinite; }
 @keyframes experience-progress { from { transform: translateX(-100%); } to { transform: translateX(386%); } }
@@ -1742,3 +1742,12 @@ footer {
 
 .media-viewport.is-pannable { cursor: grab; user-select: none; }
 .media-viewport.is-panning { cursor: grabbing; }
+
+.experience-loading { animation: loading-screen-in 300ms ease both; transition: opacity 400ms ease; }
+.experience-loading > div { animation: loading-details-in 250ms 120ms ease both; }
+.experience-loading.is-leaving { animation: none; opacity: 0; pointer-events: none; }
+@keyframes loading-screen-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes loading-details-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .experience-loading, .experience-loading > div { animation: none; transition: none; }
+}

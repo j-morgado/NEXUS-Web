@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
-type Props = { children: ReactNode; onExit: () => void }
+type Props = { children: ReactNode; onExit: () => void; onFailure?: () => void }
 type State = { error: string | null; retryKey: number }
 
 export class ModuleBoundary extends Component<Props, State> {
@@ -12,6 +12,7 @@ export class ModuleBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('NEXUS module failure', error, info.componentStack)
+    this.props.onFailure?.()
   }
 
   render() {

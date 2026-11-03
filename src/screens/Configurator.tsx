@@ -4,7 +4,7 @@ import { LoadingScreen } from '../components/LoadingScreen'
 import { seedVehicle } from '../content/seed'
 import { signalModule } from '../modules/lifecycle'
 
-export function Configurator({ onExit, qualityTier = 'standard' }: { onExit: () => void; qualityTier?: 'standard' | 'high' }) {
+export function Configurator({ onExit, qualityTier = 'standard', managedLoading = false, onReadyChange, onProgress }: { onExit: () => void; qualityTier?: 'standard' | 'high'; managedLoading?: boolean; onReadyChange?: (ready: boolean) => void; onProgress?: (progress: number) => void }) {
   const [sceneReady, setSceneReady] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [activeAddon, setActiveAddon] = useState<number | null>(null)
@@ -13,8 +13,10 @@ export function Configurator({ onExit, qualityTier = 'standard' }: { onExit: () 
     return () => signalModule('module:exit', 'jltv')
   }, [])
   useEffect(() => { if (sceneReady) signalModule('module:ready', 'jltv') }, [sceneReady])
+  useEffect(() => { onReadyChange?.(sceneReady) }, [sceneReady, onReadyChange])
+  useEffect(() => { onProgress?.(loadingProgress) }, [loadingProgress, onProgress])
   return <main id="main-content" className="configurator" aria-busy={!sceneReady}>
-    {!sceneReady && <LoadingScreen progress={loadingProgress} />}
+    {!managedLoading && !sceneReady && <LoadingScreen progress={loadingProgress} />}
     <div className={`experience-content ${sceneReady ? 'is-ready' : ''}`} data-ready={sceneReady} aria-hidden={!sceneReady} inert={!sceneReady}>
     <nav className="experience-navigation" aria-label="Experience navigation"><button className="experience-hub" onClick={onExit}><span aria-hidden="true">←</span> HUB</button></nav>
     <ModelStage vehicle={seedVehicle} addonVisible={activeAddon === 1} activeHotspot={activeHotspot} qualityTier={qualityTier} onHotspot={setActiveHotspot} onExit={onExit} onReadyChange={setSceneReady} onProgress={setLoadingProgress} />
