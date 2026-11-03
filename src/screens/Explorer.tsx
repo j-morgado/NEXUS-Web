@@ -19,6 +19,7 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
   const [openMarket, setOpenMarket] = useState('')
   const [product, setProduct] = useState(catalogMarkets[0].products[0])
   const [openFeature, setOpenFeature] = useState(-1)
+  const [mediaRevealed, setMediaRevealed] = useState(false)
   const [overlayClosing, setOverlayClosing] = useState(false)
   const shareTriggerRef = useRef<HTMLButtonElement>(null)
   const [overlay, setOverlay] = useState<Overlay>('none')
@@ -47,6 +48,13 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
     featureIntroTimer.current = window.setTimeout(() => setOpenFeature(0), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 210 + (product.features.length - 1) * 35)
     return () => clearTimeout(featureIntroTimer.current)
   }, [active, product.id, product.features.length])
+  useEffect(() => {
+    if (overlay !== 'media') { setMediaRevealed(false); return }
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => setMediaRevealed(true))
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [overlay])
   const closeShare = useCallback(() => setOverlayClosing(true), [])
   useEffect(() => {
     if (!overlayClosing) return
@@ -55,11 +63,11 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
       setOverlay('none')
       setOverlayClosing(false)
       if (overlay !== 'media') shareTriggerRef.current?.focus({ preventScroll: true })
-    }, reduced ? 0 : 150)
+    }, reduced ? 0 : overlay === 'media' ? 300 : 150)
     return () => clearTimeout(timer)
   }, [overlayClosing, overlay])
   const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setOpenFeature(-1); setOverlay('none'); setOverlayClosing(false) }
-  const openMedia = (media: CatalogMedia) => { setSelectedMedia(media); setOverlay('media') }
+  const openMedia = (media: CatalogMedia) => { setMediaRevealed(false); setSelectedMedia(media); setOverlay('media') }
   const closeMedia = useCallback(() => setOverlayClosing(true), [])
   const submit = async () => {
     setError('')
@@ -101,7 +109,7 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
     <footer className="catalog-footer"><button className="back-to-hub" onClick={onExit}>← Back to hub</button></footer>
     </div>
     </div>
-    {overlay !== 'none' && <div className={`explorer-overlay ${overlay === 'share' || overlay === 'saved' ? 'share-overlay' : 'media-overlay'} ${overlayClosing ? 'is-closing' : ''}`} inert={overlayClosing} onClick={event => {
+    {overlay !== 'none' && <div className={`explorer-overlay ${overlay === 'share' || overlay === 'saved' ? 'share-overlay' : 'media-overlay'} ${overlayClosing ? 'is-closing' : ''} ${mediaRevealed ? 'is-revealed' : ''}`} inert={overlayClosing} onClick={event => {
       if ((overlay === 'share' || overlay === 'saved') && event.target instanceof Element && !event.target.closest('.share-form, .touch-keyboard, .share-saved')) closeShare()
     }} onKeyDown={event => { if (event.key === 'Escape' && (overlay === 'share' || overlay === 'saved')) { event.stopPropagation(); closeShare() } }}>
       {overlay === 'media' && <MediaViewer media={selectedMedia} items={product.media} onSelect={setSelectedMedia} onClose={closeMedia} />}

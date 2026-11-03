@@ -1839,3 +1839,15 @@ footer {
 
 @keyframes loading-screen-out { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .experience-loading.is-leaving { animation: none; } }
+
+/* Paint the media overlay transparent before revealing it, so opening cannot
+   skip straight to its final styles during mounting or focus restoration. */
+.media-overlay { animation: none; background-color: rgba(16,15,23,0); backdrop-filter: blur(0px); transition: background-color 300ms ease, backdrop-filter 300ms ease; }
+.media-overlay .media-lightbox { animation: none; opacity: 0; transition: opacity 300ms ease; }
+.media-overlay.is-revealed { background-color: rgba(16,15,23,.9); backdrop-filter: blur(12px); }
+.media-overlay.is-revealed .media-lightbox { opacity: 1; }
+.media-overlay.is-closing { animation: none; background-color: rgba(16,15,23,0); backdrop-filter: blur(0px); }
+.media-overlay.is-closing .media-lightbox { animation: none; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .media-overlay, .media-overlay .media-lightbox { transition: none; }
+}
