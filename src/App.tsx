@@ -35,14 +35,11 @@ export default function App() {
   const sceneReady = useCallback((ready: boolean) => setDestinationReady(ready), [])
   const [operatorOpen, setOperatorOpen] = useState(false)
   const [sessionEpoch, setSessionEpoch] = useState(0)
-  const [mediaPaused, setMediaPaused] = useState(false)
-  const [mediaMuted, setMediaMuted] = useState(true)
   const [settings, setSettings] = useState<OperatorSettings>({ inactivitySeconds: 60, qualityTier: 'standard', updateChecksEnabled: true, locallyDisabledModuleIds: [] })
   const [configState, setConfigState] = useState<ConfigState | null>(null)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const operatorCloseRef = useRef<HTMLButtonElement>(null)
-  const loopVideoRef = useRef<HTMLVideoElement>(null)
   const go = useCallback((next: Route) => {
     setHubEntrance(false)
     setDestinationReady(false)
@@ -104,19 +101,13 @@ export default function App() {
 
   useEffect(() => { if (operatorOpen) operatorCloseRef.current?.focus() }, [operatorOpen])
 
-  useEffect(() => {
-    const video = loopVideoRef.current
-    if (!video) return
-    video.muted = mediaMuted
-    if (mediaPaused) video.pause()
-    else void video.play().catch(() => undefined)
-  }, [mediaMuted, mediaPaused])
+
 
   return <InactivityGuard enabled={route !== 'attract'} timeoutSeconds={60} warningSeconds={10} onReset={reset}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
-    <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video ref={loopVideoRef} className="placeholder-video" src="/assets/attract-loop.mp4" autoPlay muted={mediaMuted} loop playsInline preload="auto" /></div>
+    <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/attract-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
     <div key={sessionEpoch} inert={!!transition} aria-busy={!!transition} data-quality-tier={settings.qualityTier}>
-      {route === 'attract' && <Attract onBegin={begin} paused={mediaPaused} muted={mediaMuted} onTogglePlayback={() => setMediaPaused((value) => !value)} onToggleMuted={() => setMediaMuted((value) => !value)} />}
+      {route === 'attract' && <Attract onBegin={begin} />}
       {route === 'selector' && <Selector animateEntrance={hubEntrance} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset} jltvDisabled={settings.locallyDisabledModuleIds.includes('jltv')} />}
       <Suspense fallback={null}>
         {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} qualityTier={settings.qualityTier} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
