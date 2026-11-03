@@ -61,15 +61,15 @@ export default function App() {
     if (!transition) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (transition.phase === 'covering') {
-      const timer = window.setTimeout(() => { setRoute(transition.next); setTransition({ ...transition, phase: 'loading' }) }, reduced ? 0 : 300)
+      const timer = window.setTimeout(() => { setRoute(transition.next); setTransition({ ...transition, phase: 'loading' }) }, reduced ? 0 : 150)
       return () => clearTimeout(timer)
     }
     if (transition.phase === 'loading' && destinationReady) {
-      const timer = window.setTimeout(() => setTransition({ ...transition, phase: 'revealing' }), reduced ? 0 : 250)
+      const timer = window.setTimeout(() => setTransition({ ...transition, phase: 'revealing' }), reduced ? 0 : 125)
       return () => clearTimeout(timer)
     }
     if (transition.phase === 'revealing') {
-      const timer = window.setTimeout(() => setTransition(null), reduced ? 0 : 400)
+      const timer = window.setTimeout(() => setTransition(null), reduced ? 0 : 200)
       return () => clearTimeout(timer)
     }
   }, [transition, destinationReady])

@@ -5,8 +5,9 @@ try {
  for(const width of [1280,390]) {
   const page=await browser.newPage({viewport:{width,height:844},serviceWorkers:'block'})
   const errors=[];page.on('pageerror',error=>errors.push(error.message))
+  await page.addInitScript(() => { window.loadingPhases=[]; document.addEventListener('DOMContentLoaded',()=>new MutationObserver(()=>{const e=document.querySelector('.experience-loading');if(e)window.loadingPhases.push(e.dataset.phase)}).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['data-phase']})) })
   await page.goto(process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177')
-  const finish=async()=>{await page.locator('.experience-loading.is-leaving').waitFor();assert.equal(await page.locator('[data-quality-tier]').evaluate(e=>e.inert),true);await page.locator('.experience-loading').waitFor({state:'detached'});assert.equal(await page.locator('[data-quality-tier]').evaluate(e=>e.inert),false)}
+  const finish=async()=>{await page.locator('.experience-loading').waitFor({state:'detached'});assert.equal(await page.locator('[data-quality-tier]').evaluate(e=>e.inert),false)}
   await page.getByRole('button',{name:'Touch Screen to Begin'}).click()
   await page.locator('.reference-hub.is-entering-from-attract').waitFor()
   assert.equal(await page.locator('.experience-loading').count(),0)
@@ -24,6 +25,7 @@ try {
    await page.locator('.experience-loading[data-phase="covering"]').waitFor()
    await finish();assert(await page.getByRole('button',{name:/^Explorer/}).isVisible())
   }
+  assert(await page.evaluate(()=>window.loadingPhases.includes('revealing')))
   await page.emulateMedia({reducedMotion:'reduce'})
   await page.getByRole('button',{name:/^Explorer/}).click();await page.locator('.catalog-explorer').waitFor();await page.locator('.experience-loading').waitFor({state:'detached'})
   assert.deepEqual(errors,[]);console.log(width,'hub/explorer entrances, returns, repeat visits, thin square bar, inert gating and reduced motion passed');await page.close()

@@ -93,7 +93,7 @@ export function AddonTransition({ addon, visible, uniforms, offset, reducedMotio
     if (!addon || !animation.current.running) return
     const state = animation.current
     // Ignore the long idle delta on the first demand-driven frame.
-    const step = state.age === 0 ? 1 / 60 : Math.min(delta, .1)
+    const step = (state.age === 0 ? 1 / 60 : Math.min(delta, .1)) * 2
     state.age += step
     const before = uniforms.uAddonProgress.value
     const direction = Math.sign(state.target - before)

@@ -30,11 +30,11 @@ export function MediaGallery({ items, onOpen }: { items: CatalogMedia[]; onOpen:
           const x = before.left - after.left, y = before.top - after.top
           if (Math.abs(x) > .5 || Math.abs(y) > .5) animations.current.push(tile.animate([
             { transform: `translate(${x}px, ${y}px)` }, { transform: 'translate(0, 0)' },
-          ], { duration: 400, easing: 'cubic-bezier(.22, 1, .36, 1)' }))
+          ], { duration: 200, easing: 'cubic-bezier(.22, 1, .36, 1)' }))
         } else {
           animations.current.push(tile.animate([
             { opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'translateY(0)' },
-          ], { duration: 420, delay: entering++ * 55, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'backwards' }))
+          ], { duration: 210, delay: entering++ * 27.5, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'backwards' }))
         }
       })
     }
