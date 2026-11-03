@@ -109,7 +109,7 @@ function StudioGround({ qualityTier }: { qualityTier?: 'standard' | 'high' }) {
   useEffect(() => () => { textures.roughness.dispose(); textures.normal.dispose() }, [textures])
   return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.035, 0]} receiveShadow>
     <planeGeometry args={[2000, 2000]} />
-    <MeshReflectorMaterial ref={configureGround} color="#3a234d" roughness={.5} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(1, 1)} metalness={.12} blur={[140, 60]} resolution={qualityTier === 'high' ? 1024 : 512} mixBlur={1.15} mixStrength={1.3} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.3} />
+    <MeshReflectorMaterial ref={configureGround} color="#3a234d" roughness={.5} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(.5, .5)} metalness={.12} blur={[140, 60]} resolution={qualityTier === 'high' ? 1024 : 512} mixBlur={1.15} mixStrength={1.3} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.3} />
   </mesh>
 }
 
