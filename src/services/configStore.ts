@@ -27,6 +27,7 @@ const SETTINGS = 'settings'
 const ACTIVE_KEY = 'activeConfigKey'
 const PREVIOUS_KEY = 'previousConfigKey'
 const OPERATOR_KEY = 'operatorSettings'
+const OPERATOR_LOCAL_KEY = 'nexus-operator-settings-v1'
 
 const database = () => openDB(DB_NAME, 1, {
   upgrade(db) {
@@ -109,12 +110,20 @@ export async function rollbackEventConfig() {
 }
 
 export async function getOperatorSettings(): Promise<OperatorSettings> {
+  try {
+    const immediate = localStorage.getItem(OPERATOR_LOCAL_KEY)
+    if (immediate) {
+      const parsed = operatorSettingsSchema.safeParse(JSON.parse(immediate))
+      if (parsed.success) return parsed.data
+    }
+  } catch { /* IndexedDB remains the durable fallback. */ }
   const stored = await (await database()).get(SETTINGS, OPERATOR_KEY)
   return operatorSettingsSchema.catch(defaultSettings).parse(stored)
 }
 
 export async function saveOperatorSettings(input: unknown): Promise<OperatorSettings> {
   const settings = operatorSettingsSchema.parse(input)
+  localStorage.setItem(OPERATOR_LOCAL_KEY, JSON.stringify(settings))
   await (await database()).put(SETTINGS, settings, OPERATOR_KEY)
   return settings
 }

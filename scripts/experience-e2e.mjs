@@ -39,7 +39,7 @@ try {
   const visible = page.locator('.vehicle-hotspot[data-visible="true"]').first()
   await visible.locator('button').click()
   await page.waitForFunction(() => document.querySelectorAll('.vehicle-hotspot.is-open').length === 1)
-  await page.waitForTimeout(400)
+  await page.waitForFunction(() => document.querySelector('.vehicle-hotspot.is-open')?.getBoundingClientRect().width > 300, undefined, { timeout: 3_000 })
   const after = await read()
   assert(Math.abs(Number(before.cameraDistance) - Number(after.cameraDistance)) < .005, 'Hotspot selection must preserve zoom')
   assert.equal(after.cameraPosition, before.cameraPosition, 'Hotspot must not move the camera')

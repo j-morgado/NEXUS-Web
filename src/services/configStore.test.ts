@@ -32,4 +32,10 @@ describe('local configuration store', () => {
     await saveOperatorSettings({ inactivitySeconds: 300, qualityTier: 'high', updateChecksEnabled: false, locallyDisabledModuleIds: ['demo'] })
     expect(await getOperatorSettings()).toEqual({ inactivitySeconds: 300, qualityTier: 'high', updateChecksEnabled: false, locallyDisabledModuleIds: ['demo'] })
   })
+
+  it('writes operator choices synchronously for an immediate reload', async () => {
+    const pending = saveOperatorSettings({ inactivitySeconds: 60, qualityTier: 'standard', updateChecksEnabled: false, locallyDisabledModuleIds: [] })
+    expect(JSON.parse(localStorage.getItem('nexus-operator-settings-v1') ?? '{}').updateChecksEnabled).toBe(false)
+    await pending
+  })
 })

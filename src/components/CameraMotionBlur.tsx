@@ -1,4 +1,5 @@
 import { createAmbientOcclusionMaterial } from './ambientOcclusion'
+/* eslint-disable react-hooks/immutability -- The post-processing pipeline is an imperative Three.js render target updated per frame. */
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, type RefObject } from 'react'
 import { DepthTexture, HalfFloatType, Matrix4, Mesh, NoBlending, OrthographicCamera, PlaneGeometry, Scene, ShaderMaterial, UnsignedIntType, Vector2, WebGLRenderTarget } from 'three'

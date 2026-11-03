@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability -- Three.js scene objects and shader uniforms are intentionally mutated inside the render loop. */
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, type RefObject } from 'react'
 import { AdditiveBlending, Box3, BufferAttribute, BufferGeometry, Mesh, Points, ShaderMaterial, Vector3, type Object3D } from 'three'

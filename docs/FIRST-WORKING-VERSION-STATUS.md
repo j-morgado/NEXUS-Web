@@ -23,14 +23,14 @@
 
 ## Remaining gaps requiring external evidence or access
 
-- Component-package access and Figma metadata access remain unavailable through the current authorized route. This limits exact package-component verification but does not block the current local first version, which uses inspected public Storybook tokens, authentic private Leidos fonts, and explicitly identified local adapters.
+- The private component package remains unavailable through the current authorized route. Both Figma files and the user-selected JPEG/video references were successfully inspected; the current build uses those Nexus compositions with approved Storybook tokens, authentic private Leidos fonts, and explicitly identified local adapters.
 - Midrange target laptop and 43-inch touchscreen validation remain pending representative hardware.
 
 There is no completed NEXUS Unity experience and therefore no Unity parity gate. The local `NEXUS-POC` may provide useful behavioral proof-of-concept context when inspected, but it is not an authoritative finished-product or styling target. Acceptance is against the agreed NEXUS requirements, supplied NEXUS Figma/styleframes where visible, and the approved Leidos design system. Exact unseen-Figma fidelity remains unverified.
 
 ## Remaining work possible without new user input
 
-- No known first-working-version defect remains that can be fixed independently without new product assets, external access, or physical acceptance hardware.
+- No known first-working-version defect remains after the responsive 1280×800 pass, real placeholder-video controls, delayed-main-thread timeout hardening, and explicit/manual service-worker update controls.
 - Optional enhancement: continue profiling Three/R3F only if a future measured change reduces transfer/runtime cost without increasing entry bytes, damaging model fidelity, or weakening offline reliability. A manual engine split was measured and rejected because it increased gzip entry cost by roughly 71 KB.
 
 ## Newly resolved
@@ -38,6 +38,9 @@ There is no completed NEXUS Unity experience and therefore no Unity parity gate.
 - Original `Avenir Next for Leidos` Thin, Light, Regular, Medium, Demi, and Bold assets are now integrated into the private build from verified archive 010. Font binaries remain ignored and public redistribution rights are not inferred.
 - Keyboard focus/skip navigation, dialog labelling/focus, reduced-motion behavior, and automated accessibility scanning now pass with zero serious/critical axe violations across five representative screens.
 - Browser integration now covers global reset above modal state, persistent local module disable, configuration rollback, quota exhaustion, IndexedDB eviction, interrupted service-worker update retention, and actual offline font/model reload.
+- Attract now exposes accessible mute and pause controls for the persistent decoded video element. Hub blur/dim preserves its playback position.
+- The operator update preference now controls an explicit startup check; service-worker activation uses prompt mode and requires an operator action rather than interrupting a live presentation.
+- 1280×800 regression coverage prevents Hub-control collisions, Explorer/media clipping, Back-to-Hub overlays, Share/keyboard collisions, and sub-48px touch-key targets.
 
 ## Current readiness
 

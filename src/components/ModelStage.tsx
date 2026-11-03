@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability -- React Three Fiber requires imperative scene, renderer, and frame-state updates. */
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, MeshReflectorMaterial, OrbitControls, useGLTF, useProgress, useTexture } from '@react-three/drei'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ElementRef, type RefObject } from 'react'

@@ -10,31 +10,38 @@ export function InactivityGuard({ enabled = true, timeoutSeconds, warningSeconds
   const [remaining, setRemaining] = useState<number | null>(null)
   const warningAt = useRef(0)
   const expiresAt = useRef(0)
+  const warningShown = useRef(false)
   const resetTimer = useCallback(() => {
     const now = performance.now()
     warningAt.current = now + effectiveTimeout * 1000
     expiresAt.current = warningAt.current + effectiveWarning * 1000
+    warningShown.current = false
     setRemaining(null)
   }, [effectiveTimeout, effectiveWarning])
 
   useEffect(() => {
-    resetTimer()
-    if (!enabled) return
+    const resetFrame = requestAnimationFrame(resetTimer)
+    if (!enabled) return () => cancelAnimationFrame(resetFrame)
     const activity = () => resetTimer()
     const events = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'nexus:activity'] as const
     events.forEach((name) => window.addEventListener(name, activity, { passive: true }))
     const timer = window.setInterval(() => {
       const now = performance.now()
-      if (now >= expiresAt.current) {
+      if (!warningShown.current && now >= warningAt.current) {
+        warningShown.current = true
+        expiresAt.current = now + effectiveWarning * 1000
+        setRemaining(effectiveWarning)
+      } else if (warningShown.current && now >= expiresAt.current) {
         resetTimer()
         onReset()
-      } else if (now >= warningAt.current) setRemaining(Math.ceil((expiresAt.current - now) / 1000))
+      } else if (warningShown.current) setRemaining(Math.ceil((expiresAt.current - now) / 1000))
     }, 250)
     return () => {
+      cancelAnimationFrame(resetFrame)
       window.clearInterval(timer)
       events.forEach((name) => window.removeEventListener(name, activity))
     }
-  }, [enabled, onReset, resetTimer])
+  }, [effectiveWarning, enabled, onReset, resetTimer])
 
   return <>
     {children}

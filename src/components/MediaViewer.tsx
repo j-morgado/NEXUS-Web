@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Selecting a different media item intentionally resets all viewer controls as one transaction. */
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { CatalogMedia } from '../content/catalog'
 

@@ -1131,6 +1131,9 @@ footer {
 .shared-loop-media { position: fixed; z-index: 0; inset: 0; overflow: hidden; background: #251846; transition: filter 800ms ease, transform 800ms ease, opacity .35s ease; }
 .shared-loop-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg,rgba(37,24,70,.08),rgba(18,10,35,.42)); pointer-events: none; }
 .placeholder-video { width: 100%; height: 100%; object-fit: cover; }
+.attract-media-controls { position: absolute; z-index: 4; right: 70px; bottom: 48px; display: flex; gap: 10px; }
+.attract-media-controls button { min-width: 78px; min-height: 48px; padding: 0 16px; border: 1px solid rgba(255,255,255,.72); border-radius: 999px; background: rgba(37,24,70,.48); color: #fff; font: 600 14px/1 "Avenir Next for Leidos", sans-serif; text-transform: uppercase; backdrop-filter: blur(8px); }
+.attract-media-controls button:focus-visible { outline: 3px solid #fccfff; outline-offset: 3px; }
 .shared-loop-media.is-hub { filter: blur(12px) brightness(.58); transform: scale(1.035); }
 .shared-loop-media.is-hidden { opacity: 0; pointer-events: none; }
 @keyframes placeholder-pan { to { transform: translate3d(7%,2%,0) scale(1.04); } }
@@ -1265,7 +1268,7 @@ footer {
 .configurator { background: linear-gradient(#6f35a4 0 46%,#7954a0 46% 100%); }
 .bottom-config { position: absolute; z-index: 12; left: 50%; bottom: 24px; translate: -50% 0; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 50px; background: #251846; box-shadow: 0 12px 32px rgba(0,0,0,.24); }
 .bottom-config > span { padding: 0 16px; color: #cfc7d8; font-size: 11px; text-transform: uppercase; }
-.bottom-config button { min-height: 48px; padding: 8px 24px; border: 0; border-radius: 50px; background: transparent; color: #fff; }
+.bottom-config button { min-height: 48px; padding: 8px 24px; border: 0; border-radius: 50px; background: #251846; color: #fff; }
 .bottom-config button.selected { background: #fff; color: #8f1588; }
 .bottom-config small { display: block; font-size: 8px; }
 .model-stage .hotspot-marker { width: 42px; height: 42px; border: 0; border-radius: 0; background: #734cdd; color: #fff; box-shadow: none; }
@@ -1388,6 +1391,41 @@ button:disabled { cursor: not-allowed; }
   .preview-window { max-height: 180px; margin: 0.8rem 0; }
   .visitor-fields input { padding: 0.75rem; min-height: 46px; }
   .privacy-note { margin-bottom: 0; }
+}
+@media (max-width: 1400px) and (max-height: 850px) {
+  .reference-hub h1 { top: 92px; font-size: 48px; line-height: 58px; }
+  .hub-carousel { left: 7.25vw; right: -24vw; top: 190px; height: 438px; grid-template-columns: 720px 420px 360px; gap: 32px; }
+  .hub-card > div { left: 48px; right: 44px; bottom: 32px; }
+  .hub-card h2 { margin-bottom: 12px; font-size: 34px; }
+  .hub-card p { margin-bottom: 18px; font-size: 17px; line-height: 1.4; }
+  .hub-arrows { bottom: 68px; }
+  .hub-explorer { left: 24px; bottom: 18px; }
+
+  .catalog-explorer { grid-template-columns: 300px 1fr; }
+  .catalog-nav { padding: 20px 14px 70px; }
+  .catalog-nav header { padding: 0 12px 12px; }
+  .catalog-nav h1 { font-size: 30px; }
+  .catalog-nav header p { font-size: 12px; line-height: 1.5; }
+  .catalog-information { grid-template-rows: 55% 45%; }
+  .catalog-hero-copy { top: 16px; width: 58%; }
+  .catalog-hero-copy h2 { font-size: 36px; }
+  .catalog-hero-copy h3 { font-size: 18px; margin-bottom: 8px; }
+  .catalog-description { font-size: 13px; line-height: 1.4; margin-bottom: 8px; }
+  .catalog-specs { grid-template-columns: repeat(3,minmax(90px,1fr)); gap: 5px 10px; }
+  .catalog-lower { grid-template-columns: minmax(0,42fr) minmax(0,58fr); padding: 12px 12px 16px; }
+  .media-grid { grid-template-columns: repeat(2,minmax(140px,1fr)); }
+  .catalog-explorer .back-to-hub { left: 18px; bottom: 12px; translate: 0; }
+
+  .explorer-overlay { padding: 20px; }
+  .share-lightbox header { width: 380px; }
+  .share-lightbox header h2 { font-size: 40px; }
+  .share-form { top: 112px; width: 520px; gap: 10px; padding: 20px 30px; }
+  .share-form label { gap: 5px; font-size: 15px; }
+  .share-form input { min-height: 48px; }
+  .touch-keyboard { bottom: 18px; width: 760px; gap: 5px; padding: 12px 18px; }
+  .touch-keyboard button { min-width: 46px; min-height: 48px; }
+  .touch-keyboard .key-wide { min-width: 112px; }
+  .touch-keyboard .key-space { min-width: 320px; }
 }
 @media (max-width: 620px) {
   .topbar {
@@ -1734,6 +1772,11 @@ footer {
   .catalog-hero-footer { gap: 14px; }
   .catalog-specs { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px 12px; }
   .catalog-hero-footer > button { padding: 10px 18px; gap: 12px; }
+}
+
+@media (max-width: 1400px) and (max-height: 850px) {
+  .reference-hub .hub-carousel { position: relative; left: 0; right: 0; top: 0; height: auto; grid-template-columns: none; }
+  .reference-hub .hub-arrows { position: static; bottom: auto; }
 }
 
 @media (max-width: 900px) {
