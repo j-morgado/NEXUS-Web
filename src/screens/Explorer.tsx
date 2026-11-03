@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { MediaGallery } from '../components/MediaGallery'
 import { MediaViewer } from '../components/MediaViewer'
-import { catalogMarkets, type CatalogMedia, type CatalogProduct, type MediaKind } from '../content/catalog'
+import { catalogMarkets, type CatalogMedia, type CatalogProduct } from '../content/catalog'
 import { createEmailPreview } from '../services/emailTemplate'
 import { enqueueRequest, QueuePersistenceError } from '../services/requestQueue'
 
 type Overlay = 'none' | 'share' | 'saved' | 'media'
-type MediaFilter = 'all' | MediaKind
 
 const emailProduct = (product: CatalogProduct) => ({ schemaVersion: 1 as const, id: product.id, marketId: product.marketId, name: product.name, designation: product.designation, description: product.description, heroLabel: product.heroVideoLabel, highlights: product.features.map((feature, order) => ({ order, text: feature.name })), features: product.features.map((feature, order) => ({ order, text: feature.description })), isFiller: true })
 
@@ -19,7 +19,6 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   const [openMarket, setOpenMarket] = useState('land')
   const [product, setProduct] = useState(catalogMarkets[0].products[0])
   const [openFeature, setOpenFeature] = useState(0)
-  const [filter, setFilter] = useState<MediaFilter>('all')
   const [overlay, setOverlay] = useState<Overlay>('none')
   const [selectedMedia, setSelectedMedia] = useState<CatalogMedia>(product.media[0])
   const [name, setName] = useState('')
@@ -29,9 +28,8 @@ export function Explorer({ onExit }: { onExit: () => void }) {
   const [submitting, setSubmitting] = useState(false)
   const closeRef = useRef<HTMLButtonElement>(null)
   const preview = useMemo(() => createEmailPreview(emailProduct(product)), [product])
-  const visibleMedia = filter === 'all' ? product.media : product.media.filter((item) => item.kind === filter)
   useEffect(() => { if (overlay !== 'none') closeRef.current?.focus() }, [overlay])
-  const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setFilter('all'); setOpenFeature(0); setOverlay('none') }
+  const chooseProduct = (next: CatalogProduct) => { setProduct(next); setSelectedMedia(next.media[0]); setOpenFeature(0); setOverlay('none') }
   const openMedia = (media: CatalogMedia) => { setSelectedMedia(media); setOverlay('media') }
   const closeMedia = useCallback(() => setOverlay('none'), [])
   const submit = async () => {
@@ -69,7 +67,7 @@ export function Explorer({ onExit }: { onExit: () => void }) {
           <button aria-expanded={expanded} aria-controls={panelId} onClick={() => setOpenFeature(current => current === index ? -1 : index)}><span>{feature.name}</span><b className="accordion-icon" aria-hidden="true" /></button>
           <div id={panelId} className={`accordion-panel ${expanded ? 'is-open' : ''}`} aria-hidden={!expanded} inert={!expanded}><div className="accordion-content"><p>{feature.description}</p></div></div>
         </article>
-      })}</section><section className="catalog-media" aria-label="Product media"><div className="media-tabs">{(['all', 'image', 'video', 'pdf'] as const).map((kind) => <button key={kind} className={filter === kind ? 'selected' : ''} onClick={() => setFilter(kind)}>{kind === 'all' ? 'All media' : kind === 'pdf' ? 'Documents' : `${kind}s`}</button>)}</div><div className="media-grid">{visibleMedia.map((media) => <button key={media.id} onClick={() => openMedia(media)}><div style={{ background: `linear-gradient(145deg, ${media.accent}, #191329)` }}><span>{media.kind}</span><i>◇</i></div><strong>{media.name}</strong></button>)}</div></section></div>
+      })}</section><MediaGallery key={product.id} items={product.media} onOpen={openMedia} /></div>
     </section>
     <footer className="catalog-footer"><button className="back-to-hub" onClick={onExit}>← Back to hub</button></footer>
     </div>
