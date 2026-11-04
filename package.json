@@ -12,6 +12,7 @@
     "test:e2e:quality": "node scripts/quality-e2e.mjs",
     "test:e2e:access": "node scripts/access-gate-e2e.mjs",
     "test:e2e:hotspot-interactions": "node scripts/hotspot-interaction-e2e.mjs",
+    "test:e2e:ui-exploration": "node scripts/ui-exploration-e2e.mjs",
     "test:e2e:timeout-production": "node scripts/timeout-production-e2e.mjs",
     "test:watch": "vitest",
     "preview": "vite preview --host 0.0.0.0",
