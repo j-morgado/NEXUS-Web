@@ -6,6 +6,7 @@
 - Seed content is separate from rendering. Future CMS publication can hydrate the same schemas without changing module UI.
 - Shell routing, inactivity reset, local queue, usage events, and Dev Options are services around the configurator module.
 - `modules/contract.ts` defines explicit ready/exit/error/activity lifecycle and disposal hooks for independently registered modules.
+- `modules/schema.ts`, `configs.ts`, and `registry.ts` define validated packaged experience modules. `ModuleHost` runs the same definition in the hub and at `/modules/:slug`; see `MODULE-AUTHORING.md`.
 - Event configuration includes active/previous bundle identifiers now. This is a contract only; secure publishing, compatibility verification, activation, and rollback are deferred.
 
 ## Reversible defaults
@@ -17,3 +18,5 @@ Configurator/Three.js and Explorer are lazy route chunks. The shell loads indepe
 ## Ownership and disposal
 
 The configurator clones the loaded GLB scene, toggles the attachment node by name, and disposes cloned geometry/materials on unmount. A production asset manager should add explicit texture reference counting once multiple modules share textures.
+
+Ground texture clones, add-on particle resources, RAF callbacks, and module-scoped document listeners are also disposed by their owning components. The packaged module lifecycle adapter de-duplicates ready/exit events and emits a terminal exit during host disposal.

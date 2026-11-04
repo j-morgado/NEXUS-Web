@@ -41,3 +41,7 @@ Visitor requests use a separate durable outbox. Invalid records are quarantined,
 - Operator controls are a convenience surface, not an access-control boundary.
 
 See [docs/architecture.md](docs/architecture.md), [docs/asset-report.md](docs/asset-report.md), and [docs/review-checklist.md](docs/review-checklist.md).
+
+## Module templates
+
+The JLTV experience now runs from a validated packaged module definition in both the NEXUS hub and at `/modules/jltv`. A claim-free `/modules/training-rig` fixture demonstrates a second configuration without adding another hub card. See [docs/MODULE-TEMPLATING-BRIEF.md](docs/MODULE-TEMPLATING-BRIEF.md) for scope and acceptance criteria and [docs/MODULE-AUTHORING.md](docs/MODULE-AUTHORING.md) for authoring and hosting instructions.

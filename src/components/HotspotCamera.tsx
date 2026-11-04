@@ -6,11 +6,9 @@ import { Vector3, type PerspectiveCamera } from 'three'
 import type { HotspotMode, Vehicle } from '../domain/schemas'
 import { closeupLimits, closeupView, normalLimits, sidebarWidth } from './hotspotCamera'
 
-const ORBIT_TARGET: [number, number, number] = [-.6, 2, 0]
-
 type View = { position: Vector3; target: Vector3; offset: number }
 type Transition = { from: View; to: View; elapsed: number; duration: number; focused: boolean; limits: typeof normalLimits }
-export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOffset, reducedMotion, onFocusReady }: { onFocusReady: (id: string | null) => void; activeHotspot: string | null; vehicle: Vehicle; mode: HotspotMode; statusRef: RefObject<HTMLDivElement | null>; modelOffset: RefObject<Vector3>; reducedMotion: boolean }) {
+export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOffset, orbitTarget, reducedMotion, onFocusReady }: { onFocusReady: (id: string | null) => void; activeHotspot: string | null; vehicle: Vehicle; mode: HotspotMode; statusRef: RefObject<HTMLDivElement | null>; modelOffset: RefObject<Vector3>; orbitTarget: [number, number, number]; reducedMotion: boolean }) {
   const controls = useRef<ElementRef<typeof OrbitControls>>(null)
   const saved = useRef<View | null>(null)
   const tween = useRef<Transition | null>(null)
@@ -84,5 +82,5 @@ export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOf
       statusRef.current.dataset.orbitLimits = JSON.stringify({ minDistance: orbit.minDistance, maxDistance: orbit.maxDistance, minAzimuth: orbit.minAzimuthAngle, maxAzimuth: orbit.maxAzimuthAngle, minPolar: orbit.minPolarAngle, maxPolar: orbit.maxPolarAngle })
     }
   }, -.5)
-  return <OrbitControls ref={controls} enablePan={false} enableDamping={!reducedMotion} dampingFactor={.085} {...normalLimits} target={ORBIT_TARGET} />
+  return <OrbitControls ref={controls} enablePan={false} enableDamping={!reducedMotion} dampingFactor={.085} {...normalLimits} target={orbitTarget} />
 }

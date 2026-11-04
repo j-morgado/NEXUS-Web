@@ -2,16 +2,19 @@ import { DevOptions } from './components/DevOptions'
 import { PerformanceStats } from './components/PerformanceStats'
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { InactivityGuard } from './components/InactivityGuard'
-import { ModuleBoundary } from './components/ModuleBoundary'
 import { recordUsage } from './services/analytics'
 import { defaultSettings, getConfigState, getOperatorSettings, saveOperatorSettings, type OperatorSettings } from './services/configStore'
 import { checkForPublishedUpdate, registerOfflineWorker } from './services/serviceWorker'
 import { Attract } from './screens/Attract'
 import { Selector } from './screens/Selector'
 import { LoadingScreen } from './components/LoadingScreen'
+import { ModuleHost } from './modules/ModuleHost'
+import { moduleRegistry } from './modules/registry'
+import { resolveModuleRoute } from './modules/routes'
+import type { ExperienceModuleDefinition } from './modules/schema'
 
-const Configurator = lazy(() => import('./screens/Configurator').then((module) => ({ default: module.Configurator })))
 const Explorer = lazy(() => import('./screens/Explorer').then((module) => ({ default: module.Explorer })))
+const jltvDefinition = moduleRegistry.getById('jltv')!
 
 function DestinationReady({ onReady }: { onReady: () => void }) {
   useEffect(() => {
@@ -27,7 +30,25 @@ function DestinationReady({ onReady }: { onReady: () => void }) {
 
 type Route = 'attract' | 'selector' | 'jltv' | 'explorer'
 
-export default function App() {
+function StandaloneModule({ definition }: { definition: ExperienceModuleDefinition }) {
+  const exit = useCallback(() => window.location.assign('/'), [])
+  useEffect(() => registerOfflineWorker(() => undefined), [])
+  return <InactivityGuard timeoutSeconds={60} warningSeconds={10} onReset={exit}>
+    <a className="skip-link" href="#main-content">Skip to main content</a>
+    <ModuleHost definition={definition} mode="standalone" onExit={exit} hotspotMode="in-place" visual={defaultSettings.visual} />
+  </InactivityGuard>
+}
+
+function MissingModule({ slug }: { slug: string }) {
+  return <main id="main-content" className="module-recovery">
+    <p className="eyebrow">MODULE NOT FOUND</p>
+    <h1>This experience is not packaged in NEXUS.</h1>
+    <p>No module is registered for <code>{slug}</code>. Check the authored slug or return to the hub.</p>
+    <a className="primary-cta" href="/">Return to NEXUS <span>→</span></a>
+  </main>
+}
+
+function HubApp() {
   const [route, setRoute] = useState<Route>('attract')
   const [hubEntrance, setHubEntrance] = useState(false)
   const [transition, setTransition] = useState<{ next: Route; phase: 'covering' | 'loading' | 'revealing' } | null>(null)
@@ -109,7 +130,7 @@ export default function App() {
       {route === 'attract' && <Attract onBegin={begin} />}
       {route === 'selector' && <Selector animateEntrance={hubEntrance} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset}  />}
       <Suspense fallback={null}>
-        {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} hotspotMode={settings.hotspotMode} visual={settings.visual} showPerformanceStats={settings.showPerformanceStats} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
+        {route === 'jltv' && <ModuleHost definition={jltvDefinition} mode="hub" onExit={() => go('selector')} hotspotMode={settings.hotspotMode} visual={settings.visual} showPerformanceStats={settings.showPerformanceStats} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} />}
         {route === 'explorer' && <><Explorer active={!transition} onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></>}
         {route === 'selector' && <DestinationReady onReady={markReady} />}
       </Suspense>
@@ -121,4 +142,11 @@ export default function App() {
     {settings.showPerformanceStats && <PerformanceStats sceneActive={route === 'jltv'} />}
 
   </InactivityGuard>
+}
+
+export default function App() {
+  const route = resolveModuleRoute(window.location.pathname)
+  if (route.kind === 'module') return <StandaloneModule definition={route.definition} />
+  if (route.kind === 'not-found') return <MissingModule slug={route.slug} />
+  return <HubApp />
 }

@@ -55,7 +55,7 @@ export const bridgeMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('module:ready'), moduleId: z.string() }),
   z.object({ type: z.literal('module:exit'), moduleId: z.string() }),
   z.object({ type: z.literal('module:error'), moduleId: z.string(), message: z.string() }),
-  z.object({ type: z.literal('activity'), source: z.enum(['shell', 'module', 'explorer', 'media']) }),
+  z.object({ type: z.literal('activity'), source: z.enum(['shell', 'module', 'explorer', 'media']), moduleId: z.string().optional() }),
 ])
 
 export type Product = z.infer<typeof productSchema>

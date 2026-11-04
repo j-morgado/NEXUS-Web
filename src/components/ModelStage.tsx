@@ -12,20 +12,17 @@ import { CameraMotionBlur } from './CameraMotionBlur'
 import { SceneReadiness } from './SceneReadiness'
 import { AddonTransition } from './AddonTransition'
 import { applyAddonDissolve, createAddonUniforms } from './addonDissolve'
+import type { ModuleScene } from '../modules/schema'
 
-type Props = { vehicle: Vehicle; addonVisible: boolean; activeHotspot: string | null; hotspotMode?: HotspotMode; qualityTier?: 'standard' | 'high'; visual?: VisualSettings; showPerformanceStats?: boolean; onHotspot: (id: string | null) => void; onExit: () => void; onReadyChange: (ready: boolean) => void; onProgress: (progress: number) => void }
+type Props = { vehicle: Vehicle; scene: ModuleScene; activeAddonId: string | null; activeHotspot: string | null; hotspotMode?: HotspotMode; qualityTier?: 'standard' | 'high'; visual?: VisualSettings; showPerformanceStats?: boolean; onHotspot: (id: string | null) => void; onExit: () => void; onReadyChange: (ready: boolean) => void; onProgress: (progress: number) => void }
 type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
-const STUDIO_HORIZON = '#9254b1'
-const STUDIO_FOG_NEAR = 18
-const STUDIO_FOG_FAR = 90
-const DEFAULT_POSITION = new Vector3(7.1, 2.8, 9.2)
-const DEFAULT_TARGET = new Vector3(-.6, 2.0, 0)
 
 
-function StudioSky() {
+function StudioSky({ scene }: { scene: ModuleScene }) {
+  const { environment } = scene
   return <mesh renderOrder={-1}>
     <sphereGeometry args={[450, 32, 16]} />
-    <shaderMaterial side={BackSide} depthWrite={false} toneMapped={false} uniforms={{ horizonColor: { value: new Color(STUDIO_HORIZON) }, zenithColor: { value: new Color('#401d73') }, fogNear: { value: STUDIO_FOG_NEAR }, fogFar: { value: STUDIO_FOG_FAR } }}
+    <shaderMaterial side={BackSide} depthWrite={false} toneMapped={false} uniforms={{ horizonColor: { value: new Color(environment.horizon) }, zenithColor: { value: new Color(environment.zenith) }, fogNear: { value: environment.fog.near }, fogFar: { value: environment.fog.far } }}
       vertexShader={`varying vec3 vDirection; void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`}
       fragmentShader={`
         varying vec3 vDirection;
@@ -64,14 +61,15 @@ function StudioSky() {
   </mesh>
 }
 
-function StudioGround({ visual }: { visual: VisualSettings }) {
-  const [roughnessSource, normalSource] = useTexture(['/assets/ground/roughness.jpg', '/assets/ground/normal.jpg'])
+function StudioGround({ visual, scene }: { visual: VisualSettings; scene: ModuleScene }) {
+  const ground = scene.environment.ground
+  const [roughnessSource, normalSource] = useTexture([ground.roughnessMapUrl, ground.normalMapUrl])
   const textures = useMemo(() => {
     const roughness = roughnessSource.clone(), normal = normalSource.clone()
     for (const texture of [roughness, normal]) {
       texture.colorSpace = NoColorSpace
       texture.wrapS = texture.wrapT = RepeatWrapping
-      texture.repeat.set(160, 160)
+      texture.repeat.set(ground.textureScale, ground.textureScale)
       texture.generateMipmaps = true
       texture.minFilter = LinearMipmapLinearFilter
       texture.magFilter = LinearFilter
@@ -79,7 +77,7 @@ function StudioGround({ visual }: { visual: VisualSettings }) {
       texture.needsUpdate = true
     }
     return { roughness, normal }
-  }, [roughnessSource, normalSource])
+  }, [roughnessSource, normalSource, ground.textureScale])
   const configureGround = useCallback((material: Material | null) => {
     if (!material || material.userData.surfaceUvPatched) return
     material.userData.surfaceUvPatched = true
@@ -99,14 +97,14 @@ function StudioGround({ visual }: { visual: VisualSettings }) {
   useEffect(() => () => { textures.roughness.dispose(); textures.normal.dispose() }, [textures])
   return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.035, 0]} receiveShadow>
     <planeGeometry args={[2000, 2000]} />
-    {visual.planarReflections ? <MeshReflectorMaterial key={visual.reflectionResolution} ref={configureGround} color="#3a234d" roughness={.5} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(.5, .5)} metalness={.12} blur={[140, 60]} resolution={visual.reflectionResolution} mixBlur={1.15} mixStrength={1.3} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.3} /> : <meshStandardMaterial color="#3a234d" roughness={.5} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(.5, .5)} metalness={.12} />}
+    {visual.planarReflections ? <MeshReflectorMaterial key={visual.reflectionResolution} ref={configureGround} color={ground.color} roughness={ground.roughness} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(.5, .5)} metalness={ground.metalness} blur={[140, 60]} resolution={visual.reflectionResolution} mixBlur={1.15} mixStrength={1.3} depthScale={.3} minDepthThreshold={.4} maxDepthThreshold={1.5} mirror={.3} /> : <meshStandardMaterial color={ground.color} roughness={ground.roughness} roughnessMap={textures.roughness} normalMap={textures.normal} normalScale={new Vector2(.5, .5)} metalness={ground.metalness} />}
   </mesh>
 }
 
-function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef, onHotspot, hotspotMode = 'in-place', modelOffsetRef, sidebarReady, reducedMotion }: Omit<Props, 'onExit'> & { markers: MarkerRefs; sidebarReady: boolean; modelOffsetRef: RefObject<Vector3>; stageRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
+function VehicleModel({ vehicle, activeAddonId, activeHotspot, markers, stageRef, onHotspot, hotspotMode = 'in-place', modelOffsetRef, sidebarReady, reducedMotion }: Omit<Props, 'onExit'> & { markers: MarkerRefs; sidebarReady: boolean; modelOffsetRef: RefObject<Vector3>; stageRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
   const faultMode = new URLSearchParams(window.location.search).get('fault')
   const gltf = useGLTF(faultMode === 'model' ? '/assets/corrupted-demo.glb' : vehicle.modelUrl)
-  const [addonUniforms] = useState(() => createAddonUniforms(addonVisible))
+  const [addonUniforms] = useState(() => createAddonUniforms(false))
   const scene = useMemo(() => {
     const owned = gltf.scene.clone(true)
     owned.traverse((object: Object3D) => {
@@ -145,7 +143,10 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
       object.material = Array.isArray(object.material) ? object.material.map(prepare) : prepare(object.material)
       let node: Object3D | null = object
       let isAddon = false
-      while (node) { if (/^Addon[_ ]1$/i.test(node.name)) isAddon = true; node = node.parent }
+      while (node) {
+        if (vehicle.addons.some(addon => [addon.nodeName, addon.nodeName.replaceAll(' ', '_')].includes(node!.name))) isAddon = true
+        node = node.parent
+      }
       if (isAddon) {
         const materials = Array.isArray(object.material) ? object.material : [object.material]
         materials.forEach(material => applyAddonDissolve(material, addonUniforms))
@@ -155,8 +156,11 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
       }
     })
     return owned
-  }, [gltf.scene, addonUniforms])
-  const addon = useMemo(() => scene.getObjectByName(vehicle.addons[0].nodeName) ?? scene.getObjectByName(vehicle.addons[0].nodeName.replaceAll(' ', '_')), [scene, vehicle.addons])
+  }, [gltf.scene, addonUniforms, vehicle.addons])
+  const addonNodes = useMemo(() => vehicle.addons.map(definition => ({ definition, node: scene.getObjectByName(definition.nodeName) ?? scene.getObjectByName(definition.nodeName.replaceAll(' ', '_')) })), [scene, vehicle.addons])
+  const activeAddon = addonNodes.find(item => item.definition.id === activeAddonId && item.node)
+  const transitionAddon = activeAddon ?? addonNodes.find(item => item.node)
+  const addonVisible = Boolean(activeAddon)
   const box = useMemo(() => new Box3().setFromObject(scene), [scene])
   const modelOffset = useMemo(() => {
     const center = box.getCenter(new Vector3())
@@ -258,7 +262,7 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
       ;(Array.isArray(object.material) ? object.material : [object.material]).forEach(material => material.dispose())
     })
   }, [scene])
-  return <group position={modelOffset}><primitive object={scene} /><AddonTransition addon={addon} visible={addonVisible} uniforms={addonUniforms} offset={modelOffset} reducedMotion={reducedMotion} stageRef={stageRef} /></group>
+  return <group position={modelOffset}><primitive object={scene} /><AddonTransition addon={transitionAddon?.node} visible={addonVisible} uniforms={addonUniforms} offset={modelOffset} reducedMotion={reducedMotion} stageRef={stageRef} /></group>
 }
 
 function ShadowQuality({ resolution }: { resolution: number }) {
@@ -276,7 +280,24 @@ function ShadowQuality({ resolution }: { resolution: number }) {
   return null
 }
 
+function WebGLContextGuard({ injectFault, injectedFault, onLost }: { injectFault: boolean; injectedFault: RefObject<boolean>; onLost: () => void }) {
+  const { gl } = useThree()
+  useEffect(() => {
+    const contextLost = (event: Event) => { event.preventDefault(); onLost() }
+    gl.domElement.addEventListener('webglcontextlost', contextLost)
+    const shouldInject = injectFault && !injectedFault.current
+    if (shouldInject) injectedFault.current = true
+    const faultTimer = shouldInject ? window.setTimeout(() => gl.domElement.dispatchEvent(new Event('webglcontextlost', { cancelable: true })), 250) : 0
+    return () => {
+      gl.domElement.removeEventListener('webglcontextlost', contextLost)
+      if (faultTimer) window.clearTimeout(faultTimer)
+    }
+  }, [gl, injectFault, injectedFault, onLost])
+  return null
+}
+
 export function ModelStage(props: Props) {
+  const onStageReadyChange = props.onReadyChange
   const visual = props.visual ?? visualPresets[props.qualityTier ?? 'standard']
   const { active: loadingAssets, progress: assetProgress } = useProgress()
   useEffect(() => { props.onProgress(loadingAssets ? Math.min(90, assetProgress * .9) : 90) }, [loadingAssets, assetProgress, props.onProgress])
@@ -297,6 +318,8 @@ export function ModelStage(props: Props) {
   const markers = useRef(new Map<string, HTMLDivElement>())
   const stageRef = useRef<HTMLDivElement>(null)
   const injectedWebglFault = useRef(false)
+  const loseContext = useCallback(() => { setContextLost(true); onStageReadyChange(true) }, [onStageReadyChange])
+  const injectWebglFault = new URLSearchParams(window.location.search).get('fault') === 'webgl'
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
     const update = () => setReducedMotion(query.matches)
@@ -346,28 +369,24 @@ export function ModelStage(props: Props) {
       props.onReadyChange(false)
       const perspective = camera as PerspectiveCamera
       gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true
-      camera.position.copy(DEFAULT_POSITION); camera.lookAt(DEFAULT_TARGET)
-      perspective.fov = 38; perspective.near = .1; perspective.far = 1200; perspective.updateProjectionMatrix()
-      gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true); props.onReadyChange(true) })
-      if (new URLSearchParams(window.location.search).get('fault') === 'webgl' && !injectedWebglFault.current) { injectedWebglFault.current = true; window.setTimeout(() => gl.domElement.dispatchEvent(new Event('webglcontextlost', { cancelable: true })), 250) }
+      camera.position.set(...props.scene.camera.position); camera.lookAt(...props.scene.camera.target)
+      perspective.fov = props.scene.camera.fov; perspective.near = props.scene.camera.near; perspective.far = props.scene.camera.far; perspective.updateProjectionMatrix()
     }}>
-      <color attach="background" args={['#64358d']} />
-      <fog attach="fog" args={[STUDIO_HORIZON, STUDIO_FOG_NEAR, STUDIO_FOG_FAR]} />
-      <StudioSky />
-      <ambientLight intensity={.6} />
-      <hemisphereLight args={['#edd5ff', '#49314d', 1.6]} />
-      <directionalLight position={[7, 10, 9]} intensity={2.5} color="#fff4ed" castShadow shadow-mapSize-width={visual.shadowResolution} shadow-mapSize-height={visual.shadowResolution} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={9} shadow-camera-bottom={-8} shadow-bias={-.0004} />
-      <directionalLight position={[-6, 6, 5]} intensity={1.2} color="#d7a4ef" />
-      <directionalLight position={[-5, 8, -9]} intensity={1.8} color="#f4d8ff" />
-      <pointLight position={[-1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
-      <pointLight position={[1.05, 1.25, 3.15]} intensity={5} distance={4} decay={2} color="#ff36dc" />
+      <WebGLContextGuard injectFault={injectWebglFault} injectedFault={injectedWebglFault} onLost={loseContext} />
+      <color attach="background" args={[props.scene.environment.background]} />
+      <fog attach="fog" args={[props.scene.environment.fog.color, props.scene.environment.fog.near, props.scene.environment.fog.far]} />
+      <StudioSky scene={props.scene} />
+      <ambientLight intensity={props.scene.lighting.ambientIntensity} />
+      <hemisphereLight args={[props.scene.lighting.hemisphere.skyColor, props.scene.lighting.hemisphere.groundColor, props.scene.lighting.hemisphere.intensity]} />
+      {props.scene.lighting.directional.map((light, index) => <directionalLight key={index} position={light.position} intensity={light.intensity} color={light.color} castShadow={light.castsShadow} shadow-mapSize-width={visual.shadowResolution} shadow-mapSize-height={visual.shadowResolution} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={9} shadow-camera-bottom={-8} shadow-bias={-.0004} />)}
+      {props.scene.lighting.accentPoints.map((light, index) => <pointLight key={index} position={light.position} intensity={light.intensity} distance={light.distance} decay={light.decay} color={light.color} />)}
       <Suspense fallback={null}>
         <VehicleModel {...props} reducedMotion={reducedMotion} markers={markers} modelOffsetRef={modelOffsetRef} sidebarReady={sidebarReady} stageRef={stageRef} />
-        <StudioGround visual={visual} />
-        <ContactShadows key={String(props.addonVisible)} position={[0, .005, 0]} opacity={.48} scale={16} blur={2.8} far={7} color="#30143e" frames={1} resolution={256} />
+        <StudioGround visual={visual} scene={props.scene} />
+        <ContactShadows key={String(props.activeAddonId)} position={[0, .005, 0]} opacity={.48} scale={16} blur={2.8} far={7} color={props.scene.environment.ground.color} frames={1} resolution={256} />
         <SceneReadiness onReady={props.onReadyChange} onProgress={props.onProgress} />
       </Suspense>
-      <HotspotCamera onFocusReady={setSidebarReadyId} vehicle={props.vehicle} activeHotspot={props.activeHotspot} mode={props.hotspotMode ?? 'in-place'} modelOffset={modelOffsetRef} statusRef={stageRef} reducedMotion={reducedMotion} />
+      <HotspotCamera onFocusReady={setSidebarReadyId} vehicle={props.vehicle} activeHotspot={props.activeHotspot} mode={props.hotspotMode ?? 'in-place'} orbitTarget={props.scene.camera.target} modelOffset={modelOffsetRef} statusRef={stageRef} reducedMotion={reducedMotion} />
       <ShadowQuality resolution={visual.shadowResolution} />
       <CameraMotionBlur visual={visual} showPerformanceStats={props.showPerformanceStats ?? false} reducedMotion={reducedMotion} statusRef={stageRef} />
     </Canvas>

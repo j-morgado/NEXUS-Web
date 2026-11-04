@@ -2,17 +2,22 @@ import { useEffect } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Configurator } from './Configurator'
+import { jltvModule } from '../modules/configs'
+import type { ModuleLifecycle } from '../modules/contract'
 
 const readiness = vi.hoisted(() => ({ defer: false, complete: null as null | ((ready: boolean) => void) }))
-vi.mock('../components/ModelStage', () => ({ ModelStage: ({ addonVisible, onReadyChange }: { addonVisible: boolean; onReadyChange: (ready: boolean) => void }) => {
+vi.mock('../components/ModelStage', () => ({ ModelStage: ({ activeAddonId, onReadyChange }: { activeAddonId: string | null; onReadyChange: (ready: boolean) => void }) => {
   useEffect(() => { readiness.complete = onReadyChange; if (!readiness.defer) onReadyChange(true) }, [onReadyChange])
-  return <div data-testid="attachment" data-visible={String(addonVisible)} />
+  return <div data-testid="attachment" data-visible={String(activeAddonId === 'addon-1')} />
 } }))
+
+const lifecycle: ModuleLifecycle = { onReady: vi.fn(), onExit: vi.fn(), onError: vi.fn(), onActivity: vi.fn(), dispose: vi.fn() }
+const renderConfigurator = (onExit = vi.fn()) => render(<Configurator definition={jltvModule} lifecycle={lifecycle} hostMode="hub" onExit={onExit} />)
 
 describe('experience configuration', () => {
   afterEach(() => { cleanup(); readiness.defer = false; readiness.complete = null })
   it('starts bare and keeps add-ons mutually exclusive with toggle-off behavior', () => {
-    render(<Configurator onExit={vi.fn()} />)
+    renderConfigurator()
     const buttons = [1, 2, 3].map(number => screen.getByRole('button', { name: new RegExp(`Add-on ${number}`) }))
     const pressed = () => buttons.map(button => button.getAttribute('aria-pressed'))
     expect(pressed()).toEqual(['false', 'false', 'false'])
@@ -33,7 +38,7 @@ describe('experience configuration', () => {
   })
   it('keeps the whole experience hidden until the renderer signals readiness', () => {
     readiness.defer = true
-    render(<Configurator onExit={vi.fn()} />)
+    renderConfigurator()
     expect(screen.getByText('Loading')).toBeVisible()
     expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow')
     expect(screen.queryByRole('button', { name: /^Return to Hub$/ })).not.toBeInTheDocument()
@@ -44,7 +49,7 @@ describe('experience configuration', () => {
   })
   it('offers a return-to-hub action without obsolete navigation', () => {
     const exit = vi.fn()
-    render(<Configurator onExit={exit} />)
+    renderConfigurator(exit)
     expect(screen.queryByRole('button', { name: 'NEXUS' })).not.toBeInTheDocument()
     expect(screen.queryByText('JLTV CONFIGURATOR')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Bare vehicle' })).not.toBeInTheDocument()
