@@ -39,9 +39,9 @@ This branch is infrastructure and authoring work. It does not add a new hub card
 
 ## Checkpoint results
 
-- Contract, registry, route, and lifecycle unit coverage: 36/36 repository tests passing.
+- Contract, registry, route, lifecycle, real synthetic node extraction, schema validation, and independent multi-add-on transition coverage: 41/41 repository tests passing.
 - TypeScript and production build: passing.
-- Browser module suite: hub-hosted JLTV, standalone JLTV, standalone training fixture, access gate, lifecycle ready event, no standalone creator controls, unchanged hub cards, and missing-module recovery passing in Chromium.
+- Browser module suite: strict static direct links/reload, hub-hosted JLTV, standalone JLTV, standalone training fixture, configured runtime nodes/scene values, ready/exit/error/activity events, repeated entry/listener cleanup, access gate, no standalone creator controls, and unchanged hub cards passing in Chromium.
 - Existing access-gate browser suite: passing at desktop and phone viewports.
 - Full lint remains blocked by pre-existing React rules in `CameraMotionBlur`, `ModelStage`, `PerformanceStats`, `Configurator`, and `Explorer`; this branch does not claim a clean lint run. No new module/registry/route/lifecycle file is named in the lint findings.
 

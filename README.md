@@ -44,4 +44,4 @@ See [docs/architecture.md](docs/architecture.md), [docs/asset-report.md](docs/as
 
 ## Module templates
 
-The JLTV experience now runs from a validated packaged module definition in both the NEXUS hub and at `/modules/jltv`. A claim-free `/modules/training-rig` fixture demonstrates a second configuration without adding another hub card. See [docs/MODULE-TEMPLATING-BRIEF.md](docs/MODULE-TEMPLATING-BRIEF.md) for scope and acceptance criteria and [docs/MODULE-AUTHORING.md](docs/MODULE-AUTHORING.md) for authoring and hosting instructions.
+The JLTV experience now runs from a validated packaged module definition in both the NEXUS hub and at `/modules/jltv`. A claim-free `/modules/training-rig` fixture demonstrates a second configuration without adding another hub card. Production builds emit static route shells for both paths, so direct links and reloads work on ordinary static servers. See [docs/MODULE-TEMPLATING-BRIEF.md](docs/MODULE-TEMPLATING-BRIEF.md) for scope and acceptance criteria and [docs/MODULE-AUTHORING.md](docs/MODULE-AUTHORING.md) for authoring and hosting instructions.

@@ -10,9 +10,10 @@ import { HotspotCamera } from './HotspotCamera'
 import { sidebarWidth } from './hotspotCamera'
 import { CameraMotionBlur } from './CameraMotionBlur'
 import { SceneReadiness } from './SceneReadiness'
-import { AddonTransition } from './AddonTransition'
+import { AddonTransition, type AddonTransitionSnapshot } from './AddonTransition'
 import { applyAddonDissolve, createAddonUniforms } from './addonDissolve'
 import type { ModuleScene } from '../modules/schema'
+import { resolveVehicleAsset } from '../modules/modelAsset'
 
 type Props = { vehicle: Vehicle; scene: ModuleScene; activeAddonId: string | null; activeHotspot: string | null; hotspotMode?: HotspotMode; qualityTier?: 'standard' | 'high'; visual?: VisualSettings; showPerformanceStats?: boolean; onHotspot: (id: string | null) => void; onExit: () => void; onReadyChange: (ready: boolean) => void; onProgress: (progress: number) => void }
 type MarkerRefs = RefObject<Map<string, HTMLDivElement>>
@@ -60,7 +61,6 @@ function StudioSky({ scene }: { scene: ModuleScene }) {
       `} />
   </mesh>
 }
-
 function StudioGround({ visual, scene }: { visual: VisualSettings; scene: ModuleScene }) {
   const ground = scene.environment.ground
   const [roughnessSource, normalSource] = useTexture([ground.roughnessMapUrl, ground.normalMapUrl])
@@ -104,17 +104,18 @@ function StudioGround({ visual, scene }: { visual: VisualSettings; scene: Module
 function VehicleModel({ vehicle, activeAddonId, activeHotspot, markers, stageRef, onHotspot, hotspotMode = 'in-place', modelOffsetRef, sidebarReady, reducedMotion }: Omit<Props, 'onExit'> & { markers: MarkerRefs; sidebarReady: boolean; modelOffsetRef: RefObject<Vector3>; stageRef: RefObject<HTMLDivElement | null>; reducedMotion: boolean }) {
   const faultMode = new URLSearchParams(window.location.search).get('fault')
   const gltf = useGLTF(faultMode === 'model' ? '/assets/corrupted-demo.glb' : vehicle.modelUrl)
-  const [addonUniforms] = useState(() => createAddonUniforms(false))
-  const scene = useMemo(() => {
+  const addonUniforms = useMemo(() => new Map(vehicle.addons.filter(addon => addon.available && addon.nodeName).map(addon => [addon.id, createAddonUniforms(false)])), [vehicle.addons])
+  const prepared = useMemo(() => {
     const owned = gltf.scene.clone(true)
-    owned.traverse((object: Object3D) => {
+    const resolved = resolveVehicleAsset(owned, vehicle)
+    const prepareNode = (root: Object3D, uniforms?: ReturnType<typeof createAddonUniforms>) => root.traverse((object: Object3D) => {
       if (!(object instanceof Mesh)) return
       object.geometry = object.geometry.clone()
       object.geometry.boundsTree = new MeshBVH(object.geometry)
       object.raycast = acceleratedRaycast
       object.castShadow = true
       object.receiveShadow = true
-      const prepare = (source: MeshStandardMaterial) => {
+      const prepareMaterial = (source: MeshStandardMaterial) => {
         const material = source.clone()
         const cutout = source.transparent || Boolean(source.alphaMap)
         // The details atlas contains opaque tires/bodywork plus small alpha cutouts.
@@ -138,29 +139,36 @@ function VehicleModel({ vehicle, activeAddonId, activeHotspot, markers, stageRef
           shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>\nroughnessFactor = mix(${floor.toFixed(2)}, 1.0, roughnessFactor);`)
         }
         material.customProgramCacheKey = () => `nexus-matte-${floor}`
+        if (uniforms) applyAddonDissolve(material, uniforms)
         return material
       }
-      object.material = Array.isArray(object.material) ? object.material.map(prepare) : prepare(object.material)
-      let node: Object3D | null = object
-      let isAddon = false
-      while (node) {
-        if (vehicle.addons.some(addon => [addon.nodeName, addon.nodeName.replaceAll(' ', '_')].includes(node!.name))) isAddon = true
-        node = node.parent
-      }
-      if (isAddon) {
-        const materials = Array.isArray(object.material) ? object.material : [object.material]
-        materials.forEach(material => applyAddonDissolve(material, addonUniforms))
-        const source = materials[0] as MeshStandardMaterial
+      object.material = Array.isArray(object.material) ? object.material.map(prepareMaterial) : prepareMaterial(object.material)
+      if (uniforms) {
+        const source = (Array.isArray(object.material) ? object.material[0] : object.material) as MeshStandardMaterial
         object.customDepthMaterial = new MeshDepthMaterial({ depthPacking: RGBADepthPacking, map: source.map, alphaTest: source.alphaTest, side: source.side })
-        applyAddonDissolve(object.customDepthMaterial, addonUniforms, false)
+        applyAddonDissolve(object.customDepthMaterial, uniforms, false)
       }
     })
-    return owned
-  }, [gltf.scene, addonUniforms, vehicle.addons])
-  const addonNodes = useMemo(() => vehicle.addons.map(definition => ({ definition, node: scene.getObjectByName(definition.nodeName) ?? scene.getObjectByName(definition.nodeName.replaceAll(' ', '_')) })), [scene, vehicle.addons])
-  const activeAddon = addonNodes.find(item => item.definition.id === activeAddonId && item.node)
-  const transitionAddon = activeAddon ?? addonNodes.find(item => item.node)
-  const addonVisible = Boolean(activeAddon)
+    prepareNode(resolved.vehicleNode)
+    for (const addon of resolved.addons) prepareNode(addon.node, addonUniforms.get(addon.definition.id)!)
+    return resolved
+  }, [gltf.scene, addonUniforms, vehicle])
+  const scene = prepared.root
+  const addonStates = useRef(new Map<string, AddonTransitionSnapshot>())
+  const reportAddonState = useCallback((addonId: string, state: AddonTransitionSnapshot) => {
+    addonStates.current.set(addonId, state)
+    if (!stageRef.current) return
+    const states = Object.fromEntries(addonStates.current)
+    const visibleIds = Object.entries(states).filter(([, snapshot]) => snapshot.visible).map(([id]) => id)
+    const active = activeAddonId ? states[activeAddonId] : undefined
+    const reported = active ?? Object.values(states).find(snapshot => snapshot.transitioning)
+    stageRef.current.dataset.addonStates = JSON.stringify(states)
+    stageRef.current.dataset.visibleAddonIds = JSON.stringify(visibleIds)
+    stageRef.current.dataset.addonVisible = String(visibleIds.length > 0)
+    stageRef.current.dataset.addonTransitioning = String(Object.values(states).some(snapshot => snapshot.transitioning))
+    stageRef.current.dataset.addonProgress = reported ? reported.progress.toFixed(3) : '0'
+    stageRef.current.dataset.addonParticles = String(Object.values(states).reduce((total, snapshot) => total + snapshot.particles, 0))
+  }, [activeAddonId, stageRef])
   const box = useMemo(() => new Box3().setFromObject(scene), [scene])
   const modelOffset = useMemo(() => {
     const center = box.getCenter(new Vector3())
@@ -178,9 +186,12 @@ function VehicleModel({ vehicle, activeAddonId, activeHotspot, markers, stageRef
     if (stageRef.current) {
       stageRef.current.dataset.modelBounds = JSON.stringify({ min: box.min.toArray(), max: box.max.toArray(), offset: modelOffset.toArray() })
       stageRef.current.dataset.modelReady = 'true'
+      stageRef.current.dataset.configuredVehicleNode = vehicle.vehicleNode
+      stageRef.current.dataset.configuredModelUrl = vehicle.modelUrl
+      stageRef.current.dataset.configuredAddonNodes = JSON.stringify(prepared.addons.map(addon => addon.definition.nodeName))
       stageRef.current.dataset.modelNodes = JSON.stringify(scene.children.map(node => ({ name: node.name, type: node.type, visible: node.visible, children: node.children.map(child => ({ name: child.name, visible: child.visible })) })))
     }
-  }, [addonVisible, box, gl, invalidate, modelOffset, modelOffsetRef, scene, stageRef, vehicle.addons])
+  }, [box, gl, invalidate, modelOffset, modelOffsetRef, prepared.addons, scene, stageRef, vehicle.modelUrl, vehicle.vehicleNode])
 
   useFrame((_, delta) => {
     scratch.elapsed += delta
@@ -262,7 +273,7 @@ function VehicleModel({ vehicle, activeAddonId, activeHotspot, markers, stageRef
       ;(Array.isArray(object.material) ? object.material : [object.material]).forEach(material => material.dispose())
     })
   }, [scene])
-  return <group position={modelOffset}><primitive object={scene} /><AddonTransition addon={transitionAddon?.node} visible={addonVisible} uniforms={addonUniforms} offset={modelOffset} reducedMotion={reducedMotion} stageRef={stageRef} /></group>
+  return <group position={modelOffset}><primitive object={scene} />{prepared.addons.map(addon => <AddonTransition key={addon.definition.id} addonId={addon.definition.id} addon={addon.node} visible={activeAddonId === addon.definition.id} uniforms={addonUniforms.get(addon.definition.id)!} offset={modelOffset} reducedMotion={reducedMotion} onState={reportAddonState} />)}</group>
 }
 
 function ShadowQuality({ resolution }: { resolution: number }) {
@@ -364,7 +375,7 @@ export function ModelStage(props: Props) {
 
   if (contextLost) return <section className="model-failure" role="alert"><p className="eyebrow">3D MODULE INTERRUPTED</p><h2>The vehicle view needs to restart.</h2><p>Your selected configuration is preserved. Retry the renderer or return to the hub.</p><div><button className="primary-cta" onClick={() => { props.onReadyChange(false); props.onProgress(90); setContextLost(false) }}>Retry 3D view <span>↻</span></button><button className="recovery-back" onClick={props.onExit}>Return to hub</button></div></section>
 
-  return <div className="model-stage" ref={stageRef} data-hotspot-open={String(Boolean(props.activeHotspot))}>
+  return <div className="model-stage" ref={stageRef} data-hotspot-open={String(Boolean(props.activeHotspot))} data-scene-background={props.scene.environment.background} data-camera-start={JSON.stringify(props.scene.camera)}>
     <Canvas frameloop="demand" shadows dpr={[1, visual.maxDpr]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl, camera }) => {
       props.onReadyChange(false)
       const perspective = camera as PerspectiveCamera
@@ -401,7 +412,3 @@ export function ModelStage(props: Props) {
     })}
   </div>
 }
-
-useGLTF.preload('/assets/jltv-runtime.glb')
-
-useTexture.preload(['/assets/ground/roughness.jpg', '/assets/ground/normal.jpg'])

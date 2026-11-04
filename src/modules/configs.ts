@@ -32,8 +32,8 @@ const vehicleWithControlSlots = {
   ...seedVehicle,
   addons: [
     { ...seedVehicle.addons[0], label: 'Add-on 1' },
-    { id: 'addon-2', label: 'Add-on 2', nodeName: '__reserved_addon_2', mountAnchor: 'reserved-integration-point' },
-    { id: 'addon-3', label: 'Add-on 3', nodeName: '__reserved_addon_3', mountAnchor: 'reserved-integration-point' },
+    { id: 'addon-2', label: 'Add-on 2', nodeName: null, mountAnchor: 'reserved-integration-point', available: false },
+    { id: 'addon-3', label: 'Add-on 3', nodeName: null, mountAnchor: 'reserved-integration-point', available: false },
   ],
 }
 
@@ -72,6 +72,12 @@ export const trainingRigModule = experienceModuleDefinitionSchema.parse({
     ...vehicleWithControlSlots,
     id: 'training-rig-asset',
     name: 'Training Rig (demonstration asset)',
+    modelUrl: '/assets/training-rig.gltf',
+    vehicleNode: 'TrainingVehicle',
+    addons: [
+      { id: 'training-alpha', label: 'Training add-on A', nodeName: 'TrainingAddonAlpha', mountAnchor: 'synthetic-fixture-a', available: true },
+      { id: 'training-beta', label: 'Training add-on B', nodeName: 'TrainingAddonBeta', mountAnchor: 'synthetic-fixture-b', available: true },
+    ],
     hotspots: vehicleWithControlSlots.hotspots.map((hotspot, index) => ({
       ...hotspot,
       id: `training-point-${index + 1}`,

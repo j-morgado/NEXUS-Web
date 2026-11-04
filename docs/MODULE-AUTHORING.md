@@ -10,7 +10,8 @@ Experience modules are packaged, versioned data consumed by one shared React/Thr
 4. Replace presentation, hotspot, and add-on labels with approved content. The schema deliberately keeps visitor content in the module definition rather than in rendering components.
 5. Tune `scene.camera`, `scene.environment`, and `scene.lighting`. Colors, fog distances, ground textures, camera framing, and the light rig are module values.
 6. Add the parsed definition to `packagedModuleDefinitions`. Import-time validation rejects incompatible schema/engine versions, invalid ranges, and duplicate registry IDs/slugs.
-7. Test the direct route at `/modules/<slug>`. Adding a hub card is a separate product decision; registration alone does not expose a new card.
+7. Add the slug to `src/modules/routes.json`. The production build generates `dist/modules/<slug>/index.html`, allowing direct links and reloads on ordinary static hosts without an SPA fallback. A test fails if the packaged definitions and static route manifest diverge.
+8. Test the direct route at `/modules/<slug>`. Adding a hub card is a separate product decision; registration alone does not expose a new card.
 
 ## Hosting modes
 
@@ -23,11 +24,12 @@ Both modes emit schema-validated `nexus:module` ready/exit/error events. Module 
 
 - GLB and texture URLs are same-origin paths by default and are loaded by Drei's Suspense-aware loaders.
 - Production builds include packaged assets in the existing Workbox cache glob. A future remote CMS adapter must define CORS, integrity, revisioning, cache quotas, and failure fallbacks before remote assets are enabled.
-- The `training-rig` sample intentionally reuses `jltv-runtime.glb`; its title and copy clearly identify it as a validation fixture. It is not a second product or a source of product claims.
+- The `training-rig` sample uses a tiny synthetic glTF with one base node and two real add-on nodes. Its title and copy clearly identify it as a validation fixture; it is not a product or a source of product claims.
 
 ## Current limitations
 
-- The engine supports exclusive add-on selection. The available demonstration GLB contains one verified add-on node; additional control slots are reserved placeholders. Validate transition behavior before authoring a model with multiple real add-on nodes.
+- The engine supports exclusive selection across multiple real add-on nodes. Each node owns independent dissolve uniforms, particles, visibility, and transition state; synthetic two-node tests cover A → B → none switching. The available demonstration GLB contains only one verified add-on node, so its two future slots are explicitly disabled and have no fabricated model references.
+- `vehicleNode` and every available add-on node are validated against the loaded glTF before rendering. Three.js name normalization is handled deterministically; missing, duplicate, or ambiguous assignments fail into the module recovery surface instead of silently rendering the wrong scene.
 - Studio scene values are configurable, but environment *types* remain the existing ground/studio implementation. Land/sea/air environment engines belong to the separate environment workstream.
 - Module definitions are packaged TypeScript data. CMS publication, trust/signing, author roles, drafts, and remote media delivery belong to the separate CMS workstream.
 - Hotspots use model-local coordinates and therefore require per-asset authoring. There is no visual creator tool in the visitor runtime.

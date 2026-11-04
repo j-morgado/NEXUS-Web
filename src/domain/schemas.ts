@@ -36,8 +36,28 @@ export const vehicleSchema = z.object({
   name: z.string(),
   modelUrl: z.string(),
   vehicleNode: z.string(),
-  addons: z.array(z.object({ id: z.string(), label: z.string(), nodeName: z.string(), mountAnchor: z.string() })),
+  addons: z.array(z.object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    nodeName: z.string().min(1).nullable(),
+    mountAnchor: z.string().min(1),
+    available: z.boolean().default(true),
+  }).superRefine((addon, context) => {
+    if (addon.available && !addon.nodeName) context.addIssue({ code: 'custom', message: 'Available add-ons require a model node name.', path: ['nodeName'] })
+    if (!addon.available && addon.nodeName) context.addIssue({ code: 'custom', message: 'Unavailable add-on slots must not reference a model node.', path: ['nodeName'] })
+  })),
   hotspots: z.array(hotspotSchema),
+}).superRefine((vehicle, context) => {
+  const addonIds = new Set<string>()
+  const nodeNames = new Set<string>()
+  vehicle.addons.forEach((addon, index) => {
+    if (addonIds.has(addon.id)) context.addIssue({ code: 'custom', message: `Duplicate add-on id: ${addon.id}`, path: ['addons', index, 'id'] })
+    addonIds.add(addon.id)
+    if (!addon.available || !addon.nodeName) return
+    if (nodeNames.has(addon.nodeName)) context.addIssue({ code: 'custom', message: `Duplicate add-on node: ${addon.nodeName}`, path: ['addons', index, 'nodeName'] })
+    nodeNames.add(addon.nodeName)
+    if (addon.nodeName === vehicle.vehicleNode) context.addIssue({ code: 'custom', message: 'An add-on cannot reference the base vehicle node.', path: ['addons', index, 'nodeName'] })
+  })
 })
 
 export const eventConfigSchema = z.object({

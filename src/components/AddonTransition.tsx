@@ -1,15 +1,19 @@
 /* eslint-disable react-hooks/immutability -- Three.js scene objects and shader uniforms are intentionally mutated inside the render loop. */
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { AdditiveBlending, Box3, BufferAttribute, BufferGeometry, Mesh, Points, ShaderMaterial, Vector3, type Object3D } from 'three'
 import type { AddonUniforms } from './addonDissolve'
 
-type Props = { addon: Object3D | undefined; visible: boolean; uniforms: AddonUniforms; offset: Vector3; reducedMotion: boolean; stageRef: RefObject<HTMLDivElement | null> }
+export type AddonTransitionSnapshot = { visible: boolean; transitioning: boolean; progress: number; particles: number }
+type Props = { addonId: string; addon: Object3D; visible: boolean; uniforms: AddonUniforms; offset: Vector3; reducedMotion: boolean; onState: (addonId: string, state: AddonTransitionSnapshot) => void }
 
-export function AddonTransition({ addon, visible, uniforms, offset, reducedMotion, stageRef }: Props) {
+export function AddonTransition({ addonId, addon, visible, uniforms, offset, reducedMotion, onState }: Props) {
   const { gl, invalidate } = useThree()
   const initialized = useRef(false)
   const animation = useRef({ target: visible ? 1 : 0, age: 10, running: false })
+  const onStateRef = useRef(onState)
+  useEffect(() => { onStateRef.current = onState }, [onState])
+  const report = useCallback((state: AddonTransitionSnapshot) => onStateRef.current(addonId, state), [addonId])
   const particles = useMemo(() => {
     const count = 112
     const geometry = new BufferGeometry()
@@ -47,7 +51,6 @@ export function AddonTransition({ addon, visible, uniforms, offset, reducedMotio
   useEffect(() => () => { particles.geometry.dispose(); particles.material.dispose() }, [particles])
 
   useEffect(() => {
-    if (!addon) return
     addon.updateWorldMatrix(true, true)
     const box = new Box3().setFromObject(addon)
     uniforms.uAddonMinY.value = box.min.y
@@ -60,12 +63,9 @@ export function AddonTransition({ addon, visible, uniforms, offset, reducedMotio
       addon.visible = visible
       animation.current = { target, age: 10, running: false }
       particles.points.visible = false
-      if (stageRef.current) {
-        stageRef.current.dataset.addonVisible = String(visible)
-        stageRef.current.dataset.addonTransitioning = 'false'
-        stageRef.current.dataset.addonProgress = String(target)
-        stageRef.current.dataset.addonParticles = '0'
-      }
+      report({ visible, transitioning: false, progress: target, particles: 0 })
+    } else if (animation.current.target === target && !animation.current.running) {
+      report({ visible: addon.visible, transitioning: false, progress: uniforms.uAddonProgress.value, particles: 0 })
     } else {
       animation.current = { target, age: 0, running: true }
       addon.visible = true
@@ -87,10 +87,10 @@ export function AddonTransition({ addon, visible, uniforms, offset, reducedMotio
     }
     gl.shadowMap.needsUpdate = true
     invalidate()
-  }, [addon, visible, reducedMotion, uniforms, offset, particles, gl, invalidate, stageRef])
+  }, [addon, visible, reducedMotion, uniforms, offset, particles, gl, invalidate, report])
 
   useFrame((_, delta) => {
-    if (!addon || !animation.current.running) return
+    if (!animation.current.running) return
     const state = animation.current
     // Ignore the long idle delta on the first demand-driven frame.
     const step = (state.age === 0 ? 1 / 60 : Math.min(delta, .1)) * 2
@@ -106,12 +106,7 @@ export function AddonTransition({ addon, visible, uniforms, offset, reducedMotio
     particles.points.visible = state.age < 2.15
     const running = dissolving || particles.points.visible
     state.running = running
-    if (stageRef.current) {
-      stageRef.current.dataset.addonVisible = String(addon.visible)
-      stageRef.current.dataset.addonTransitioning = String(running)
-      stageRef.current.dataset.addonProgress = progress.toFixed(3)
-      stageRef.current.dataset.addonParticles = particles.points.visible ? String(particles.count) : '0'
-    }
+    report({ visible: addon.visible, transitioning: running, progress, particles: particles.points.visible ? particles.count : 0 })
     if (dissolving || before !== progress) gl.shadowMap.needsUpdate = true
     if (running) invalidate()
   })

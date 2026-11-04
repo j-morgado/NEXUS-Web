@@ -19,4 +19,6 @@ Configurator/Three.js and Explorer are lazy route chunks. The shell loads indepe
 
 The configurator clones the loaded GLB scene, toggles the attachment node by name, and disposes cloned geometry/materials on unmount. A production asset manager should add explicit texture reference counting once multiple modules share textures.
 
-Ground texture clones, add-on particle resources, RAF callbacks, and module-scoped document listeners are also disposed by their owning components. The packaged module lifecycle adapter de-duplicates ready/exit events and emits a terminal exit during host disposal.
+The runtime extracts only the configured `vehicleNode` and available add-on nodes from the loaded glTF. It validates those references, normalizes glTF names deterministically, and fails through the module boundary when a configured node is absent or ambiguous. Each add-on owns its dissolve uniforms, visibility, particles, and transition state.
+
+Ground texture clones, add-on particle resources, RAF callbacks, and module-scoped document listeners are also disposed by their owning components. The packaged module lifecycle adapter de-duplicates ready/exit events and emits a terminal exit during host disposal. Production builds emit a static HTML shell per packaged module slug so direct routes do not depend on a development-server SPA fallback.

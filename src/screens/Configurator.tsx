@@ -23,7 +23,7 @@ export function Configurator({ definition, lifecycle, hostMode, onExit, qualityT
     <section className="vehicle-heading"><p className="eyebrow">{definition.presentation.eyebrow}</p><h1>{definition.presentation.title}</h1>{definition.presentation.description && <p>{definition.presentation.description}</p>}</section>
     <aside className="configuration-controls" aria-label="Vehicle configuration">
       <h2>{definition.presentation.configurationLabel}</h2>
-      <div className="bottom-config" role="group" aria-label="Add-ons">{definition.vehicle.addons.map(addon => <button key={addon.id} className={activeAddon === addon.id ? 'selected' : ''} aria-pressed={activeAddon === addon.id} onClick={() => setActiveAddon(current => current === addon.id ? null : addon.id)}>{addon.label}</button>)}</div>
+      <div className="bottom-config" role="group" aria-label="Add-ons">{definition.vehicle.addons.map(addon => <button key={addon.id} className={activeAddon === addon.id ? 'selected' : ''} aria-pressed={activeAddon === addon.id} disabled={!addon.available} title={addon.available ? undefined : 'Asset pending'} onClick={() => setActiveAddon(current => current === addon.id ? null : addon.id)}>{addon.label}</button>)}</div>
     </aside>
     </div>
   </main>

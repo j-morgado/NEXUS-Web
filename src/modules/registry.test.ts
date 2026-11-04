@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { jltvModule } from './configs'
+import { jltvModule, packagedModuleDefinitions } from './configs'
 import { createModuleRegistry } from './registry'
 import { resolveModuleRoute } from './routes'
 import { experienceModuleDefinitionSchema } from './schema'
+import staticModuleRoutes from './routes.json'
 
 describe('experience module definitions', () => {
   it('validates the packaged definition and configurable scene contract', () => {
@@ -28,6 +29,10 @@ describe('experience module definitions', () => {
     expect(resolveModuleRoute('/modules/jltv', registry)).toMatchObject({ kind: 'module', definition: { id: 'jltv' } })
     expect(resolveModuleRoute('/modules/unknown', registry)).toEqual({ kind: 'not-found', slug: 'unknown' })
     expect(resolveModuleRoute('/modules/%E0%A4%A', registry)).toEqual({ kind: 'not-found', slug: '%E0%A4%A' })
+  })
+
+  it('keeps generated static route shells aligned with packaged modules', () => {
+    expect(packagedModuleDefinitions.map(definition => definition.slug)).toEqual(staticModuleRoutes)
   })
 })
 
