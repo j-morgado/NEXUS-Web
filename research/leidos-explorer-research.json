@@ -1,0 +1,1816 @@
+{
+  "schemaVersion": "nexus-research-catalog-v1",
+  "researchedAt": "2026-11-04",
+  "purpose": "Sourced draft seed data for Explorer; not approved marketing copy or production CMS publication",
+  "marketIds": [
+    "land",
+    "sea",
+    "air",
+    "space",
+    "cyber",
+    "health"
+  ],
+  "marketsAre": "Provisional NEXUS navigation taxonomy, not corporate segment taxonomy",
+  "products": [
+    {
+      "id": "mxr",
+      "name": "MXR / MXR-G2",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "hardware",
+      "shortDescription": "Radar for detecting and tracking small aerial threats, with mobile and fixed-site deployment options.",
+      "description": "Radar for detecting and tracking small aerial threats, with mobile and fixed-site deployment options.",
+      "features": [
+        "Clutter filtering",
+        "Command-network integration"
+      ],
+      "specs": [
+        {
+          "label": "Band",
+          "value": "X-band",
+          "sourceIds": [
+            "mxr"
+          ]
+        },
+        {
+          "label": "Generation",
+          "value": "Gen2 announced October 2025",
+          "sourceIds": [
+            "mxr"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/2025-10/MXR%205%20website.png?itok=9sZH-Grd",
+          "title": "Multifunction X-Band Radar Gen2 model on display",
+          "sourceUrl": "https://www.leidos.com/markets/defense/Integrated-Air-and-Missile-Defense",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "video",
+          "url": "https://www.youtube.com/watch?v=aJdaUIfJ3Xs",
+          "title": "MXR / MXR-G2 video",
+          "sourceUrl": "https://www.leidos.com/insights/new-radar-sees-threats-others-miss",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "mxr",
+        "iamd"
+      ],
+      "claimSources": {
+        "name": [
+          "mxr"
+        ],
+        "description": [
+          "mxr"
+        ],
+        "features": [
+          "mxr"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "JLTV-specific mounting, physical model, dimensions, range and power requirements not verified.",
+        "Do not convert the relative range improvement into a numeric range."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "airshield",
+      "name": "AirShield",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "integrated-system",
+      "shortDescription": "Counter-drone system combining MXR sensing with an automated decision engine.",
+      "description": "Counter-drone system combining MXR sensing with an automated decision engine.",
+      "features": [
+        "Threat prioritization",
+        "Effector coordination"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/tabs-card/2025-02/AirShield%20Vid.png?itok=_H5KExmA",
+          "title": "airshield",
+          "sourceUrl": "https://www.leidos.com/markets/defense/Integrated-Air-and-Missile-Defense",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "video",
+          "url": "https://www.youtube.com/watch?v=Q8V4eRA5fNA",
+          "title": "AirShield video",
+          "sourceUrl": "https://www.leidos.com/insights/new-radar-sees-threats-others-miss",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "iamd",
+        "mxr"
+      ],
+      "claimSources": {
+        "name": [
+          "iamd"
+        ],
+        "description": [
+          "iamd"
+        ],
+        "features": [
+          "iamd"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "No specific JLTV installation verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "alps",
+      "name": "ALPS",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "sensor-system",
+      "shortDescription": "Passive surveillance sensor for persistent aerial awareness.",
+      "description": "Passive surveillance sensor for persistent aerial awareness.",
+      "features": [
+        "Non-emitting sensing",
+        "Network integration"
+      ],
+      "specs": [
+        {
+          "label": "Coverage",
+          "value": "360 degrees",
+          "sourceIds": [
+            "iamd"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/ALPS.jpg?itok=RiZJiHPF",
+          "title": "ALPS",
+          "sourceUrl": "https://www.leidos.com/markets/defense/Integrated-Air-and-Missile-Defense",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "iamd"
+      ],
+      "claimSources": {
+        "name": [
+          "iamd"
+        ],
+        "description": [
+          "iamd"
+        ],
+        "features": [
+          "iamd"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Platform-specific installation not verified."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "ifpc-inc-2",
+      "name": "IFPC Increment 2",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "integrated-system",
+      "shortDescription": "Mobile ground-based air defense system for protecting critical assets.",
+      "description": "Mobile ground-based air defense system for protecting critical assets.",
+      "features": [
+        "Scalable architecture",
+        "Army IBCS interoperability"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/20240418-A-EV783-0018_0.jpg?itok=oOKEzFZQ",
+          "title": "IFPC Inc 2",
+          "sourceUrl": "https://www.leidos.com/markets/defense/Integrated-Air-and-Missile-Defense",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "iamd"
+      ],
+      "claimSources": {
+        "name": [
+          "iamd"
+        ],
+        "description": [
+          "iamd"
+        ],
+        "features": [
+          "iamd"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Not a JLTV add-on; retain as a separate system.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "mjolnir",
+      "name": "Mjolnir",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "integrated-system",
+      "shortDescription": "High-power microwave system for countering drone swarms.",
+      "description": "High-power microwave system for countering drone swarms.",
+      "features": [
+        "Scalable defense capability"
+      ],
+      "specs": [
+        {
+          "label": "Threat class",
+          "value": "Group 1 and 2 aerial threats",
+          "sourceIds": [
+            "iamd"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/2025-10/Mjolnir.png?itok=Fanix8ep",
+          "title": "Mjolnir displayed in desert ",
+          "sourceUrl": "https://www.leidos.com/markets/defense/Integrated-Air-and-Missile-Defense",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "iamd"
+      ],
+      "claimSources": {
+        "name": [
+          "iamd"
+        ],
+        "description": [
+          "iamd"
+        ],
+        "features": [
+          "iamd"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "No JLTV mounting verified."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "cugar",
+      "name": "CUGAR",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "air-vehicle",
+      "shortDescription": "Reusable autonomous counter-drone interceptor developed by Leidos.",
+      "description": "Reusable autonomous counter-drone interceptor developed by Leidos.",
+      "features": [
+        "Reusable design"
+      ],
+      "specs": [
+        {
+          "label": "Demonstrated threats",
+          "value": "Group 1 and 2 small UAS",
+          "sourceIds": [
+            "mfix"
+          ]
+        }
+      ],
+      "assets": [],
+      "sourceIds": [
+        "mfix"
+      ],
+      "claimSources": {
+        "name": [
+          "mfix"
+        ],
+        "description": [
+          "mfix"
+        ],
+        "features": [
+          "mfix"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Documented within AM2FP; not evidence of a standalone JLTV turret.",
+        "Product-specific media not yet verified."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "adept",
+      "name": "ADEPT",
+      "marketIds": [
+        "land",
+        "sea",
+        "air"
+      ],
+      "itemKind": "software",
+      "shortDescription": "Software for resilient positioning, navigation and timing when reliable location data is essential.",
+      "description": "Software for resilient positioning, navigation and timing when reliable location data is essential.",
+      "features": [
+        "Multi-domain positioning support"
+      ],
+      "specs": [],
+      "assets": [],
+      "sourceIds": [
+        "adept"
+      ],
+      "claimSources": {
+        "name": [
+          "adept"
+        ],
+        "description": [
+          "adept"
+        ],
+        "features": [
+          "adept"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Sensor configuration and platform integration must be confirmed.",
+        "Product-specific media not yet verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "bloodhound",
+      "name": "Bloodhound",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "sensor-system",
+      "shortDescription": "Portable high-frequency transmitter geolocation system.",
+      "description": "Portable high-frequency transmitter geolocation system.",
+      "features": [
+        "Single-system geolocation"
+      ],
+      "specs": [
+        {
+          "label": "Configurations",
+          "value": "Expeditionary, fixed and fly-away",
+          "sourceIds": [
+            "bloodhound"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/focal_point_hero_image/public/hero/2020-03/Bloodhound-screengrab-3-final.png?h=387ec3b1&itok=ehnUihjh",
+          "title": "Bloodhound video screengrab",
+          "sourceUrl": "https://www.leidos.com/products/bloodhound",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "document",
+          "url": "https://www.leidos.com/sites/g/files/zoouby166/files/2020-02/PDF-Bloodhound-fact-sheet.pdf",
+          "title": "Bloodhound factsheet",
+          "sourceUrl": "https://www.leidos.com/products/bloodhound",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "PDF retrieved by web reader",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "bloodhound"
+      ],
+      "claimSources": {
+        "name": [
+          "bloodhound"
+        ],
+        "description": [
+          "bloodhound"
+        ],
+        "features": [
+          "bloodhound"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "A transportable configuration does not establish JLTV mounting."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "groundaware-ga4120",
+      "name": "GroundAware GA4120",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "sensor",
+      "shortDescription": "Radar sensor for automated monitoring of critical-site perimeters.",
+      "description": "Radar sensor for automated monitoring of critical-site perimeters.",
+      "features": [
+        "Real-time detection",
+        "Camera integration"
+      ],
+      "specs": [
+        {
+          "label": "Instrumented range",
+          "value": "100 m–3.75 km",
+          "sourceIds": [
+            "groundaware"
+          ]
+        },
+        {
+          "label": "Coverage",
+          "value": "120 degrees per face",
+          "sourceIds": [
+            "groundaware"
+          ]
+        },
+        {
+          "label": "Band",
+          "value": "S-band",
+          "sourceIds": [
+            "groundaware"
+          ]
+        }
+      ],
+      "assets": [],
+      "sourceIds": [
+        "groundaware"
+      ],
+      "claimSources": {
+        "name": [
+          "groundaware"
+        ],
+        "description": [
+          "groundaware"
+        ],
+        "features": [
+          "groundaware"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Delivered through Observation Without Limits; confirm current brand/portfolio treatment.",
+        "Product-specific media not yet verified."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "groundaware-ga1360",
+      "name": "GroundAware GA1360",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "sensor",
+      "shortDescription": "Radar sensor for all-around perimeter monitoring.",
+      "description": "Radar sensor for all-around perimeter monitoring.",
+      "features": [
+        "Automated intrusion tracking"
+      ],
+      "specs": [
+        {
+          "label": "Instrumented range",
+          "value": "100 m–1 km",
+          "sourceIds": [
+            "groundaware"
+          ]
+        },
+        {
+          "label": "Coverage",
+          "value": "360 degrees",
+          "sourceIds": [
+            "groundaware"
+          ]
+        }
+      ],
+      "assets": [],
+      "sourceIds": [
+        "groundaware"
+      ],
+      "claimSources": {
+        "name": [
+          "groundaware"
+        ],
+        "description": [
+          "groundaware"
+        ],
+        "features": [
+          "groundaware"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Source contradicts itself on walker detection range (500 m text versus 500 km table); omitted pending confirmation.",
+        "Product-specific media not yet verified."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "sea-archer",
+      "name": "Sea Archer",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "vessel",
+      "shortDescription": "Small uncrewed surface vessel using LAVA autonomy and reconfigurable payloads.",
+      "description": "Small uncrewed surface vessel using LAVA autonomy and reconfigurable payloads.",
+      "features": [
+        "Modular payload bay",
+        "Multi-mission operations"
+      ],
+      "specs": [
+        {
+          "label": "Sprint speed",
+          "value": "Up to 40 knots",
+          "sourceIds": [
+            "archer"
+          ]
+        },
+        {
+          "label": "Range",
+          "value": "1,500 nautical miles",
+          "sourceIds": [
+            "archer"
+          ]
+        },
+        {
+          "label": "Payload capacity",
+          "value": "More than 900 kg",
+          "sourceIds": [
+            "archer"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/2026-03/Sea%20Archer%20Hero2_t.jpg?itok=YN4mMDGk",
+          "title": "Sea Archer",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "video",
+          "url": "https://www.youtube.com/watch?v=mC3XR08A2NQ",
+          "title": "Sea Archer video",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "archer",
+        "maritime"
+      ],
+      "claimSources": {
+        "name": [
+          "archer"
+        ],
+        "description": [
+          "archer"
+        ],
+        "features": [
+          "archer"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Figures from September 2025 Australian build announcement; confirm production configuration."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "sea-dagger",
+      "name": "Sea Dagger",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "vessel",
+      "shortDescription": "Modular insertion craft with optionally crewed or autonomous operation.",
+      "description": "Modular insertion craft with optionally crewed or autonomous operation.",
+      "features": [
+        "Reconfigurable payloads",
+        "Reverse-beaching design"
+      ],
+      "specs": [
+        {
+          "label": "Length",
+          "value": "20 m",
+          "sourceIds": [
+            "dagger"
+          ]
+        },
+        {
+          "label": "Range",
+          "value": "More than 400 nautical miles",
+          "sourceIds": [
+            "dagger"
+          ]
+        },
+        {
+          "label": "Speed",
+          "value": "Over 40 knots in sea state 2",
+          "sourceIds": [
+            "dagger"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/2026-03/Sea%20Dagger%20bigger_t.png?itok=G4sCH80m",
+          "title": "Sea Dagger image, two USV on the ocean ",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "video",
+          "url": "https://www.youtube.com/watch?v=SSMg-E24MjM",
+          "title": "Sea Dagger video",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "dagger",
+        "maritime"
+      ],
+      "claimSources": {
+        "name": [
+          "dagger"
+        ],
+        "description": [
+          "dagger"
+        ],
+        "features": [
+          "dagger"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Performance conditions must accompany figures; not a general all-weather speed claim."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "sea-hunter",
+      "name": "Sea Hunter",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "vessel",
+      "shortDescription": "Autonomous surface vessel powered by LAVA, demonstrated in Navy exercises.",
+      "description": "Autonomous surface vessel powered by LAVA, demonstrated in Navy exercises.",
+      "features": [
+        "Autonomous surveillance",
+        "Crewed/uncrewed teaming"
+      ],
+      "specs": [
+        {
+          "label": "2026 transit demonstration",
+          "value": "More than 2,000 nautical miles",
+          "sourceIds": [
+            "lava"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/2026-03/Sea%20Hunter_0_t.jpg?itok=EH2F5o6x",
+          "title": "sea hunter",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "lava",
+        "maritime"
+      ],
+      "claimSources": {
+        "name": [
+          "lava"
+        ],
+        "description": [
+          "lava"
+        ],
+        "features": [
+          "lava"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Transit demonstration is not a maximum-range specification."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "seahawk",
+      "name": "Seahawk",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "vessel",
+      "shortDescription": "Autonomous surface vessel operating with a carrier strike group.",
+      "description": "Autonomous surface vessel operating with a carrier strike group.",
+      "features": [
+        "Collision avoidance",
+        "Communication failover"
+      ],
+      "specs": [],
+      "assets": [],
+      "sourceIds": [
+        "lava"
+      ],
+      "claimSources": {
+        "name": [
+          "lava"
+        ],
+        "description": [
+          "lava"
+        ],
+        "features": [
+          "lava"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Vessel-specific physical specifications not verified.",
+        "Product-specific media not yet verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "lava",
+      "name": "LAVA",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "software",
+      "shortDescription": "Reusable autonomy software supporting vessel navigation and mission execution.",
+      "description": "Reusable autonomy software supporting vessel navigation and mission execution.",
+      "features": [
+        "Obstacle avoidance",
+        "Cross-platform autonomy foundation"
+      ],
+      "specs": [],
+      "assets": [],
+      "sourceIds": [
+        "lava"
+      ],
+      "claimSources": {
+        "name": [
+          "lava"
+        ],
+        "description": [
+          "lava"
+        ],
+        "features": [
+          "lava"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Aggregate fleet mileage is not a single-vessel performance specification.",
+        "Product-specific media not yet verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "sea-specter",
+      "name": "Sea Specter",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "vessel",
+      "shortDescription": "Small uncrewed surface vessel for discreet maritime sensing.",
+      "description": "Small uncrewed surface vessel for discreet maritime sensing.",
+      "features": [
+        "Low acoustic and visual signature"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/2026-03/Sea%20Specter%201_t.jpg?itok=WRJXrs2c",
+          "title": "Sea Specter 1.jpg",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "video",
+          "url": "https://www.youtube.com/watch?v=-iV0hBPM_Ts",
+          "title": "Sea Specter video",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "maritime"
+      ],
+      "claimSources": {
+        "name": [
+          "maritime"
+        ],
+        "description": [
+          "maritime"
+        ],
+        "features": [
+          "maritime"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Older announcement groups it with undersea systems; current maritime page explicitly identifies a surface vessel.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "sea-dart",
+      "name": "Sea Dart",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "underwater-vehicle",
+      "shortDescription": "Compact unmanned underwater vehicle with flexible payload integration.",
+      "description": "Compact unmanned underwater vehicle with flexible payload integration.",
+      "features": [
+        "Payload-agnostic design"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/2026-03/Sea%20Dart%20Military_OV3_t.png?itok=I6uV5rGD",
+          "title": "https://www.leidos.com/media/33644",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "video",
+          "url": "https://www.youtube.com/watch?v=O6O5fz8BVxY",
+          "title": "Sea Dart video",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "document",
+          "url": "https://leidos.widen.net/s/z2whhldpdv/25-1187750---lccs-fact-sheet_digital",
+          "title": "Sea Dart factsheet",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "Landing page accessible; PDF extraction failed",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "maritime"
+      ],
+      "claimSources": {
+        "name": [
+          "maritime"
+        ],
+        "description": [
+          "maritime"
+        ],
+        "features": [
+          "maritime"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Linked factsheet found, PDF retrieval failed; no numerical claims extracted.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "sea-castle",
+      "name": "Sea Castle",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "undersea-system",
+      "shortDescription": "Undersea hub supporting longer autonomous missions.",
+      "description": "Undersea hub supporting longer autonomous missions.",
+      "features": [
+        "UUV recharge",
+        "Mission-data exchange"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/2026-03/SeaCastle-1_0_t.png?itok=zJckgqWY",
+          "title": "Sea Castle",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "video",
+          "url": "https://www.youtube.com/watch?v=_AHIAcurbmc",
+          "title": "Sea Castle video",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "maritime"
+      ],
+      "claimSources": {
+        "name": [
+          "maritime"
+        ],
+        "description": [
+          "maritime"
+        ],
+        "features": [
+          "maritime"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Detailed configuration and physical specifications not verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "adc-mk5",
+      "name": "ADC MK 5",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "countermeasure",
+      "shortDescription": "Micro-UUV torpedo countermeasure for submarine defense.",
+      "description": "Micro-UUV torpedo countermeasure for submarine defense.",
+      "features": [
+        "Designed for evolving torpedo threats"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/2026-03/ADC%20MK5%205_t.png?itok=swM-IfE3",
+          "title": "ADC MK5",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "video",
+          "url": "https://www.youtube.com/watch?v=eIaJ0HaFNps",
+          "title": "ADC MK 5 video",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "maritime"
+      ],
+      "claimSources": {
+        "name": [
+          "maritime"
+        ],
+        "description": [
+          "maritime"
+        ],
+        "features": [
+          "maritime"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "No integration dimensions verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "lavs",
+      "name": "LAVS",
+      "marketIds": [
+        "sea"
+      ],
+      "itemKind": "sensor",
+      "shortDescription": "Compact acoustic sensor supporting directional underwater awareness.",
+      "description": "Compact acoustic sensor supporting directional underwater awareness.",
+      "features": [
+        "Three-dimensional sensing"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/tabs_card/public/tabs-card/2025-03/LAVS.png?itok=_NUqpg9b",
+          "title": "Leidos Acoustic Sensor",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "video",
+          "url": "https://www.youtube.com/watch?v=Ajd0gcjBx_Q",
+          "title": "LAVS video",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "maritime"
+      ],
+      "claimSources": {
+        "name": [
+          "maritime"
+        ],
+        "description": [
+          "maritime"
+        ],
+        "features": [
+          "maritime"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Variants require individual specifications before publication.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "catena",
+      "name": "Catena",
+      "marketIds": [
+        "land",
+        "sea"
+      ],
+      "itemKind": "software",
+      "shortDescription": "Supply-chain platform supporting logistics visibility and procurement.",
+      "description": "Supply-chain platform supporting logistics visibility and procurement.",
+      "features": [
+        "Inventory insight"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "document",
+          "url": "https://leidos.widen.net/s/fkxpdjpnhr/24-1110650-catena-fact-sheet-redesign_final_digital",
+          "title": "Catena factsheet",
+          "sourceUrl": "https://www.leidos.com/markets/maritime",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "maritime"
+      ],
+      "claimSources": {
+        "name": [
+          "maritime"
+        ],
+        "description": [
+          "maritime"
+        ],
+        "features": [
+          "maritime"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Market placement is provisional.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "agilepod",
+      "name": "AGILEPOD / AGILEPODV2",
+      "marketIds": [
+        "air"
+      ],
+      "itemKind": "payload-system",
+      "shortDescription": "Reconfigurable airborne mission pod using open interfaces.",
+      "description": "Reconfigurable airborne mission pod using open interfaces.",
+      "features": [
+        "Multi-mission payloads",
+        "Vendor-neutral integration"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/scale_narrow/public/Picture1_0.jpg?itok=JvMewoE6",
+          "title": "Aircraft with AGILEPOD attached",
+          "sourceUrl": "https://www.leidos.com/products",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/styles/scale_narrow/public/Picture2_0.png?itok=mQj2lQEi",
+          "title": "AGILEPOD",
+          "sourceUrl": "https://www.leidos.com/products",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "products"
+      ],
+      "claimSources": {
+        "name": [
+          "products"
+        ],
+        "description": [
+          "products"
+        ],
+        "features": [
+          "products"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Aircraft compatibility and variant dimensions need confirmation.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "ad16",
+      "name": "AD16",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "communications-system",
+      "shortDescription": "Mobile communications system for high-bandwidth links.",
+      "description": "Mobile communications system for high-bandwidth links.",
+      "features": [
+        "Communications on the move"
+      ],
+      "specs": [],
+      "assets": [],
+      "sourceIds": [
+        "products"
+      ],
+      "claimSources": {
+        "name": [
+          "products"
+        ],
+        "description": [
+          "products"
+        ],
+        "features": [
+          "products"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "JLTV compatibility and numerical performance not verified.",
+        "Product-specific media not yet verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "wits",
+      "name": "WITS",
+      "marketIds": [
+        "land"
+      ],
+      "itemKind": "training-system",
+      "shortDescription": "Vehicle-mounted training target system for MILES exercises.",
+      "description": "Vehicle-mounted training target system for MILES exercises.",
+      "features": [
+        "Adaptable to tracked and wheeled vehicles"
+      ],
+      "specs": [],
+      "assets": [],
+      "sourceIds": [
+        "products"
+      ],
+      "claimSources": {
+        "name": [
+          "products"
+        ],
+        "description": [
+          "products"
+        ],
+        "features": [
+          "products"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Not an operational combat sensor; exact JLTV fit unverified.",
+        "Product-specific media not yet verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "veracintos",
+      "name": "VeracintOS",
+      "marketIds": [
+        "cyber"
+      ],
+      "itemKind": "software",
+      "shortDescription": "Platform for collecting and analyzing publicly available information.",
+      "description": "Platform for collecting and analyzing publicly available information.",
+      "features": [
+        "Machine-learning enrichment",
+        "PXP and DDAM capabilities"
+      ],
+      "specs": [],
+      "assets": [],
+      "sourceIds": [
+        "products"
+      ],
+      "claimSources": {
+        "name": [
+          "products"
+        ],
+        "description": [
+          "products"
+        ],
+        "features": [
+          "products"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Cyber category is editorial; public-source intelligence is the documented function.",
+        "Product-specific media not yet verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "vaccine-manager",
+      "name": "Vaccine Manager",
+      "marketIds": [
+        "health"
+      ],
+      "itemKind": "software",
+      "shortDescription": "Software supporting vaccination-event administration.",
+      "description": "Software supporting vaccination-event administration.",
+      "features": [
+        "Scheduling",
+        "Consent workflows",
+        "Electronic certificates"
+      ],
+      "specs": [],
+      "assets": [],
+      "sourceIds": [
+        "products"
+      ],
+      "claimSources": {
+        "name": [
+          "products"
+        ],
+        "description": [
+          "products"
+        ],
+        "features": [
+          "products"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Current availability and product owner need confirmation; only catalog entry verified.",
+        "Product-specific media not yet verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "aimes",
+      "name": "AIMES",
+      "marketIds": [
+        "air",
+        "cyber"
+      ],
+      "itemKind": "software",
+      "shortDescription": "Video-processing platform for intelligence imagery workflows.",
+      "description": "Video-processing platform for intelligence imagery workflows.",
+      "features": [
+        "Live ingest",
+        "Archive and replay",
+        "Imagery exploitation"
+      ],
+      "specs": [
+        {
+          "label": "PICTE deployment",
+          "value": "Cloud, virtualized or bare-metal",
+          "sourceIds": [
+            "aimes"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "image",
+          "url": "https://www.leidos.com/sites/leidos/files/2026-06/AIMES_Exploit-cropped-sides.png",
+          "title": "AIMES Exploit video exploitation software screenshot",
+          "sourceUrl": "https://www.leidos.com/products/aimes",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "URL extracted from official HTML; image content not independently inspected",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        },
+        {
+          "kind": "document",
+          "url": "https://leidos.widen.net/s/gtkqfcrrdp/fact-sheet-aimes-digital",
+          "title": "AIMES factsheet",
+          "sourceUrl": "https://www.leidos.com/products/aimes",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "aimes"
+      ],
+      "claimSources": {
+        "name": [
+          "aimes"
+        ],
+        "description": [
+          "aimes"
+        ],
+        "features": [
+          "aimes"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "PICTE specification applies to that suite component, not every AIMES application."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "oc2elot",
+      "name": "OC2ELOT",
+      "marketIds": [
+        "space"
+      ],
+      "itemKind": "software",
+      "shortDescription": "Open mission software connecting sensors and data into a shared operational picture.",
+      "description": "Open mission software connecting sensors and data into a shared operational picture.",
+      "features": [
+        "Dynamic sensor tasking",
+        "Modular integrations"
+      ],
+      "specs": [
+        {
+          "label": "Space demonstration integrations",
+          "value": "More than 20 third-party systems",
+          "sourceIds": [
+            "oc2elot"
+          ]
+        }
+      ],
+      "assets": [],
+      "sourceIds": [
+        "oc2elot"
+      ],
+      "claimSources": {
+        "name": [
+          "oc2elot"
+        ],
+        "description": [
+          "oc2elot"
+        ],
+        "features": [
+          "oc2elot"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Demonstration metrics are not guaranteed production performance.",
+        "Product-specific media not yet verified."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "lams",
+      "name": "Laser Air Monitoring System",
+      "marketIds": [
+        "space"
+      ],
+      "itemKind": "hardware",
+      "shortDescription": "Atmosphere-monitoring system used in the Orion capsule.",
+      "description": "Atmosphere-monitoring system used in the Orion capsule.",
+      "features": [
+        "Environmental monitoring"
+      ],
+      "specs": [],
+      "assets": [],
+      "sourceIds": [
+        "space"
+      ],
+      "claimSources": {
+        "name": [
+          "space"
+        ],
+        "description": [
+          "space"
+        ],
+        "features": [
+          "space"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "Variants and numerical specifications require product-owner confirmation.",
+        "Product-specific media not yet verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "xpwd",
+      "name": "Exploration Potable Water Dispenser",
+      "marketIds": [
+        "space"
+      ],
+      "itemKind": "hardware",
+      "shortDescription": "Crew water-dispenser hardware used aboard the International Space Station.",
+      "description": "Crew water-dispenser hardware used aboard the International Space Station.",
+      "features": [],
+      "specs": [],
+      "assets": [],
+      "sourceIds": [
+        "space"
+      ],
+      "claimSources": {
+        "name": [
+          "space"
+        ],
+        "description": [
+          "space"
+        ],
+        "features": [
+          "space"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "No detailed public specification reviewed.",
+        "Product-specific media not yet verified.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    },
+    {
+      "id": "my-military-health",
+      "name": "My Military Health",
+      "marketIds": [
+        "health"
+      ],
+      "itemKind": "program",
+      "shortDescription": "Hybrid-care initiative connecting patients and providers through digital and virtual services.",
+      "description": "Hybrid-care initiative connecting patients and providers through digital and virtual services.",
+      "features": [
+        "Remote and in-person care"
+      ],
+      "specs": [],
+      "assets": [
+        {
+          "kind": "document",
+          "url": "https://leidos.widen.net/s/mqjvvdqrtj/digital-first-case-study-formatted",
+          "title": "Digital-first case study",
+          "sourceUrl": "https://www.leidos.com/markets/health/technology-solutions",
+          "accessedAt": "2026-11-04",
+          "accessStatus": "linked-from-official-page; playback/download not tested",
+          "rightsStatus": "unverified; owner/editor must approve reuse",
+          "publishByDefault": false
+        }
+      ],
+      "sourceIds": [
+        "healthtech"
+      ],
+      "claimSources": {
+        "name": [
+          "healthtech"
+        ],
+        "description": [
+          "healthtech"
+        ],
+        "features": [
+          "healthtech"
+        ]
+      },
+      "editorialState": "draft",
+      "verificationState": "primary-source-reviewed",
+      "marketMapping": "editorial suggestion; confirm against approved taxonomy",
+      "uncertainties": [
+        "DHA collaboration/program, not a standalone Leidos-owned hardware product.",
+        "No verified quantitative specifications included."
+      ],
+      "publicationReady": false
+    }
+  ],
+  "sources": [
+    {
+      "id": "mxr",
+      "url": "https://www.leidos.com/insights/new-radar-sees-threats-others-miss",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "mfix",
+      "url": "https://www.leidos.com/insights/advanced-multilayered-mobile-force-protection-excels-mfix-demo",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "maritime",
+      "url": "https://www.leidos.com/markets/maritime",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "iamd",
+      "url": "https://www.leidos.com/markets/defense/Integrated-Air-and-Missile-Defense",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "vacis",
+      "url": "https://www.leidos.com/products/vacis",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "adept",
+      "url": "https://www.leidos.com/products/assured-positioning-navigation-and-timing",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "aimes",
+      "url": "https://www.leidos.com/products/aimes",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "groundaware",
+      "url": "https://www.leidos.com/markets/defense/sensors/GroundAware",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "people",
+      "url": "https://www.leidos.com/markets/aviation/security-detection/aviation-checkpoint/people-screening",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "ocean",
+      "url": "https://www.leidos.com/products/ocean-marine",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "bloodhound",
+      "url": "https://www.leidos.com/products/bloodhound",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "georover",
+      "url": "https://www.leidos.com/products/georover",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "health",
+      "url": "https://www.leidos.com/markets/health",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "space",
+      "url": "https://www.leidos.com/markets/space",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "products",
+      "url": "https://www.leidos.com/products",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "archer",
+      "url": "https://www.leidos.com/insights/leidos-australia-launches-australia-pacific-maritime-autonomy-domain-new-uncrewed-surface",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "dagger",
+      "url": "https://www.leidos.com/insights/sea-dagger-charts-new-course-commando-insertion-after-dsei-unveiling",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "lava",
+      "url": "https://www.leidos.com/insights/leidos-autonomy-earns-its-place-rimpac-and-carrier-strike-group",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "oc2elot",
+      "url": "https://www.leidos.com/insights/enabling-land-sea-air-and-space-defenders-move-faster-and-act-smarter",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "healthtech",
+      "url": "https://www.leidos.com/markets/health/technology-solutions",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    },
+    {
+      "id": "jv",
+      "url": "https://www.leidos.com/insights/leidos-security-enterprise-solutions-and-analogic-close-deal-strengthen-global-security",
+      "publisher": "Leidos",
+      "accessedAt": "2026-11-04"
+    }
+  ],
+  "excludedOrHeld": [
+    {
+      "name": "GeoRover",
+      "reason": "Retired July 31 2025; support ended June 30 2026.",
+      "sourceUrl": "https://www.leidos.com/products/georover"
+    },
+    {
+      "name": "Pro:Vision / ClearScan / ProSight and other SES products",
+      "reason": "Analogic-branded JV completed October 2026; ownership/brand scope needs editorial decision.",
+      "sourceUrl": "https://www.leidos.com/insights/leidos-security-enterprise-solutions-and-analogic-close-deal-strengthen-global-security"
+    },
+    {
+      "name": "VACIS family",
+      "reason": "Legacy Leidos page remains accessible, but SES portfolio transfer makes current inclusion uncertain. Hold pending owner confirmation.",
+      "sourceUrl": "https://www.leidos.com/products/vacis"
+    }
+  ],
+  "researchNotes": "# NEXUS Explorer: sourced draft catalog\nResearch date: November 4, 2026. This is a starting dataset, not approved marketing copy.\n\n## What is ready\n31 distinct product, platform, software, or program records with primary-source citations. 31 media references (images, videos, documents) are connected to records. Markets are provisional navigation labels, not Leidos corporate segments. Missing specs remain empty, not invented. `itemKind` distinguishes programs/software from physical products. Some products share an integrated system and should not be shown as unrelated alternatives.\n\n## Equipment-first experience recommendation\nMake the current vehicle module about the Leidos mission equipment. Suggested working title: Mobile Counter-UAS, with JLTV labeled as the carrier. Start with MXR sensing and an AirShield system story. Do not label the existing cannon/turret placeholder as MXR. MXR is radar, not a weapon turret. The official AM2FP demonstration identifies a HMMWV; research did not establish a specific JLTV installation. Keep the physical arrangement illustrative until the product owner confirms the variant, model, mounting, dimensions, and approved claims.\n\nRelated products worth investigating for future vehicle stories are ADEPT navigation software, AD16 communications, and Bloodhound sensing. Public descriptions establish roles, not that those items fit the current JLTV mesh. IFPC and Mjolnir are separate systems, not verified plug-in JLTV accessories. CUGAR is a reusable interceptor in the AM2FP demonstration, not a turret.\n\nFor the sea environment, Sea Archer is a strong platform candidate with documented modular payloads. Sea Dagger and the Sea Hunter/Seahawk autonomy story offer different experiences. LAVS sensing and Sea Castle underwater support should be described in their documented roles, without implying interchangeable mounting. For air, AGILEPOD is a plausible modular-payload story; verify aircraft and payload pairing before building a specific installation.\n\n## Editorial holds and contradictions\n- GeoRover is retired and excluded.\n- Security screening products are held after the October 2026 Analogic transaction. An old Leidos URL is not sufficient proof of unchanged portfolio ownership.\n- The current maritime page calls Sea Specter a surface vessel; older announcement wording grouped it differently. Current wording is used and the discrepancy retained.\n- GroundAware GA1360 has conflicting walker-range values on its official page. That claim is omitted.\n- My Military Health is a DHA collaborative program, not a standalone Leidos-owned product.\n- Do not present exercise results, aggregate fleet mileage, or relative improvements as guaranteed product specifications.\n\n## Safe CMS import\nImport into a draft collection. Preserve stable IDs and every citation/uncertainty. Do not silently fill empty arrays, convert unknown values to zero, or mark imported entries approved. Each field's source IDs resolve against the included source registry; specs carry their own source IDs. Media references have their source page, access date, access status, and rights status. Image URLs were extracted from official HTML; most image content and video playback have not been independently inspected. Widen landing pages are document references, not necessarily direct downloadable PDFs. No files are cleared for redistribution just because publicly accessible. Before publication, approve product inclusion, exact variant claims, taxonomy, media rights/accessibility, and attribution. Keep unsupported spec sections hidden.\n\n## Source highlights\n- MXR: https://www.leidos.com/insights/new-radar-sees-threats-others-miss\n- HMMWV demonstration: https://www.leidos.com/insights/advanced-multilayered-mobile-force-protection-excels-mfix-demo\n- Maritime: https://www.leidos.com/markets/maritime\n- Portfolio change: https://www.leidos.com/insights/leidos-security-enterprise-solutions-and-analogic-close-deal-strengthen-global-security\n\nAll additional per-record URLs are in the JSON. This initial scan is substantial but not exhaustive; catalog pages may be stale. No external contacts were made and no production content was changed.\n"
+}

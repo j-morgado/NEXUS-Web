@@ -1,20 +1,42 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { MediaGallery } from '../components/MediaGallery'
 import { MediaViewer } from '../components/MediaViewer'
-import { catalogMarkets, type CatalogMedia, type CatalogProduct } from '../content/catalog'
+import { type CatalogMedia, type CatalogProduct, type ExplorerCatalog } from '../content/catalog'
 import { createEmailPreview } from '../services/emailTemplate'
 import { enqueueRequest, QueuePersistenceError } from '../services/requestQueue'
+import { configuredCatalogProvider, loadExplorerCatalog, type CatalogLoadResult } from '../services/catalogProvider'
 
 type Overlay = 'none' | 'share' | 'saved' | 'media'
 
-const emailProduct = (product: CatalogProduct) => ({ schemaVersion: 1 as const, id: product.id, marketId: product.marketId, name: product.name, designation: product.designation, description: product.description, heroLabel: product.heroVideoLabel, highlights: product.features.map((feature, order) => ({ order, text: feature.name })), features: product.features.map((feature, order) => ({ order, text: feature.description })), isFiller: true })
+const emailProduct = (product: CatalogProduct) => ({ schemaVersion: 1 as const, id: product.id, marketId: product.marketId, name: product.name, designation: product.designation, description: product.description, heroLabel: product.heroMediaLabel, highlights: product.features.map((feature, order) => ({ order, text: feature.name })), features: product.features.map((feature, order) => ({ order, text: feature.description })), isFiller: product.isFiller })
+
+function CatalogThumbnail({ media }: { media: CatalogMedia }) {
+  const [failed, setFailed] = useState(false)
+  const source = media.thumbnailUrl ?? (media.kind === 'image' ? media.url : undefined)
+  return <i className="catalog-thumbnail" style={{ background: `linear-gradient(145deg, ${media.accent}, #191329)` }}>
+    {source && !failed && <img src={source} alt="" onError={() => setFailed(true)} />}
+  </i>
+}
+
+function CatalogHeroMedia({ product }: { product: CatalogProduct }) {
+  const [failed, setFailed] = useState(false)
+  const media = product.media.find((item) => item.id === product.heroMediaId) ?? product.media[0]
+  const poster = media.thumbnailUrl
+  return <div className="hero-media-placeholder" role="img" aria-label={product.heroMediaLabel}>
+    {!failed && media.kind === 'video' && <video src={media.url} poster={poster} autoPlay muted loop playsInline preload="metadata" onError={() => setFailed(true)} />}
+    {!failed && media.kind === 'image' && <img src={media.url} alt="" onError={() => setFailed(true)} />}
+    {!failed && media.kind === 'pdf' && poster && <img src={poster} alt="" onError={() => setFailed(true)} />}
+    {failed && <span role="status">Media unavailable</span>}
+  </div>
+}
 
 function TouchKeyboard({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const rows = ['1234567890-', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm,.@']
   return <div className="touch-keyboard" aria-label="Touch keyboard">{rows.map((row) => <div key={row}>{[...row].map((key) => <button type="button" key={key} onClick={() => onChange(value + key)} aria-label={`Type ${key}`}>{key}</button>)}</div>)}<div><button type="button" className="key-wide" onClick={() => onChange(value.slice(0, -1))}>Backspace</button><button type="button" className="key-space" onClick={() => onChange(value + ' ')}>Space</button></div></div>
 }
 
-export function Explorer({ onExit, active = true }: { onExit: () => void; active?: boolean }) {
+function ExplorerView({ onExit, active = true, catalog, warning }: { onExit: () => void; active?: boolean; catalog: ExplorerCatalog; warning: string | null }) {
+  const catalogMarkets = catalog.markets
   const accordionId = useId()
   const [openMarket, setOpenMarket] = useState('')
   const [product, setProduct] = useState(catalogMarkets[0].products[0])
@@ -42,14 +64,14 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
       setOpenMarket(catalogMarkets[0].id)
     }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 630 + (catalogMarkets.length - 1) * 105)
     return () => clearTimeout(marketIntroTimer.current)
-  }, [active])
+  }, [active, catalogMarkets])
   useEffect(() => {
     if (!active) return
     featureIntroTimer.current = window.setTimeout(() => setOpenFeature(0), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 630 + (product.features.length - 1) * 105)
     return () => clearTimeout(featureIntroTimer.current)
   }, [active, product.id, product.features.length])
   useEffect(() => {
-    if (overlay !== 'media') { setMediaRevealed(false); return }
+    if (overlay !== 'media') return
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => setMediaRevealed(true))
     })
@@ -83,21 +105,21 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
 
   return <main id="main-content" className={`catalog-explorer ${active ? 'is-presenting' : ''}`}>
     <div className="catalog-body">
-    <aside className="catalog-nav"><header><h1>Explorer</h1><p>Browse our catalogue of products and services, their related features, details, media and more.</p></header>
+    <aside className="catalog-nav"><header><h1>{catalog.copy.title}</h1><p>{catalog.copy.introduction}</p>{warning && <p className="catalog-source-notice" role="status">{warning}</p>}</header>
       <div className="market-accordion">{catalogMarkets.map((market, marketIndex) => {
         const expanded = openMarket === market.id
         const panelId = `${accordionId}-market-${market.id}`
         return <section key={market.id} className="market-entrance" style={{ '--entrance-delay': `${marketIndex * 105}ms` } as CSSProperties}>
           <button className="market-toggle" aria-expanded={expanded} aria-controls={panelId} onClick={() => { clearTimeout(marketIntroTimer.current); marketsIntroduced.current = true; setOpenMarket(current => current === market.id ? '' : market.id) }}><span>{market.name}</span><b className="accordion-icon" aria-hidden="true" /></button>
           <div id={panelId} className={`accordion-panel ${expanded ? 'is-open' : ''}`} aria-hidden={!expanded} inert={!expanded}>
-            <div className="accordion-content"><div className="product-list">{market.products.map((item) => <button key={item.id} className={product.id === item.id ? 'selected' : ''} onClick={() => chooseProduct(item)}><i style={{ background: item.media[0].accent }} /><span><strong>{item.name}</strong><small>{item.designation}</small></span></button>)}</div></div>
+            <div className="accordion-content"><div className="product-list">{market.products.map((item) => <button key={item.id} className={product.id === item.id ? 'selected' : ''} onClick={() => chooseProduct(item)}><CatalogThumbnail media={item.media[0]} /><span><strong>{item.name}</strong><small>{item.designation}</small></span></button>)}</div></div>
           </div>
         </section>
       })}</div></aside>
     <div className="catalog-product">
     <section className="catalog-information">
-      <div key={product.id} className="catalog-hero"><div className="hero-media-placeholder" role="img" aria-label={product.heroVideoLabel} /><img className="explorer-mark" src="/assets/reference/leidos-mark-light.svg" alt="Leidos" /><div className="catalog-hero-copy"><p>{product.marketName} system</p><h2>{product.name}</h2><h3>{product.designation}</h3><p className="catalog-description">{product.description}</p></div><div className="catalog-hero-footer"><section className="catalog-specifications" aria-label="Specifications"><h4>Specifications</h4><div className="catalog-specs">{product.specs.map((spec) => <div key={spec.name}><b>{spec.name}</b><span>{spec.value}</span></div>)}</div></section><button ref={shareTriggerRef} className="outline-pill" onClick={() => { setOverlayClosing(false); setOverlay('share') }}>Share <span>→</span></button></div></div>
-      <div className="catalog-lower"><section key={`features-${product.id}`} className="catalog-features" aria-label="Product features">{product.features.map((feature, index) => {
+      <div key={product.id} className="catalog-hero"><CatalogHeroMedia product={product} /><img className="explorer-mark" src="/assets/reference/leidos-mark-light.svg" alt="Leidos" /><div className="catalog-hero-copy"><p>{catalogMarkets.find((market) => market.id === product.marketId)?.name} {catalog.copy.systemSuffix}</p><h2>{product.name}</h2><h3>{product.designation}</h3><p className="catalog-description">{product.description}</p></div><div className="catalog-hero-footer"><section className="catalog-specifications" aria-label={catalog.copy.specificationsHeading}><h4>{catalog.copy.specificationsHeading}</h4><div className="catalog-specs">{product.specs.map((spec) => <div key={spec.name}><b>{spec.name}</b><span>{spec.value}</span></div>)}</div></section><button ref={shareTriggerRef} className="outline-pill" onClick={() => { setOverlayClosing(false); setOverlay('share') }}>{catalog.copy.shareLabel} <span>→</span></button></div></div>
+      <div className="catalog-lower"><section key={`features-${product.id}`} className="catalog-features" aria-label={catalog.copy.featuresLabel}>{product.features.map((feature, index) => {
         const expanded = openFeature === index
         const panelId = `${accordionId}-feature-${index}`
         return <article className="catalog-feature" key={feature.name} style={{ '--entrance-delay': `${index * 105}ms` } as CSSProperties}>
@@ -113,7 +135,38 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
       if ((overlay === 'share' || overlay === 'saved') && event.target instanceof Element && !event.target.closest('.share-form, .touch-keyboard, .share-saved')) closeShare()
     }} onKeyDown={event => { if (event.key === 'Escape' && (overlay === 'share' || overlay === 'saved')) { event.stopPropagation(); closeShare() } }}>
       {overlay === 'media' && <MediaViewer media={selectedMedia} items={product.media} onSelect={setSelectedMedia} onClose={closeMedia} />}
-      {(overlay === 'share' || overlay === 'saved') && <section className="share-lightbox" inert={overlayClosing} role="dialog" aria-modal="true" aria-labelledby="share-title"><header><h2 id="share-title">Share</h2><p>To receive more information regarding this product please fill out the following information.</p></header><button ref={closeRef} className="overlay-x" onClick={closeShare} aria-label="Close share dialog">×</button>{overlay === 'share' ? <><div className="share-form" data-email-subject={preview.subject}><label>Full name<input aria-label="Name" value={name} onFocus={() => setActiveField('name')} onChange={(event) => setName(event.target.value)} /></label><label>Email address<input aria-label="Email" type="email" value={email} onFocus={() => setActiveField('email')} onChange={(event) => setEmail(event.target.value)} /></label>{error && <p role="alert">{error}</p>}<button className="outline-pill" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'} <span>→</span></button></div><TouchKeyboard value={keyboardValue} onChange={setKeyboardValue} /></> : <div className="share-saved"><h3>Request saved locally.</h3><p>Pending — email service not configured. It has not been sent or delivered.</p><button className="outline-pill" onClick={() => { setName(''); setEmail(''); closeShare() }}>Return to Explorer</button></div>}</section>}
+      {(overlay === 'share' || overlay === 'saved') && <section className="share-lightbox" inert={overlayClosing} role="dialog" aria-modal="true" aria-labelledby="share-title"><header><h2 id="share-title">{catalog.copy.shareLabel}</h2><p>{catalog.copy.shareIntroduction}</p></header><button ref={closeRef} className="overlay-x" onClick={closeShare} aria-label="Close share dialog">×</button>{overlay === 'share' ? <><div className="share-form" data-email-subject={preview.subject}><label>Full name<input aria-label="Name" value={name} onFocus={() => setActiveField('name')} onChange={(event) => setName(event.target.value)} /></label><label>Email address<input aria-label="Email" type="email" value={email} onFocus={() => setActiveField('email')} onChange={(event) => setEmail(event.target.value)} /></label>{error && <p role="alert">{error}</p>}<button className="outline-pill" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'} <span>→</span></button></div><TouchKeyboard value={keyboardValue} onChange={setKeyboardValue} /></> : <div className="share-saved"><h3>Request saved locally.</h3><p>Pending — email service not configured. It has not been sent or delivered.</p><button className="outline-pill" onClick={() => { setName(''); setEmail(''); closeShare() }}>Return to Explorer</button></div>}</section>}
     </div>}
   </main>
+}
+
+type CatalogState = { status: 'loading' } | { status: 'ready'; result: CatalogLoadResult } | { status: 'error'; message: string }
+
+export function Explorer({ onExit, active = true }: { onExit: () => void; active?: boolean }) {
+  const [state, setState] = useState<CatalogState>({ status: 'loading' })
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const load = async () => {
+      try {
+        let remote
+        try { remote = configuredCatalogProvider() }
+        catch (configurationError) {
+          const fallback = await loadExplorerCatalog({ signal: controller.signal })
+          if (!controller.signal.aborted) setState({ status: 'ready', result: { ...fallback, warning: `CMS endpoint configuration is invalid; showing packaged demonstration content. ${configurationError instanceof Error ? configurationError.message : ''}` } })
+          return
+        }
+        const result = await loadExplorerCatalog({ remote, signal: controller.signal })
+        if (!controller.signal.aborted) setState({ status: 'ready', result })
+      } catch (error) {
+        if (!controller.signal.aborted) setState({ status: 'error', message: error instanceof Error ? error.message : 'Catalog content could not be loaded.' })
+      }
+    }
+    void load()
+    return () => controller.abort()
+  }, [])
+
+  if (state.status === 'loading') return <main id="main-content" className="catalog-explorer catalog-state"><div role="status">Loading Explorer content…</div></main>
+  if (state.status === 'error') return <main id="main-content" className="catalog-explorer catalog-state"><div role="alert"><h1>Explorer unavailable</h1><p>{state.message}</p><button className="outline-pill" onClick={onExit}>Back to hub</button></div></main>
+  return <ExplorerView onExit={onExit} active={active} catalog={state.result.catalog} warning={state.result.warning} />
 }

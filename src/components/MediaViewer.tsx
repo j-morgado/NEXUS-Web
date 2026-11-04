@@ -22,6 +22,7 @@ export function MediaViewer({ media, items, onSelect, onClose }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [error, setError] = useState('')
   const fullscreen = nativeFullscreen || expanded
+  const pageCount = media.pageCount ?? 1
 
   useEffect(() => {
     const previousFocus = document.activeElement
@@ -113,18 +114,18 @@ export function MediaViewer({ media, items, onSelect, onClose }: Props) {
     <div ref={frameRef} className={`media-viewer ${expanded ? 'is-expanded' : ''}`} role="region" aria-label={`${media.name} viewing area`}>
       <div className={`media-viewport ${media.kind !== 'video' && zoom > 100 ? 'is-pannable' : ''} ${dragging ? 'is-panning' : ''}`} ref={viewportRef} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan} onLostPointerCapture={endPan} onDragStart={event => event.preventDefault()} role={media.kind === 'video' ? undefined : 'region'} tabIndex={media.kind === 'video' ? undefined : 0} aria-label={media.kind === 'video' ? undefined : 'Zoomed media, drag or scroll to pan'}>
         {media.kind === 'video' ? <div className="media-video-stage">
-          <video key={media.id} ref={videoRef} src="/assets/nexus-placeholder-loop.mp4" playsInline preload="metadata" aria-label={media.name}
+          <video key={media.id} ref={videoRef} src={media.url} poster={media.thumbnailUrl} playsInline preload="metadata" aria-label={media.name}
             onLoadedMetadata={event => setDuration(Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0)}
             onDurationChange={event => setDuration(Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0)}
             onTimeUpdate={event => setCurrentTime(event.currentTarget.currentTime)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onError={() => setError('Video could not be loaded.')} />
-          <span className="media-video-label">{playing ? 'Playing placeholder video' : 'Video placeholder'}</span>
+          <span className="media-video-label">{playing ? 'Playing video' : 'Video'}</span>
         </div> : <div className="media-zoom-stage" style={{ '--media-scale': zoom / 100, '--media-extent': Math.max(1, zoom / 100) } as CSSProperties}>
-          <div className="media-surface"><div className={`media-placeholder media-${media.kind}`} style={{ '--media-accent': media.accent } as CSSProperties}><span>{media.kind === 'pdf' ? `DOCUMENT · PAGE ${page}` : 'IMAGE PLACEHOLDER'}</span><strong>{media.name}</strong></div></div>
+          <div className="media-surface">{error ? <div className={`media-placeholder media-${media.kind}`} style={{ '--media-accent': media.accent } as CSSProperties}><span>MEDIA UNAVAILABLE</span><strong>{media.name}</strong></div> : media.kind === 'image' ? <img className="media-asset-image" src={media.url} alt={media.description} onError={() => setError('Image could not be loaded.')} /> : <iframe key={`${media.id}-${page}`} className="media-asset-pdf" src={`${media.url}#page=${page}&view=FitH`} title={`${media.name}, page ${page}`} onError={() => setError('Document could not be loaded.')} />}</div>
         </div>}
       </div>
       <div className="viewer-controls" role="group" aria-label={`${media.kind === 'pdf' ? 'PDF' : media.kind === 'video' ? 'Video' : 'Image'} viewing controls`}>
         {media.kind === 'image' && zoomControls}
-        {media.kind === 'pdf' && <><button aria-label="Previous page" disabled={page <= 1} onClick={() => setPage(value => Math.max(1, value - 1))}>←</button><span className="page-value" aria-live="polite">Page {page} / 4</span><button aria-label="Next page" disabled={page >= 4} onClick={() => setPage(value => Math.min(4, value + 1))}>→</button>{zoomControls}</>}
+        {media.kind === 'pdf' && <><button aria-label="Previous page" disabled={page <= 1} onClick={() => setPage(value => Math.max(1, value - 1))}>←</button><span className="page-value" aria-live="polite">Page {page} / {pageCount}</span><button aria-label="Next page" disabled={page >= pageCount} onClick={() => setPage(value => Math.min(pageCount, value + 1))}>→</button>{zoomControls}<a className="viewer-open-media" href={media.url} target="_blank" rel="noreferrer">Open document</a></>}
         {media.kind === 'video' && <><button aria-label={playing ? 'Pause video' : 'Play video'} onClick={() => void toggleVideo()}>{playing ? 'Pause' : 'Play'}</button><span className="video-time">{timeLabel(currentTime)} / {timeLabel(duration)}</span><input className="video-scrubber" type="range" aria-label="Video playback position" aria-valuetext={`${timeLabel(currentTime)} of ${timeLabel(duration)}`} min={0} max={duration || 0} step={.01} value={Math.min(currentTime, duration)} disabled={!duration} onChange={event => { const time = Number(event.target.value); if (videoRef.current) videoRef.current.currentTime = time; setCurrentTime(time) }} /></>}
         <button className="viewer-fullscreen" aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} aria-pressed={fullscreen} onClick={() => void toggleFullscreen()}><span aria-hidden="true">{fullscreen ? '⤡' : '⤢'}</span> {fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
       </div>

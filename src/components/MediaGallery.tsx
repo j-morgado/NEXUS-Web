@@ -3,6 +3,16 @@ import type { CatalogMedia, MediaKind } from '../content/catalog'
 
 type MediaFilter = 'all' | MediaKind
 
+function MediaTileArt({ media }: { media: CatalogMedia }) {
+  const [failed, setFailed] = useState(false)
+  const source = media.thumbnailUrl ?? (media.kind === 'image' ? media.url : undefined)
+  return <div style={{ background: `linear-gradient(145deg, ${media.accent}, #191329)` }}>
+    {source && !failed && <img src={source} alt="" loading="lazy" onError={() => setFailed(true)} />}
+    <span>{media.kind}</span>
+    {(!source || failed) && <i aria-hidden="true">◇</i>}
+  </div>
+}
+
 export function MediaGallery({ items, onOpen }: { items: CatalogMedia[]; onOpen: (media: CatalogMedia) => void }) {
   const [filter, setFilter] = useState<MediaFilter>('all')
   const gridRef = useRef<HTMLDivElement>(null)
@@ -44,6 +54,6 @@ export function MediaGallery({ items, onOpen }: { items: CatalogMedia[]; onOpen:
 
   return <section className="catalog-media" aria-label="Product media">
     <div className="media-tabs">{(['all', 'image', 'video', 'pdf'] as const).map(kind => <button key={kind} aria-pressed={filter === kind} className={filter === kind ? 'selected' : ''} onClick={() => changeFilter(kind)}>{kind === 'all' ? 'All media' : kind === 'pdf' ? 'Documents' : `${kind}s`}</button>)}</div>
-    <div className="media-grid" ref={gridRef}>{visible.map(media => <button key={media.id} data-media-id={media.id} onClick={() => onOpen(media)}><div style={{ background: `linear-gradient(145deg, ${media.accent}, #191329)` }}><span>{media.kind}</span><i>◇</i></div><strong>{media.name}</strong></button>)}</div>
+    <div className="media-grid" ref={gridRef}>{visible.map(media => <button key={media.id} data-media-id={media.id} onClick={() => onOpen(media)}><MediaTileArt media={media} /><strong>{media.name}</strong></button>)}</div>
   </section>
 }
