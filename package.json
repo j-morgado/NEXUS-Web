@@ -16,6 +16,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test:e2e:experience": "node scripts/experience-e2e.mjs",
     "test:e2e:addons": "node scripts/addon-transition-e2e.mjs",
+    "test:e2e:environments": "node scripts/environment-exploration-e2e.mjs",
     "test:e2e:media": "node scripts/media-viewer-e2e.mjs"
   },
   "dependencies": {

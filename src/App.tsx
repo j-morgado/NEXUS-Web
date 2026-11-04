@@ -12,6 +12,7 @@ import { LoadingScreen } from './components/LoadingScreen'
 
 const Configurator = lazy(() => import('./screens/Configurator').then((module) => ({ default: module.Configurator })))
 const Explorer = lazy(() => import('./screens/Explorer').then((module) => ({ default: module.Explorer })))
+const EnvironmentLab = lazy(() => import('./screens/EnvironmentLab').then((module) => ({ default: module.EnvironmentLab })))
 
 function DestinationReady({ onReady }: { onReady: () => void }) {
   useEffect(() => {
@@ -28,6 +29,7 @@ function DestinationReady({ onReady }: { onReady: () => void }) {
 type Route = 'attract' | 'selector' | 'jltv' | 'explorer'
 
 export default function App() {
+  const environmentLab = new URLSearchParams(window.location.search).get('environmentLab') === '1'
   const [route, setRoute] = useState<Route>('attract')
   const [hubEntrance, setHubEntrance] = useState(false)
   const [transition, setTransition] = useState<{ next: Route; phase: 'covering' | 'loading' | 'revealing' } | null>(null)
@@ -98,9 +100,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', shortcut)
   }, [])
 
-
-
-
+  if (environmentLab) return <Suspense fallback={<main className="environment-lab-loading">Preparing environment exploration…</main>}><EnvironmentLab /></Suspense>
 
   return <InactivityGuard enabled={route !== 'attract'} timeoutSeconds={60} warningSeconds={10} onReset={reset}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
