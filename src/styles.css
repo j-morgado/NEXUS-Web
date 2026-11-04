@@ -1393,7 +1393,7 @@ footer {
 @media (max-width: 620px) {
   .reference-logo { width: 120px; right: 20px; top: 24px; }
   .reference-hub h1 { left: 24px; top: 96px; font-size: 38px; line-height: 1.1; }
-  .hub-experiences { left: 24px; right: 24px; top: 180px; bottom: 88px; gap: 10px; }
+  .hub-experiences { left: 24px; right: 24px; top: 220px; bottom: 88px; gap: 10px; }
   .hub-carousel > .hub-card { flex-basis: 100%; }
   .hub-card-content { left: 24px; right: 24px; bottom: 24px; }
   .hub-card h2 { font-size: 30px; margin-bottom: 14px; }

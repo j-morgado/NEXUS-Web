@@ -8,23 +8,34 @@ imageModeURL.searchParams.set('hubMedia', 'image')
 
 const assertRectMatches = (actual, expected, label) => {
   assert(actual && expected, `${label} is not rendered`)
-  for (const key of ['x', 'y', 'width', 'height']) assert(Math.abs(actual[key] - expected[key]) < 1.5, `${label} ${key} does not match its card`)
+  for (const key of ['x', 'y', 'width', 'height']) assert(Math.abs(actual[key] - expected[key]) < 1.5, `${label} ${key} does not match its card (${actual[key]} vs ${expected[key]})`)
 }
 
 const assertFullCardMedia = async (page, mediaSelector) => {
   const card = page.locator('.hub-card-primary')
-  const media = card.locator('.hub-card-media')
-  const gradient = card.locator('.hub-gradient')
-  const content = card.locator('.hub-card-content')
-  const cardBounds = await card.boundingBox()
-  assertRectMatches(await media.boundingBox(), cardBounds, 'Media layer')
-  assertRectMatches(await gradient.boundingBox(), cardBounds, 'Gradient layer')
-  assertRectMatches(await media.locator(mediaSelector).boundingBox(), cardBounds, `${mediaSelector} element`)
-  const layers = await card.evaluate(element => {
-    const read = selector => getComputedStyle(element.querySelector(selector)).zIndex
-    return { media: read('.hub-card-media'), gradient: read('.hub-gradient'), content: read('.hub-card-content') }
-  })
-  assert.deepEqual(layers, { media: '0', gradient: '1', content: '2' })
+  const geometry = await card.evaluate((element, selector) => {
+    const rect = target => { const bounds = target.getBoundingClientRect(); return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height } }
+    const media = element.querySelector('.hub-card-media')
+    const gradient = element.querySelector('.hub-gradient')
+    const content = element.querySelector('.hub-card-content')
+    return {
+      card: rect(element),
+      media: rect(media),
+      gradient: rect(gradient),
+      mediaElement: rect(media.querySelector(selector)),
+      layers: { media: getComputedStyle(media).zIndex, gradient: getComputedStyle(gradient).zIndex, content: getComputedStyle(content).zIndex },
+    }
+  }, mediaSelector)
+  assertRectMatches(geometry.media, geometry.card, 'Media layer')
+  assertRectMatches(geometry.gradient, geometry.card, 'Gradient layer')
+  assertRectMatches(geometry.mediaElement, geometry.card, `${mediaSelector} element`)
+  assert.deepEqual(geometry.layers, { media: '0', gradient: '1', content: '2' })
+}
+
+const assertHeadingClearsCard = async page => {
+  const heading = await page.locator('.reference-hub h1').boundingBox()
+  const card = await page.locator('.hub-card-primary').boundingBox()
+  assert(heading && card && heading.y + heading.height <= card.y - 12, 'Hub heading is clipped behind the primary card')
 }
 
 try {
@@ -66,6 +77,7 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 })
   await assertFullCardMedia(page, 'video')
+  await assertHeadingClearsCard(page)
   await page.screenshot({ path: '/tmp/nexus-hub-video-mobile.png' })
   await page.setViewportSize({ width: 1280, height: 800 })
 
@@ -114,6 +126,7 @@ try {
   await imagePage.screenshot({ path: '/tmp/nexus-hub-image-desktop.png' })
   await imagePage.setViewportSize({ width: 390, height: 844 })
   await assertFullCardMedia(imagePage, 'img')
+  await assertHeadingClearsCard(imagePage)
   await imagePage.screenshot({ path: '/tmp/nexus-hub-image-mobile.png' })
   await imageContext.close()
 

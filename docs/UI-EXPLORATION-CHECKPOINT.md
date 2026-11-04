@@ -27,6 +27,7 @@ Explore richer add-on selection and hub-card media without changing approved pro
 - [x] Image fallback and optional image mode are covered by tests.
 - [x] `?hubMedia=image` exposes the reviewable image-only comparison without changing the default video experiment.
 - [x] Browser geometry and stacking assertions keep media full-card and below the gradient/content at desktop and phone sizes.
+- [x] Phone hub heading clears the card with a tested visual gap; no title clipping remains.
 - [x] This branch remains isolated from production.
 
 ## Verification
