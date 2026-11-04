@@ -29,7 +29,7 @@ The research package is intentionally richer than the browser delivery contract:
 | `specs[]` | Approve sourced values; never fill unknowns | `specs[]` |
 | `assets[]` | Inspect pixels/playback, clear rights, create accessible renditions, and host on approved CDN | `media[]`, `heroMediaId` |
 | `sourceIds`, `claimSources`, `uncertainties` | Preserve in Drupal/editorial records and approval audit; resolve before publish | not exposed in the kiosk payload |
-| `editorialState`, `verificationState`, `publicationReady` | Publication gate; only approved records may enter an `approvalStatus: "approved"` payload | publication `approvalStatus` |
+| `editorialState`, `verificationState`, `publicationReady` | Publication gate; only approved records may enter an `approvalStatus: "approved"`, `publicationState: "published"` payload | publication approval/lifecycle fields |
 
 The normalized kiosk schema deliberately does not treat a public source URL as approval. A trusted Drupal exporter must select only approved records and approved media, resolve market relationships, assign unique media IDs, and emit `src/content/catalog.ts`'s `explorerCatalogSchema` shape.
 

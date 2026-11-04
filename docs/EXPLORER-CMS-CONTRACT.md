@@ -8,11 +8,15 @@ Set the public read endpoint at build time:
 
 ```dotenv
 VITE_NEXUS_CMS_CATALOG_URL=https://content.example.org/nexus/events/<event-id>/explorer.json
+VITE_NEXUS_CMS_EVENT_ID=event-2027
+VITE_NEXUS_CMS_PUBLICATION_ID=event-2027-explorer
+VITE_NEXUS_CMS_MODE=production
+VITE_NEXUS_CMS_CACHE_MAX_AGE_SECONDS=86400
 ```
 
-The endpoint may also be a root-relative path such as `/content/explorer.json`. It must return JSON over HTTPS (or same-origin), allow the deployed NEXUS origin through CORS when cross-origin, and require no authoring secret in the browser. The client sends `Accept: application/json`, omits credentials, validates the entire response, and stores the last valid publication in IndexedDB.
+The endpoint may also be a root-relative path such as `/content/explorer.json`. It must return JSON over HTTPS (or same-origin), allow the deployed NEXUS origin through CORS when cross-origin, and require no authoring secret in the browser. Event and publication IDs are mandatory cache/security scopes and must match the payload. Production is the default mode and accepts only `approvalStatus: "approved"` plus `publicationState: "published"`. `demonstration` mode must be explicitly configured; it is always visibly labeled and cannot share production cache records.
 
-If the variable is absent, the explicit packaged mock provider is used. That fixture is marked `approvalStatus: "demonstration"`; it is not approved marketing content.
+If the endpoint is absent, the explicit packaged mock provider is used and visibly labeled. That fixture is marked `approvalStatus: "demonstration"`; it is not approved marketing content.
 
 ## Shape
 
@@ -23,6 +27,7 @@ If the variable is absent, the explicit packaged mock provider is used. That fix
   "revision": "42",
   "publishedAt": "2027-01-10T18:30:00.000Z",
   "approvalStatus": "approved",
+  "publicationState": "published",
   "copy": {
     "title": "Explorer",
     "introduction": "Browse products and services.",
@@ -76,7 +81,9 @@ If the variable is absent, the explicit packaged mock provider is used. That fix
 }
 ```
 
-The authoritative executable schema is `src/content/catalog.ts`. Arrays must be non-empty; IDs must be unique; product `marketId` values must match their containing market; hero IDs must resolve within the product; and asset URLs must be root-relative or HTTPS. `javascript:`, `data:`, protocol-relative, and plain HTTP asset URLs are rejected.
+The authoritative executable schema is `src/content/catalog.ts`. Arrays must be non-empty; IDs must be unique; product `marketId` values must match their containing market; hero IDs must resolve within the product; PDF heroes must have thumbnails; and asset URLs must be root-relative or HTTPS. `javascript:`, `data:`, protocol-relative, credential-bearing, and plain HTTP asset URLs are rejected. Schema validity alone is not publication approval: the loader separately enforces configured identity, lifecycle, mode, and approval policy before writing the cache.
+
+PDF previews are fetched first with an `Accept: application/pdf` request. HTTP status, MIME type, and a 50 MiB kiosk preview limit are checked before a blob URL is embedded in an iframe with an empty sandbox and no-referrer policy. Cross-origin PDF hosts must permit CORS for embedded preview. If they do not, Explorer shows an accessible preview error and retains a user-initiated direct-open link; raw cross-origin responses are never embedded as trusted PDF content.
 
 ## Drupal integration requirements
 
@@ -93,5 +100,7 @@ The Drupal/content-platform team must provide these before the generic HTTP prov
 
 ## Offline behavior
 
-Valid remote publications are stored in IndexedDB. On fetch, HTTP, or validation failure, Explorer uses the last validated cache and displays a small accessible notice. With no cache it uses the packaged demonstration fixture. Media URLs are not bulk-downloaded by this adapter; guaranteed offline image/video/PDF access requires a provisioning manifest, storage budget, integrity metadata, and managed-device acceptance testing.
+Eligible remote publications are stored in IndexedDB under the exact normalized endpoint, event ID, publication ID, and mode. Records expire after the configured maximum age (24 hours by default). HTTP 410 or a `retired` payload removes the matching record and bypasses cache fallback. An offline request can use only an unexpired exact-scope record and always displays an accessible fallback notice. With no eligible cache it uses and labels the packaged demonstration fixture.
+
+This cache stores catalog JSON only. It does **not** make remote images, videos, or PDFs available offline. Guaranteed offline media still requires an event provisioning manifest, storage budget, integrity metadata, codec checks, and managed-device acceptance testing.
 

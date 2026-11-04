@@ -37,7 +37,7 @@ Validated active/previous event configuration bundles and operator preferences p
 
 The future trusted CMS and event-publication ports are declared in `src/contracts/cms.ts`. Role enforcement, accounts, draft publication, signed distribution, and trusted authorization remain backend work. The operator menu is intentionally not a security boundary.
 
-Explorer catalog delivery now has a vendor-neutral, schema-validated read adapter with validated IndexedDB fallback and packaged demonstration content. Configure `VITE_NEXUS_CMS_CATALOG_URL` with a normalized public-read JSON publication; see [docs/EXPLORER-CMS-CONTRACT.md](docs/EXPLORER-CMS-CONTRACT.md). No Drupal endpoint, credentials, or production content mapping is assumed.
+Explorer catalog delivery now has a vendor-neutral, policy-validated read adapter with endpoint/event/publication-scoped, expiring IndexedDB fallback and visibly labeled packaged demonstration content. Configure the CMS URL, event ID, publication ID, mode, and cache lifetime described in [docs/EXPLORER-CMS-CONTRACT.md](docs/EXPLORER-CMS-CONTRACT.md). Production mode accepts only approved, published content. No Drupal endpoint, credentials, or production content mapping is assumed.
 
 Visitor requests use a separate durable outbox. Invalid records are quarantined, rapid duplicates are suppressed, and the current transport is explicitly `not-configured`; it cannot mark a request sent.
 - Operator controls are a convenience surface, not an access-control boundary.

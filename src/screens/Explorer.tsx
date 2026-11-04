@@ -26,6 +26,7 @@ function CatalogHeroMedia({ product }: { product: CatalogProduct }) {
     {!failed && media.kind === 'video' && <video src={media.url} poster={poster} autoPlay muted loop playsInline preload="metadata" onError={() => setFailed(true)} />}
     {!failed && media.kind === 'image' && <img src={media.url} alt="" onError={() => setFailed(true)} />}
     {!failed && media.kind === 'pdf' && poster && <img src={poster} alt="" onError={() => setFailed(true)} />}
+    {!failed && media.kind === 'pdf' && !poster && <span>Document preview</span>}
     {failed && <span role="status">Media unavailable</span>}
   </div>
 }

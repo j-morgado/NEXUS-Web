@@ -17,6 +17,7 @@
     "test:e2e:experience": "node scripts/experience-e2e.mjs",
     "test:e2e:addons": "node scripts/addon-transition-e2e.mjs",
     "test:e2e:media": "node scripts/media-viewer-e2e.mjs",
+    "test:e2e:cms": "node scripts/cms-adversarial-e2e.mjs",
     "validate:research": "node scripts/validate-explorer-research.mjs"
   },
   "dependencies": {

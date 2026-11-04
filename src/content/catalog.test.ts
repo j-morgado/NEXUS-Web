@@ -37,4 +37,13 @@ describe('Explorer filler catalog', () => {
   it('does not allow filler content to be labeled as an approved publication', () => {
     expect(explorerCatalogSchema.safeParse({ ...packagedCatalog, approvalStatus: 'approved' }).success).toBe(false)
   })
+
+  it('requires a thumbnail when PDF media is selected as the hero', () => {
+    const catalog = structuredClone(packagedCatalog)
+    const product = catalog.markets[0].products[0]
+    const document = product.media.find((media) => media.kind === 'pdf')!
+    delete document.thumbnailUrl
+    product.heroMediaId = document.id
+    expect(explorerCatalogSchema.safeParse(catalog).success).toBe(false)
+  })
 })

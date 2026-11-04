@@ -36,8 +36,11 @@ export const catalogProductSchema = z.object({
   heroMediaLabel: z.string().min(1),
   isFiller: z.boolean(),
 }).superRefine((product, context) => {
-  if (!product.media.some((media) => media.id === product.heroMediaId)) {
+  const hero = product.media.find((media) => media.id === product.heroMediaId)
+  if (!hero) {
     context.addIssue({ code: 'custom', path: ['heroMediaId'], message: 'Hero media must reference an item in the product media array.' })
+  } else if (hero.kind === 'pdf' && !hero.thumbnailUrl) {
+    context.addIssue({ code: 'custom', path: ['heroMediaId'], message: 'A PDF used as hero media must include a thumbnailUrl.' })
   }
 })
 
@@ -53,6 +56,7 @@ export const explorerCatalogSchema = z.object({
   revision: z.string().min(1),
   publishedAt: z.string().datetime(),
   approvalStatus: z.enum(['demonstration', 'approved']),
+  publicationState: z.enum(['published', 'retired']),
   copy: z.object({
     title: z.string().min(1),
     introduction: z.string().min(1),
@@ -123,6 +127,7 @@ export const packagedCatalog = explorerCatalogSchema.parse({
   revision: '2026-11-04.1',
   publishedAt: '2026-11-04T00:00:00.000Z',
   approvalStatus: 'demonstration',
+  publicationState: 'published',
   copy: {
     title: 'Explorer',
     introduction: 'Browse our catalogue of products and services, their related features, details, media and more.',
