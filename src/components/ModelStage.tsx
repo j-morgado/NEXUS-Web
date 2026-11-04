@@ -224,8 +224,6 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
       element.style.setProperty('--hotspot-width', `${panelWidth}px`)
       element.style.setProperty('--sidebar-height', `${Math.max(160, size.height - (size.width < 700 ? 214 : 134))}px`)
       element.style.setProperty('--hotspot-open-height', `${scratch.heights.get(hotspot.id)}px`)
-      element.style.setProperty('--hotspot-shift', `${Math.min(0, size.width - 16 - (left - 21 + panelWidth))}px`)
-      element.style.setProperty('--hotspot-rise', `${Math.min(0, size.height - 390 - top)}px`)
       if (!checkOcclusion) continue
       scratch.pointer.set(scratch.ndc.x, scratch.ndc.y)
       scratch.ray.setFromCamera(scratch.pointer, camera)
@@ -308,23 +306,25 @@ export function ModelStage(props: Props) {
   useEffect(() => {
     if (!props.activeHotspot) return
     const pointers = new Map<number, { x: number; y: number }>()
-    let dragged = false
+    let gestureMoved = false
     const dismiss = (event: PointerEvent) => {
       if (event.target instanceof Element && event.target.closest('.vehicle-hotspot')) return
-      if (activeMode === 'in-place' || !(event.target instanceof HTMLCanvasElement)) { props.onHotspot(null); return }
-      if (pointers.size) dragged = true
+      if (pointers.size) gestureMoved = true
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
     }
     const move = (event: PointerEvent) => {
       const start = pointers.get(event.pointerId)
-      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) dragged = true
+      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) gestureMoved = true
     }
     const release = (event: PointerEvent) => {
       if (!pointers.has(event.pointerId)) return
       const start = pointers.get(event.pointerId)!
-      if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) dragged = true
+      if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) gestureMoved = true
       pointers.delete(event.pointerId)
-      if (!pointers.size) { if (!dragged && event.type !== 'pointercancel') props.onHotspot(null); dragged = false }
+      if (!pointers.size) {
+        if (!gestureMoved && event.type === 'pointerup') props.onHotspot(null)
+        gestureMoved = false
+      }
     }
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') props.onHotspot(null) }
     document.addEventListener('pointerdown', dismiss)
@@ -337,7 +337,7 @@ export function ModelStage(props: Props) {
       document.removeEventListener('pointerup', release); document.removeEventListener('pointercancel', release)
       document.removeEventListener('keydown', escape)
     }
-  }, [props.activeHotspot, props.onHotspot, activeMode])
+  }, [props.activeHotspot, props.onHotspot])
 
   if (contextLost) return <section className="model-failure" role="alert"><p className="eyebrow">3D MODULE INTERRUPTED</p><h2>The vehicle view needs to restart.</h2><p>Your selected configuration is preserved. Retry the renderer or return to the hub.</p><div><button className="primary-cta" onClick={() => { props.onReadyChange(false); props.onProgress(90); setContextLost(false) }}>Retry 3D view <span>↻</span></button><button className="recovery-back" onClick={props.onExit}>Return to hub</button></div></section>
 

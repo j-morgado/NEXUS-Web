@@ -1776,7 +1776,7 @@ footer {
 .configuration-controls .bottom-config button { min-width: 130px; min-height: 54px; }
 .configuration-controls .bottom-config small { font-size: 10px; color: inherit; opacity: .8; }
 .vehicle-hotspot { --hotspot-width: min(360px, calc(100vw - 32px)); overflow: hidden; opacity: 0; position: absolute; z-index: 8; width: 42px; transform: translate(-21px,-21px); pointer-events: none; transition: opacity 0.5s linear, width 160ms cubic-bezier(.4,0,.2,1), transform 160ms cubic-bezier(.4,0,.2,1); }
-.vehicle-hotspot.is-open { width: var(--hotspot-width); z-index: 11; transform: translate(calc(-21px + var(--hotspot-shift, 0px)), calc(-21px + var(--hotspot-rise, 0px))); }
+.vehicle-hotspot.is-open { width: var(--hotspot-width); z-index: 11; transform: translate(-21px, -21px); }
 .hotspot-header { display: flex; width: 100%; height: 42px; align-items: center; overflow: hidden; padding: 0; border: 0; background: #734cdd; color: #fff; text-align: left; }
 .hotspot-header .accordion-icon { width: 42px; height: 42px; }
 .hotspot-header .accordion-icon::before { left: 12px; right: 12px; top: 20px; }
