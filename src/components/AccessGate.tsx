@@ -38,18 +38,11 @@ export function AccessGate({ children }: { children: ReactNode }) {
   }
 
   return <main className="access-gate" id="main-content">
-    <div className="access-gate-grid" aria-hidden="true" />
-    <div className="access-gate-glow" aria-hidden="true" />
     <section className="access-card" aria-labelledby="access-title">
-      <div className="access-brand" aria-label="NEXUS">
-        <span className="brand-mark">N</span>
-        <span>NEXUS</span>
-      </div>
-      <p className="eyebrow">PRIVATE PREVIEW</p>
-      <h1 id="access-title">Enter NEXUS</h1>
-      <p className="access-intro">This working preview is intended for invited collaborators.</p>
+      <img className="access-logo" src="/assets/reference/leidos-logo-light.svg" alt="Leidos" />
+      <h1 id="access-title">NEXUS</h1>
       <form className="access-form" onSubmit={unlock}>
-        <label htmlFor="site-password">Password</label>
+        <label className="visually-hidden" htmlFor="site-password">Password</label>
         <div className="access-field-row">
           <input
             ref={inputRef}
@@ -63,14 +56,15 @@ export function AccessGate({ children }: { children: ReactNode }) {
             }}
             autoComplete="current-password"
             autoFocus
+            placeholder="Password"
             aria-invalid={!!error}
             aria-describedby={error ? 'access-error' : undefined}
           />
-          <button type="submit" aria-label="Enter site">Enter <span aria-hidden="true">↗</span></button>
+          <button type="submit" aria-label="Enter site">Enter</button>
         </div>
-        <p className="access-error" id="access-error" role="alert" aria-live="polite">{error}</p>
+        <p className="visually-hidden" id="access-error" role="alert" aria-live="polite">{error}</p>
       </form>
-      <p className="access-note">Restricted preview · NEXUS capability configurator</p>
+      <p className="access-note">Restricted Preview</p>
     </section>
   </main>
 }
