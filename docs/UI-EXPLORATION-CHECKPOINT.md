@@ -25,6 +25,8 @@ Explore richer add-on selection and hub-card media without changing approved pro
 - [x] Hub video is muted, inline, looping, and uses the existing authorized placeholder video.
 - [x] The video pauses when offscreen or the page is hidden and yields to the still image for reduced motion, errors, or image-only mode.
 - [x] Image fallback and optional image mode are covered by tests.
+- [x] `?hubMedia=image` exposes the reviewable image-only comparison without changing the default video experiment.
+- [x] Browser geometry and stacking assertions keep media full-card and below the gradient/content at desktop and phone sizes.
 - [x] This branch remains isolated from production.
 
 ## Verification

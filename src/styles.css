@@ -1241,13 +1241,13 @@ footer {
 .hub-carousel:focus-visible, .hub-arrows button:focus-visible { outline: 3px solid #a7a3fe; outline-offset: -3px; }
 .hub-card { position: relative; display: block; overflow: hidden; border: 0; padding: 0; text-align: left; background: #4c3291; color: #fff; }
 .hub-card > img,.pending-card-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.hub-card-media { position: absolute; inset: 0; overflow: hidden; }
+.hub-card-media { position: absolute; z-index: 0; inset: 0; overflow: hidden; }
 .hub-card-media :is(img, video) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .hub-media-badge { position: absolute; z-index: 3; top: 18px; right: 18px; padding: 7px 10px; background: rgba(17,5,48,.78); color: #fff; font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .pending-card-art { background: radial-gradient(circle at 70% 40%,#8f75cf,transparent 32%),linear-gradient(145deg,#302056,#7753bd); }
 .pending-card-art.alternate { background: radial-gradient(circle at 30% 50%,#7853bd,transparent 28%),linear-gradient(145deg,#251846,#4c3291); }
-.hub-gradient { position: absolute; inset: 0; background: linear-gradient(90deg,rgba(37,24,70,.93),rgba(76,50,145,.46) 58%,rgba(17,5,48,.18)),linear-gradient(0deg,rgba(17,5,48,.76),transparent 55%); }
-.hub-card > div { position: absolute; z-index: 2; left: 78px; right: 70px; bottom: 76px; }
+.hub-gradient { position: absolute; z-index: 1; inset: 0; background: linear-gradient(90deg,rgba(37,24,70,.93),rgba(76,50,145,.46) 58%,rgba(17,5,48,.18)),linear-gradient(0deg,rgba(17,5,48,.76),transparent 55%); }
+.hub-card-content { position: absolute; z-index: 2; left: 78px; right: 70px; bottom: 76px; }
 .hub-card h2 { font-size: 40px; line-height: 1.1; font-weight: 300; margin: 0 0 22px; text-transform: uppercase; }
 .hub-card p { max-width: 600px; font-size: 20px; line-height: 1.5; margin: 0 0 32px; }
 .outline-pill { display: inline-flex; justify-content: center; align-items: center; gap: 20px; min-height: 50px; padding: 10px 30px; border: 2px solid #fff; border-radius: 50px; background: transparent; color: #fff; font-size: 16px; line-height: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
@@ -1395,7 +1395,7 @@ footer {
   .reference-hub h1 { left: 24px; top: 96px; font-size: 38px; line-height: 1.1; }
   .hub-experiences { left: 24px; right: 24px; top: 180px; bottom: 88px; gap: 10px; }
   .hub-carousel > .hub-card { flex-basis: 100%; }
-  .hub-card > div { left: 24px; right: 24px; bottom: 24px; }
+  .hub-card-content { left: 24px; right: 24px; bottom: 24px; }
   .hub-card h2 { font-size: 30px; margin-bottom: 14px; }
   .hub-card p { font-size: 16px; margin-bottom: 18px; }
   .hub-arrows { margin-right: 0; }
@@ -1490,7 +1490,7 @@ button:disabled { cursor: not-allowed; }
 @media (max-width: 1400px) and (max-height: 850px) {
   .reference-hub h1 { top: 92px; font-size: 48px; line-height: 58px; }
   .hub-carousel { left: 7.25vw; right: -24vw; top: 190px; height: 438px; grid-template-columns: 720px 420px 360px; gap: 32px; }
-  .hub-card > div { left: 48px; right: 44px; bottom: 32px; }
+  .hub-card-content { left: 48px; right: 44px; bottom: 32px; }
   .hub-card h2 { margin-bottom: 12px; font-size: 34px; }
   .hub-card p { margin-bottom: 18px; font-size: 17px; line-height: 1.4; }
   .hub-arrows { bottom: 68px; }
@@ -1891,13 +1891,13 @@ footer {
 
 /* Direct attract-to-hub choreography, over the uninterrupted video. */
 .is-entering-from-attract .hub-carousel { animation: hub-cards-enter 400ms cubic-bezier(.22,1,.36,1) both; }
-.is-entering-from-attract :is(h1, .hub-arrows, .hub-card > div) { animation: hub-copy-enter 300ms 100ms ease both; }
+.is-entering-from-attract :is(h1, .hub-arrows, .hub-card-content) { animation: hub-copy-enter 300ms 100ms ease both; }
 .is-entering-from-attract .hub-explorer { animation: hub-explorer-enter 350ms 50ms cubic-bezier(.22,1,.36,1) both; }
 @keyframes hub-cards-enter { from { transform: translateX(100vw); } to { transform: translateX(0); } }
 @keyframes hub-copy-enter { from { opacity: 0; } to { opacity: 1; } }
 @keyframes hub-explorer-enter { from { transform: translateX(-240px); } to { transform: translateX(0); } }
 @media (prefers-reduced-motion: reduce) {
-  .is-entering-from-attract :is(.hub-carousel, h1, .hub-arrows, .hub-card > div, .hub-explorer) { animation: none; }
+  .is-entering-from-attract :is(.hub-carousel, h1, .hub-arrows, .hub-card-content, .hub-explorer) { animation: none; }
   .shared-loop-media { transition: none; }
 }
 

@@ -28,6 +28,7 @@ function DestinationReady({ onReady }: { onReady: () => void }) {
 type Route = 'attract' | 'selector' | 'jltv' | 'explorer'
 
 export default function App() {
+  const hubMediaMode = new URLSearchParams(window.location.search).get('hubMedia') === 'image' ? 'image' : 'video'
   const [route, setRoute] = useState<Route>('attract')
   const [hubEntrance, setHubEntrance] = useState(false)
   const [transition, setTransition] = useState<{ next: Route; phase: 'covering' | 'loading' | 'revealing' } | null>(null)
@@ -107,7 +108,7 @@ export default function App() {
     <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/attract-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
     <div key={sessionEpoch} inert={!!transition} aria-busy={!!transition} data-quality-tier={settings.qualityTier}>
       {route === 'attract' && <Attract onBegin={begin} />}
-      {route === 'selector' && <Selector animateEntrance={hubEntrance} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset}  />}
+      {route === 'selector' && <Selector animateEntrance={hubEntrance} jltvMediaMode={hubMediaMode} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset}  />}
       <Suspense fallback={null}>
         {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} hotspotMode={settings.hotspotMode} visual={settings.visual} showPerformanceStats={settings.showPerformanceStats} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
         {route === 'explorer' && <><Explorer active={!transition} onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></>}
