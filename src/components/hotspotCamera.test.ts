@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PerspectiveCamera, Vector3 } from 'three'
-import { closeupLimits, closeupView, normalLimits, sidebarWidth } from './hotspotCamera'
+import { closeupGestureResistance, closeupLimits, closeupResistanceZones, closeupView, directionalLimitResistance, normalLimits, sidebarWidth } from './hotspotCamera'
 import { hotspotSchema } from '../domain/schemas'
 import { seedVehicle } from '../content/seed'
 
@@ -23,6 +23,25 @@ describe('hotspot close-up framing', () => {
     expect(limits.minDistance).toBeLessThan(view.distance)
     expect(limits.maxDistance).toBeGreaterThan(view.distance)
     expect(normalLimits.maxAzimuthAngle).toBe(Infinity)
+  })
+  it('progressively resists motion toward every close-up bound without changing the hard limits', () => {
+    const limits = closeupLimits(0, 1)
+    const samples = [.15, .1, .06, .02].map(room => directionalLimitResistance(limits.minAzimuthAngle + room, limits.minAzimuthAngle, limits.maxAzimuthAngle, -.01, closeupResistanceZones.azimuth))
+    expect(samples[0]).toBeCloseTo(1)
+    expect(samples[1]).toBeGreaterThan(samples[2])
+    expect(samples[2]).toBeGreaterThan(samples[3])
+    expect(samples[3]).toBeGreaterThan(0)
+    expect(limits).toEqual(closeupLimits(0, 1))
+  })
+  it('keeps input away from a nearby limit fully responsive for orbit and zoom', () => {
+    const limits = closeupLimits(0, 1)
+    const nearMinimum = { theta: limits.minAzimuthAngle + .005, phi: limits.minPolarAngle + .005, distance: limits.minDistance + .01, limits }
+    expect(closeupGestureResistance({ ...nearMinimum, thetaDelta: -.01 })).toBeLessThan(.2)
+    expect(closeupGestureResistance({ ...nearMinimum, thetaDelta: .01 })).toBe(1)
+    expect(closeupGestureResistance({ ...nearMinimum, phiDelta: -.01 })).toBeLessThan(.2)
+    expect(closeupGestureResistance({ ...nearMinimum, phiDelta: .01 })).toBe(1)
+    expect(closeupGestureResistance({ ...nearMinimum, distanceDelta: -.02 })).toBeLessThan(.2)
+    expect(closeupGestureResistance({ ...nearMinimum, distanceDelta: .02 })).toBe(1)
   })
   it('frames the selected area to the left of the sidebar at desktop and phone sizes', () => {
     for (const width of [960, 390]) {

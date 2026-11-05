@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef, type ElementRef, type RefObject } from 'react'
 import { Vector3, type PerspectiveCamera } from 'three'
 import type { HotspotMode, Vehicle } from '../domain/schemas'
-import { closeupLimits, closeupView, normalLimits, sidebarWidth } from './hotspotCamera'
+import { closeupGestureResistance, closeupLimits, closeupView, normalLimits, sidebarWidth } from './hotspotCamera'
 
 const ORBIT_TARGET: [number, number, number] = [-.6, 2, 0]
 
@@ -15,9 +15,75 @@ export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOf
   const saved = useRef<View | null>(null)
   const tween = useRef<Transition | null>(null)
   const offset = useRef(0)
-  const { camera, size, invalidate } = useThree()
+  const { camera, gl, size, invalidate } = useThree()
   const hotspot = vehicle.hotspots.find(item => item.id === activeHotspot)
   const effectiveMode = hotspot?.mode ?? mode
+  const softenLimits = useRef(false)
+  const lastResistance = useRef(1)
+  softenLimits.current = !!hotspot && effectiveMode === 'zoom-in-place'
+
+  useEffect(() => {
+    const orbit = controls.current
+    const element = gl.domElement
+    if (!orbit || !element) return
+    const pointers = new Map<number, { x: number; y: number; button: number; type: string }>()
+    let restoreTimer = 0
+    const restoreSpeeds = () => { orbit.rotateSpeed = 1; orbit.zoomSpeed = 1 }
+    const resistance = (thetaDelta = 0, phiDelta = 0, distanceDelta = 0) => {
+      if (!softenLimits.current || !orbit.enabled) return 1
+      return closeupGestureResistance({ theta: orbit.getAzimuthalAngle(), phi: orbit.getPolarAngle(), distance: orbit.getDistance(), thetaDelta, phiDelta, distanceDelta, limits: { minDistance: orbit.minDistance, maxDistance: orbit.maxDistance, minAzimuthAngle: orbit.minAzimuthAngle, maxAzimuthAngle: orbit.maxAzimuthAngle, minPolarAngle: orbit.minPolarAngle, maxPolarAngle: orbit.maxPolarAngle } })
+    }
+    const remember = (value: number) => { lastResistance.current = value; window.clearTimeout(restoreTimer); restoreTimer = window.setTimeout(restoreSpeeds, 0) }
+    const onPointerDown = (event: PointerEvent) => pointers.set(event.pointerId, { x: event.pageX, y: event.pageY, button: event.button, type: event.pointerType })
+    const onPointerMove = (event: PointerEvent) => {
+      const previous = pointers.get(event.pointerId)
+      if (!previous) return
+      const next = { x: event.pageX, y: event.pageY, button: previous.button, type: previous.type }
+      if (softenLimits.current && orbit.enabled) {
+        if (previous.type === 'touch' && pointers.size > 1) {
+          const other = [...pointers.entries()].find(([id]) => id !== event.pointerId)?.[1]
+          if (other) {
+            const before = Math.hypot(previous.x - other.x, previous.y - other.y)
+            const after = Math.hypot(next.x - other.x, next.y - other.y)
+            const ratio = before > 0 ? after / before : 1
+            const distance = orbit.getDistance()
+            const factor = resistance(0, 0, distance * (1 / ratio - 1))
+            orbit.zoomSpeed = factor; remember(factor)
+          }
+        } else if (previous.type === 'touch' || previous.button === 0) {
+          const height = Math.max(1, element.clientHeight)
+          const factor = resistance(-2 * Math.PI * (next.x - previous.x) / height, -2 * Math.PI * (next.y - previous.y) / height)
+          orbit.rotateSpeed = factor; remember(factor)
+        } else if (previous.button === 1) {
+          const distance = orbit.getDistance()
+          const direction = Math.sign(next.y - previous.y)
+          const factor = resistance(0, 0, direction * distance * .05)
+          orbit.zoomSpeed = factor; remember(factor)
+        }
+      }
+      pointers.set(event.pointerId, next)
+    }
+    const onPointerUp = (event: PointerEvent) => { pointers.delete(event.pointerId); restoreSpeeds() }
+    const onWheel = (event: WheelEvent) => {
+      const distance = orbit.getDistance()
+      const factor = resistance(0, 0, Math.sign(event.deltaY) * distance * .05)
+      orbit.zoomSpeed = factor; remember(factor)
+    }
+    element.addEventListener('pointerdown', onPointerDown, true)
+    element.ownerDocument.addEventListener('pointermove', onPointerMove, true)
+    element.ownerDocument.addEventListener('pointerup', onPointerUp, true)
+    element.ownerDocument.addEventListener('pointercancel', onPointerUp, true)
+    element.addEventListener('wheel', onWheel, { capture: true, passive: true })
+    return () => {
+      element.removeEventListener('pointerdown', onPointerDown, true)
+      element.ownerDocument.removeEventListener('pointermove', onPointerMove, true)
+      element.ownerDocument.removeEventListener('pointerup', onPointerUp, true)
+      element.ownerDocument.removeEventListener('pointercancel', onPointerUp, true)
+      element.removeEventListener('wheel', onWheel, true)
+      window.clearTimeout(restoreTimer)
+      restoreSpeeds()
+    }
+  }, [gl])
 
   useEffect(() => {
     const orbit = controls.current
@@ -81,6 +147,9 @@ export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOf
       statusRef.current.dataset.cameraDistance = camera.position.distanceTo(orbit.target).toFixed(4)
       statusRef.current.dataset.hotspotMode = effectiveMode
       statusRef.current.dataset.cameraLocked = String(!!hotspot && effectiveMode !== 'in-place')
+      statusRef.current.dataset.cameraAzimuth = orbit.getAzimuthalAngle().toFixed(5)
+      statusRef.current.dataset.cameraPolar = orbit.getPolarAngle().toFixed(5)
+      statusRef.current.dataset.cameraLimitResistance = lastResistance.current.toFixed(3)
       statusRef.current.dataset.orbitLimits = JSON.stringify({ minDistance: orbit.minDistance, maxDistance: orbit.maxDistance, minAzimuth: orbit.minAzimuthAngle, maxAzimuth: orbit.maxAzimuthAngle, minPolar: orbit.minPolarAngle, maxPolar: orbit.maxPolarAngle })
     }
   }, -.5)
