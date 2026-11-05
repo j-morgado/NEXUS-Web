@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type TransitionEvent } from 'react'
 import type { Vehicle } from '../domain/schemas'
 
 type Addon = Vehicle['addons'][number]
-// Keep the inert panel mounted briefly after the 360ms transition so the final
-// fully-offscreen frame paints before React removes it.
-const EXIT_FALLBACK_MS = 560
+// Transition-end is the primary completion path. Keep the fallback comfortably
+// beyond 720ms so a busy WebGL frame cannot remove the panel before motion starts.
+const EXIT_FALLBACK_MS = 8000
 
 export function AddonInfoPanel({ addon, open, onClose, onExited }: { addon: Addon; open: boolean; onClose: () => void; onExited: () => void }) {
   const [visible, setVisible] = useState(false)
@@ -12,8 +12,9 @@ export function AddonInfoPanel({ addon, open, onClose, onExited }: { addon: Addo
   useEffect(() => { onExitedRef.current = onExited }, [onExited])
   useEffect(() => {
     if (open) {
-      const frame = requestAnimationFrame(() => setVisible(true))
-      return () => cancelAnimationFrame(frame)
+      let revealFrame = 0
+      const mountFrame = requestAnimationFrame(() => { revealFrame = requestAnimationFrame(() => setVisible(true)) })
+      return () => { cancelAnimationFrame(mountFrame); cancelAnimationFrame(revealFrame) }
     }
 
     setVisible(false)
@@ -22,7 +23,11 @@ export function AddonInfoPanel({ addon, open, onClose, onExited }: { addon: Addo
     return () => window.clearTimeout(timer)
   }, [open])
 
-  return <aside className={`addon-info-panel ${visible ? 'is-open' : ''}`} data-state={visible ? 'open' : open ? 'entering' : 'exiting'} data-addon-id={addon.id} aria-label={`${addon.label} details`} aria-hidden={!visible} inert={!visible}>
+  const handleTransitionEnd = (event: TransitionEvent<HTMLElement>) => {
+    if (!open && event.target === event.currentTarget && event.propertyName === 'transform') onExitedRef.current()
+  }
+
+  return <aside className={`addon-info-panel ${visible ? 'is-open' : ''}`} data-state={visible ? 'open' : open ? 'entering' : 'exiting'} data-addon-id={addon.id} aria-label={`${addon.label} details`} aria-hidden={!visible} inert={!visible} onTransitionEnd={handleTransitionEnd}>
     <button className="addon-panel-close" type="button" onClick={onClose} aria-label={`Close ${addon.label} details`}>×</button>
     <img className="addon-panel-image" src={addon.thumbnailUrl} alt={`${addon.label} shown on the JLTV demonstrator`} />
     <div className="addon-panel-content">

@@ -38,6 +38,21 @@ const assertHeadingClearsCard = async page => {
   assert(heading && card && heading.y + heading.height <= card.y - 12, 'Hub heading is clipped behind the primary card')
 }
 
+// Chromium's headless SwiftShader timeline can leave compositor transitions
+// pending at currentTime 0. Seeking the real CSS transition gives deterministic
+// rendered-frame geometry without replacing the app's animation implementation.
+const seekPanelTransition = async (panel, milliseconds) => panel.evaluate((element, time) => {
+  const animation = element.getAnimations().find(item => item.effect?.getTiming().duration === 720)
+  if (!animation) throw new Error('Panel transform transition was not created')
+  animation.pause()
+  animation.currentTime = time
+}, milliseconds)
+
+const finishPanelTransition = async panel => panel.evaluate(element => {
+  const animation = element.getAnimations().find(item => item.effect?.getTiming().duration === 720)
+  if (animation) animation.finish()
+})
+
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block', reducedMotion: 'no-preference' })
   await context.addInitScript(() => sessionStorage.setItem('nexus:access-granted', 'true'))
@@ -99,12 +114,19 @@ try {
   await panelElement.waitFor({ state: 'attached' })
   await page.waitForFunction(() => document.querySelector('.addon-info-panel')?.classList.contains('is-open'))
   const openingBounds = await panelElement.boundingBox()
-  const openingTransitionRunning = await panelElement.evaluate(element => element.getAnimations().some(animation => animation.playState === 'running'))
-  assert(openingTransitionRunning, 'Add-on panel did not animate in from the right')
-  await panelElement.evaluate(async element => { await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined))) })
+  const openingMotion = await panelElement.evaluate(element => {
+    const animation = element.getAnimations().find(item => item.playState === 'running')
+    return { running: Boolean(animation), duration: Number(animation?.effect?.getTiming().duration ?? 0) }
+  })
+  assert(openingMotion.running, 'Add-on panel did not animate in from the right')
+  assert(openingMotion.duration >= 700 && openingMotion.duration <= 780, `Unexpected panel entry duration: ${openingMotion.duration}ms`)
+  await seekPanelTransition(panelElement, 360)
+  const entryMidBounds = await panelElement.boundingBox()
+  await page.screenshot({ path: '/tmp/nexus-addon-panel-desktop-entry-mid.png' })
+  await finishPanelTransition(panelElement)
   const openBounds = await panelElement.boundingBox()
   assert(openingBounds && openBounds && openingBounds.x > openBounds.x + 20, 'Add-on panel entry did not travel left from beyond the right edge')
-  await page.waitForFunction(() => { const progress = Number(document.querySelector('.model-stage')?.dataset.addonProgress); return progress > .1 && progress < .95 })
+  assert(entryMidBounds && openBounds && entryMidBounds.x > openBounds.x + 20 && entryMidBounds.x < 1280, `Panel entry was not visibly moving through the viewport: ${JSON.stringify({ openingBounds, entryMidBounds, openBounds })}`)
   await page.waitForFunction(() => document.querySelector('.model-stage')?.dataset.addonProgress === '1.000')
   const panel = page.getByRole('complementary', { name: 'Add-on 1 details' })
   await panel.waitFor()
@@ -121,12 +143,18 @@ try {
   assert(Number.parseFloat(closeFocus.outlineWidth) >= 3, 'Bare close cross focus treatment is too subtle')
   await page.screenshot({ path: '/tmp/nexus-addon-panel-desktop.png' })
 
+  const desktopOpenBounds = await panelElement.boundingBox()
   await addon.evaluate(button => button.click())
   await page.waitForFunction(() => document.querySelector('.addon-menu-item')?.getAttribute('aria-pressed') === 'false')
-  await page.waitForTimeout(60)
+  await page.waitForFunction(() => document.querySelector('.addon-info-panel')?.dataset.state === 'exiting')
+  await seekPanelTransition(panelElement, 180)
+  const desktopExitEarlyBounds = await panelElement.boundingBox()
+  assert(desktopOpenBounds && desktopExitEarlyBounds && desktopExitEarlyBounds.x > desktopOpenBounds.x + 2, 'Desktop panel exit did not visibly move right')
+  assert(desktopExitEarlyBounds.x < 1280, 'Desktop panel disappeared before its exit motion could be seen')
+  await page.screenshot({ path: '/tmp/nexus-addon-panel-desktop-exit.png' })
   await addon.evaluate(button => button.click())
   await page.waitForFunction(() => document.querySelector('.addon-info-panel')?.dataset.state === 'open')
-  await panelElement.evaluate(async element => { await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined))) })
+  await finishPanelTransition(panelElement)
   await page.waitForTimeout(450)
   assert.equal(await panelElement.getAttribute('data-state'), 'open', 'Rapid reopen was removed by a stale exit callback')
   assert.equal(await addon.getAttribute('aria-pressed'), 'true', 'Rapid reopen did not restore add-on selection')
@@ -146,10 +174,21 @@ try {
   const exitMotion = await panelElement.evaluate(element => {
     const animation = element.getAnimations().find(item => item.playState === 'running')
     const finalTransform = animation?.effect?.getKeyframes().at(-1)?.transform
-    return { running: Boolean(animation), finalTransform: String(finalTransform ?? ''), viewportWidth: window.innerWidth }
+    return { running: Boolean(animation), duration: Number(animation?.effect?.getTiming().duration ?? 0), finalTransform: String(finalTransform ?? ''), viewportWidth: window.innerWidth }
   })
   assert(exitMotion.running, 'Panel exit transition is not running')
+  assert(exitMotion.duration >= 700 && exitMotion.duration <= 780, `Unexpected panel exit duration: ${exitMotion.duration}ms`)
   assert(exitMotion.finalTransform.includes('100%') && (exitMotion.finalTransform.includes('100vw') || exitMotion.finalTransform.includes(`${exitMotion.viewportWidth}px`)), 'Panel exit destination does not clear the right viewport edge')
+  const mobileExitStartBounds = await panelElement.boundingBox()
+  await seekPanelTransition(panelElement, 180)
+  const mobileExitEarlyBounds = await panelElement.boundingBox()
+  assert(mobileExitStartBounds && mobileExitEarlyBounds && mobileExitEarlyBounds.x > mobileExitStartBounds.x + 2, 'Phone panel exit did not visibly move right')
+  assert(mobileExitEarlyBounds.x < 390, 'Phone panel disappeared before its exit motion could be seen')
+  await seekPanelTransition(panelElement, 420)
+  const mobileExitMidBounds = await panelElement.boundingBox()
+  assert(mobileExitMidBounds && mobileExitEarlyBounds && mobileExitMidBounds.x > mobileExitEarlyBounds.x + 20, 'Phone panel exit did not continue across the viewport')
+  assert(mobileExitMidBounds.x < 390, 'Phone panel was no longer visibly crossing the viewport at the exit midpoint')
+  await page.screenshot({ path: '/tmp/nexus-addon-panel-mobile-exit.png' })
   await panelElement.waitFor({ state: 'detached' })
   await page.waitForFunction(() => document.querySelector('.model-stage')?.dataset.addonVisible === 'false')
   assert.equal(await page.getByRole('complementary', { name: 'Add-on 1 details' }).count(), 0)
