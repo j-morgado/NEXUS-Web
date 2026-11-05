@@ -26,7 +26,7 @@ The packaged publication also serves as an explicit local/mock provider for deve
 - Persist only policy-eligible publications in an endpoint/event/publication-scoped IndexedDB record with a bounded lifetime.
 - Move the current demonstration catalog into a JSON-like fixture parsed by the same schema.
 - Add loading, fatal-empty, and non-blocking fallback states without restructuring the Explorer visual hierarchy.
-- Render real image/video/PDF URLs with media-specific load errors and a branded fallback surface. Status-check PDFs before embedding a blob URL in a sandboxed, referrer-isolated frame.
+- Render real image/video/PDF URLs with media-specific load errors and a branded fallback surface. Stream PDFs through a bounded status/MIME/size check, then parse and render them to a canvas with PDF.js rather than embedding remote document content.
 - Document the normalized payload and exact configuration needed for a future Drupal hookup.
 - Verify schemas, providers, cache recovery, media failure behavior, lint, types, unit tests, production build, and browser behavior.
 
@@ -39,7 +39,7 @@ The packaged publication also serves as an explicit local/mock provider for deve
 - A successful eligible remote publication is cached; a later network or validation failure loads it only while fresh and only for the same endpoint, event, publication, and mode.
 - HTTP 410 and a `retired` payload invalidate the matching cache and never render its products.
 - With neither remote nor cache available, the packaged publication loads and identifies itself as bundled fallback when a configured remote source failed.
-- Image and video assets use CMS-supplied URLs. PDFs are fetched with status and MIME checks, embedded from an isolated blob only after validation, and can be opened directly in a new tab. HTTP, non-PDF, CORS, and offline failures show accessible branded errors. Hero PDFs require thumbnails.
+- Image and video assets use CMS-supplied URLs. PDFs are streamed with status, MIME, and actual-byte limit checks, parsed by PDF.js, rendered to a canvas, and can be opened directly in a new tab. HTTP, non-PDF, oversized, CORS, and offline failures show accessible branded errors. Hero PDFs require thumbnails.
 - The access gate, robots metadata/header, existing Explorer navigation, and current visual structure remain intact.
 - No CMS vendor, paid service, secret, endpoint, or deployment is provisioned.
 

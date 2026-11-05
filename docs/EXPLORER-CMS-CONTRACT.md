@@ -83,7 +83,7 @@ If the endpoint is absent, the explicit packaged mock provider is used and visib
 
 The authoritative executable schema is `src/content/catalog.ts`. Arrays must be non-empty; IDs must be unique; product `marketId` values must match their containing market; hero IDs must resolve within the product; PDF heroes must have thumbnails; and asset URLs must be root-relative or HTTPS. `javascript:`, `data:`, protocol-relative, credential-bearing, and plain HTTP asset URLs are rejected. Schema validity alone is not publication approval: the loader separately enforces configured identity, lifecycle, mode, and approval policy before writing the cache.
 
-PDF previews are fetched first with an `Accept: application/pdf` request. HTTP status, MIME type, and a 50 MiB kiosk preview limit are checked before a blob URL is embedded in an iframe with an empty sandbox and no-referrer policy. Cross-origin PDF hosts must permit CORS for embedded preview. If they do not, Explorer shows an accessible preview error and retains a user-initiated direct-open link; raw cross-origin responses are never embedded as trusted PDF content.
+PDF previews are fetched first with an `Accept: application/pdf` request. HTTP status and MIME type are checked, then the response is read as a bounded stream and aborted as soon as actual bytes exceed the 50 MiB kiosk limit (even if `Content-Length` is absent or inaccurate). Valid bytes are parsed by PDF.js and rendered to a canvas; remote or blob document content is never embedded in a browser frame. Cross-origin PDF hosts must permit CORS for the status-checked preview. If they do not, Explorer shows an accessible preview error and retains a user-initiated direct-open link.
 
 ## Drupal integration requirements
 

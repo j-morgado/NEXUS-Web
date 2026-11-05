@@ -1839,6 +1839,8 @@ footer {
 .media-viewer .media-placeholder { position: relative; inset: auto; width: 100%; height: 100%; transform: none; padding: 32px; text-align: center; }
 .media-viewer .media-placeholder strong { font-size: clamp(24px, 3vw, 40px); }
 .media-asset-image,.media-asset-pdf { display: block; width: 100%; height: 100%; border: 0; object-fit: contain; background: #fff; }
+.media-pdf-canvas-stage { position: relative; width: 100%; height: 100%; display: grid; place-items: center; overflow: hidden; background: #fff; }
+.media-pdf-canvas-stage .media-document-state { position: absolute; inset: 0; }
 .media-document-state { width: 100%; height: 100%; display: grid; place-items: center; align-content: center; gap: 12px; padding: 32px; background: radial-gradient(circle at 50% 40%,#4c3291,#18111f 70%); color: #fff; text-align: center; }
 .media-document-state > span { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
 .media-document-state strong { font-size: clamp(24px,3vw,40px); font-weight: 300; }

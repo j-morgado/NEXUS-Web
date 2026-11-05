@@ -1,49 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Selecting a different media item intentionally resets all viewer controls as one transaction. */
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { CatalogMedia } from '../content/catalog'
+import { PdfCanvas } from './PdfCanvas'
 
 type Props = { media: CatalogMedia; items: CatalogMedia[]; onSelect: (media: CatalogMedia) => void; onClose: () => void }
 const timeLabel = (time: number) => `${Math.floor(time / 60).toString().padStart(2, '0')}:${Math.floor(time % 60).toString().padStart(2, '0')}`
-const MAX_PDF_BYTES = 50 * 1024 * 1024
-
-function PdfPreview({ media, page }: { media: CatalogMedia; page: number }) {
-  const [state, setState] = useState<{ status: 'loading' } | { status: 'ready'; url: string } | { status: 'error'; message: string }>({ status: 'loading' })
-
-  useEffect(() => {
-    const controller = new AbortController()
-    let objectUrl = ''
-    const load = async () => {
-      try {
-        const response = await fetch(media.url, { headers: { Accept: 'application/pdf' }, credentials: 'omit', signal: controller.signal })
-        if (!response.ok) throw new Error(`Document request failed with HTTP ${response.status}.`)
-        const contentType = response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase()
-        if (contentType !== 'application/pdf') throw new Error('Document preview blocked because the server did not return a PDF.')
-        const declaredLength = Number(response.headers.get('Content-Length'))
-        if (Number.isFinite(declaredLength) && declaredLength > MAX_PDF_BYTES) throw new Error('Document preview is too large for the kiosk viewer.')
-        const source = await response.blob()
-        if (source.size > MAX_PDF_BYTES) throw new Error('Document preview is too large for the kiosk viewer.')
-        objectUrl = URL.createObjectURL(new Blob([source], { type: 'application/pdf' }))
-        if (!controller.signal.aborted) setState({ status: 'ready', url: objectUrl })
-      } catch (failure) {
-        if (controller.signal.aborted) return
-        const message = failure instanceof TypeError
-          ? 'Document preview unavailable: the server did not permit a status-checked download, or the network is offline. Use Open document to try the source directly.'
-          : failure instanceof Error ? failure.message : 'Document preview could not be loaded.'
-        setState({ status: 'error', message })
-      }
-    }
-    void load()
-    return () => {
-      controller.abort()
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [media.id, media.url])
-
-  if (state.status === 'loading') return <div className="media-document-state" role="status"><span>Loading document preview…</span></div>
-  if (state.status === 'error') return <div className="media-document-state is-error" role="alert"><span>DOCUMENT UNAVAILABLE</span><strong>{media.name}</strong><p>{state.message}</p></div>
-  return <iframe key={`${media.id}-${page}`} className="media-asset-pdf" src={`${state.url}#page=${page}&view=FitH`} title={`${media.name}, page ${page}`} sandbox="" referrerPolicy="no-referrer" />
-}
-
 export function MediaViewer({ media, items, onSelect, onClose }: Props) {
   const titleId = useId()
   const frameRef = useRef<HTMLDivElement>(null)
@@ -159,7 +120,7 @@ export function MediaViewer({ media, items, onSelect, onClose }: Props) {
             onTimeUpdate={event => setCurrentTime(event.currentTarget.currentTime)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onError={() => setError('Video could not be loaded.')} />
           <span className="media-video-label">{playing ? 'Playing video' : 'Video'}</span>
         </div> : <div className="media-zoom-stage" style={{ '--media-scale': zoom / 100, '--media-extent': Math.max(1, zoom / 100) } as CSSProperties}>
-          <div className="media-surface">{media.kind === 'pdf' ? <PdfPreview media={media} page={page} /> : error ? <div className={`media-placeholder media-${media.kind}`} style={{ '--media-accent': media.accent } as CSSProperties}><span>MEDIA UNAVAILABLE</span><strong>{media.name}</strong></div> : <img className="media-asset-image" src={media.url} alt={media.description} onError={() => setError('Image could not be loaded.')} />}</div>
+          <div className="media-surface">{media.kind === 'pdf' ? <PdfCanvas key={media.id} media={media} page={page} /> : error ? <div className={`media-placeholder media-${media.kind}`} style={{ '--media-accent': media.accent } as CSSProperties}><span>MEDIA UNAVAILABLE</span><strong>{media.name}</strong></div> : <img className="media-asset-image" src={media.url} alt={media.description} onError={() => setError('Image could not be loaded.')} />}</div>
         </div>}
       </div>
       <div className="viewer-controls" role="group" aria-label={`${media.kind === 'pdf' ? 'PDF' : media.kind === 'video' ? 'Video' : 'Image'} viewing controls`}>

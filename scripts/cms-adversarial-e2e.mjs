@@ -87,6 +87,25 @@ try {
   assert.equal(await page.locator('.catalog-source-notice').count(), 0, 'Approved production content was incorrectly labeled as demonstration')
   assert.equal(await cacheCount(), 1, 'Approved scoped publication was not cached')
 
+  await page.getByRole('button', { name: 'Documents', exact: true }).click()
+  await page.locator('.media-grid > button').first().click()
+  const pdfCanvas = page.locator('canvas.media-asset-pdf')
+  await pdfCanvas.waitFor({ state: 'visible' })
+  const renderedPdf = await pdfCanvas.evaluate((canvas) => {
+    const context = canvas.getContext('2d')
+    if (!context) return { width: canvas.width, height: canvas.height, nonWhitePixels: 0 }
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+    let nonWhitePixels = 0
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index + 3] > 0 && (pixels[index] < 250 || pixels[index + 1] < 250 || pixels[index + 2] < 250)) nonWhitePixels += 1
+    }
+    return { width: canvas.width, height: canvas.height, nonWhitePixels }
+  })
+  assert.ok(renderedPdf.width > 0 && renderedPdf.height > 0, 'Valid PDF canvas has no render dimensions')
+  assert.ok(renderedPdf.nonWhitePixels > 0, 'Valid PDF canvas contains no rendered document content')
+  await page.getByRole('button', { name: 'Close', exact: true }).click()
+  await page.locator('.media-overlay').waitFor({ state: 'detached' })
+
   await page.route('**/assets/demo-overview.pdf', (route) => route.fulfill({ status: 404, contentType: 'text/html', body: 'missing' }))
   await page.getByRole('button', { name: 'Documents', exact: true }).click()
   await page.locator('.media-grid > button').first().click()
@@ -102,7 +121,7 @@ try {
   assert.equal(await cacheCount(), 0, 'HTTP 410 left retired products in the scoped cache')
   assert.deepEqual(errors, [])
 
-  console.log(JSON.stringify({ unapprovedRejected: true, unapprovedCacheEntries: 0, approvedCached: true, pdf404AccessibleError: true, untrustedPdfEmbedded: false, http410Invalidated: true, browserErrors: errors }))
+  console.log(JSON.stringify({ unapprovedRejected: true, unapprovedCacheEntries: 0, approvedCached: true, validPdfCanvasRendered: true, pdf404AccessibleError: true, untrustedPdfEmbedded: false, http410Invalidated: true, browserErrors: errors }))
   await context.close()
 } finally {
   await browser.close()
