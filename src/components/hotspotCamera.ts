@@ -24,9 +24,17 @@ export function directionalLimitResistance(value: number, min: number, max: numb
   return MIN_LIMIT_SPEED + (1 - MIN_LIMIT_SPEED) * smooth
 }
 
+export function unwrapAngleNear(value: number, reference: number) {
+  return reference + MathUtils.euclideanModulo(value - reference + Math.PI, Math.PI * 2) - Math.PI
+}
+
+export function angularLimitResistance(value: number, min: number, max: number, delta: number, zone: number) {
+  return directionalLimitResistance(unwrapAngleNear(value, (min + max) / 2), min, max, delta, zone)
+}
+
 export function closeupGestureResistance({ theta, phi, distance, thetaDelta = 0, phiDelta = 0, distanceDelta = 0, limits }: { theta: number; phi: number; distance: number; thetaDelta?: number; phiDelta?: number; distanceDelta?: number; limits: ReturnType<typeof closeupLimits> }) {
   return Math.min(
-    directionalLimitResistance(theta, limits.minAzimuthAngle, limits.maxAzimuthAngle, thetaDelta, closeupResistanceZones.azimuth),
+    angularLimitResistance(theta, limits.minAzimuthAngle, limits.maxAzimuthAngle, thetaDelta, closeupResistanceZones.azimuth),
     directionalLimitResistance(phi, limits.minPolarAngle, limits.maxPolarAngle, phiDelta, closeupResistanceZones.polar),
     directionalLimitResistance(distance, limits.minDistance, limits.maxDistance, distanceDelta, closeupResistanceZones.distance),
   )

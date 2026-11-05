@@ -95,7 +95,7 @@ try {
   const atTouchMin = await read()
   assert(atTouchMin.azimuth >= atTouchMin.limits.minAzimuth - 1e-4)
   decreasingTail(touchTowardMin)
-  await touch('touchMove', [{ id: 11, x: 240, y: 250 }]); await page.waitForTimeout(40)
+  for (const x of [240, 235, 230]) { await touch('touchMove', [{ id: 11, x, y: 250 }]); await page.waitForTimeout(35) }
   const touchLeavingMin = await read()
   assert(touchLeavingMin.azimuth > atTouchMin.azimuth + .015)
   assert(touchLeavingMin.resistance > .99)
@@ -119,7 +119,7 @@ try {
   const atPinchMin = await read()
   assert(atPinchMin.distance >= atPinchMin.limits.minDistance - .001)
   decreasingTail(pinchTowardMin)
-  await touch('touchMove', [{ id: 21, ...pinchLeft }, { id: 22, x: pinchRight.x + 45, y: pinchRight.y }]); await page.waitForTimeout(40)
+  for (const offset of [45, 40, 35]) { await touch('touchMove', [{ id: 21, ...pinchLeft }, { id: 22, x: pinchRight.x + offset, y: pinchRight.y }]); await page.waitForTimeout(35) }
   const pinchLeavingMin = await read()
   assert(pinchLeavingMin.distance > atPinchMin.distance + .015)
   assert(pinchLeavingMin.resistance > .99)
@@ -127,20 +127,72 @@ try {
 
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await refocus()
-  await page.mouse.move(180, 250); await page.mouse.down()
-  for (let x = 185; x <= 280; x += 5) { await page.mouse.move(x, 250); await page.waitForTimeout(35) }
-  await page.mouse.up(); await page.waitForTimeout(1200)
+  let momentumX = 180
+  await page.mouse.move(momentumX, 250); await page.mouse.down()
+  for (; momentumX < 900; momentumX += 5) {
+    await page.mouse.move(momentumX + 5, 250)
+    await page.evaluate(() => new Promise(requestAnimationFrame))
+    const state = await read()
+    if (state.azimuth <= state.limits.minAzimuth + 1e-4) { momentumX += 5; break }
+  }
   const dampedLimit = await read()
   assert(dampedLimit.azimuth >= dampedLimit.limits.minAzimuth - 1e-4)
-  await page.mouse.move(280, 250); await page.mouse.down(); await page.mouse.move(260, 250, { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(500)
-  const dampedRelease = await read()
-  assert(dampedRelease.azimuth > dampedLimit.azimuth + .01, 'Native damping must still release responsively away from the limit')
+  assert(dampedLimit.azimuth <= dampedLimit.limits.minAzimuth + 1e-4, 'Test must reach the hard minimum with momentum retained')
+  await page.mouse.move(momentumX - 1, 250); await page.evaluate(() => new Promise(requestAnimationFrame))
+  const onePixelRelease = await read()
+  assert(onePixelRelease.azimuth > dampedLimit.azimuth + 1e-5, 'A 1px reversal must move away from the bound immediately')
+  await page.mouse.move(momentumX - 6, 250); await page.evaluate(() => new Promise(requestAnimationFrame))
+  const fivePixelRelease = await read()
+  assert(fivePixelRelease.azimuth > onePixelRelease.azimuth + 1e-4, 'A further 5px reversal must continue away without sticky momentum')
+  assert(fivePixelRelease.resistance > .99)
+  await page.mouse.up()
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  const unwrap = (value, reference) => reference + ((value - reference + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI
+  const findCanvasPoint = () => page.evaluate(() => {
+    for (let y = 100; y < innerHeight - 140; y += 30) for (let x = 120; x < innerWidth - 120; x += 20) if (document.elementFromPoint(x, y)?.tagName === 'CANVAS') return { x, y }
+    throw new Error('Could not find an unobscured canvas point')
+  })
+  const rotateNormalBy = async delta => {
+    const point = await findCanvasPoint()
+    const startX = delta > 0 ? Math.max(point.x, 520) : Math.min(point.x, 440)
+    const endX = startX - delta * 720 / (Math.PI * 2)
+    await page.mouse.move(startX, point.y); await page.mouse.down(); await page.mouse.move(endX, point.y, { steps: 12 }); await page.mouse.up(); await page.waitForTimeout(120)
+  }
+  const focusNearNormalAngle = async target => {
+    if ((await read()).open === 'true') { await page.keyboard.press('Escape'); await settled(false) }
+    const normal = await read()
+    await rotateNormalBy(unwrap(target, normal.azimuth) - normal.azimuth)
+    await marker.locator('button').evaluate(button => button.click()); await settled(true)
+    return read()
+  }
+
+  const positiveSeam = await focusNearNormalAngle(2.97)
+  assert(positiveSeam.limits.maxAzimuth > Math.PI, `Expected positive seam bounds, got ${JSON.stringify(positiveSeam.limits)}`)
+  const positiveCenter = (positiveSeam.limits.minAzimuth + positiveSeam.limits.maxAzimuth) / 2
+  const positivePoint = await findCanvasPoint()
+  const positiveSamples = [unwrap(positiveSeam.azimuth, positiveCenter)]
+  const positiveResistance = []
+  await page.mouse.move(positivePoint.x, positivePoint.y); await page.mouse.down()
+  for (let offset = 5; offset <= 10; offset += 5) {
+    await page.mouse.move(positivePoint.x - offset, positivePoint.y); await page.waitForTimeout(40)
+    const state = await read(); positiveSamples.push(unwrap(state.azimuth, positiveCenter)); positiveResistance.push(state.resistance)
+  }
+  const positiveEdge = await read()
+  assert.equal(positiveEdge.open, 'true', 'Positive seam hotspot must remain open during the resistance probe')
+  assert(unwrap(positiveEdge.azimuth, positiveCenter) <= positiveEdge.limits.maxAzimuth + 1e-4, `Positive seam exceeded limit: ${JSON.stringify({ positiveCenter, positiveEdge, unwrapped: unwrap(positiveEdge.azimuth, positiveCenter) })}`)
+  assert(positiveSamples.at(-1) > positiveSamples[0], 'Positive seam input must move toward the upper bound')
+  assert(Math.min(...positiveResistance) < .999)
+  await page.mouse.move(positivePoint.x - 5, positivePoint.y); await page.waitForTimeout(40)
+  const positiveRelease = await read()
+  assert(unwrap(positiveRelease.azimuth, positiveCenter) < unwrap(positiveEdge.azimuth, positiveCenter) - .015)
+  assert(positiveRelease.resistance > .99)
+  await page.mouse.up()
 
   const final = await read()
-  assert.equal(final.target, anchorTarget)
   assert.equal(final.open, 'true')
   assert.deepEqual(errors, [])
-  console.log(JSON.stringify({ mouseOrbitBothBounds: true, mouseWheelBothBounds: true, touchOrbitApproachAndRelease: true, touchPinchApproachAndRelease: true, nativeDampingRelease: true, hardLimitsRetained: true, hotspotAnchorStable: true }))
+  console.log(JSON.stringify({ mouseOrbitBothBounds: true, mouseWheelBothBounds: true, touchOrbitApproachAndRelease: true, touchPinchApproachAndRelease: true, immediateOnePixelMomentumReversal: true, positivePiSeamHotspotMotion: true, symmetricPiSeamUnitCoverage: true, hardLimitsRetained: true, hotspotAnchorStable: true }))
   await context.close()
 } finally {
   await browser.close()

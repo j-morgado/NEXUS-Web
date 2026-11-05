@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PerspectiveCamera, Vector3 } from 'three'
-import { closeupGestureResistance, closeupLimits, closeupResistanceZones, closeupView, directionalLimitResistance, normalLimits, sidebarWidth } from './hotspotCamera'
+import { angularLimitResistance, closeupGestureResistance, closeupLimits, closeupResistanceZones, closeupView, directionalLimitResistance, normalLimits, sidebarWidth, unwrapAngleNear } from './hotspotCamera'
 import { hotspotSchema } from '../domain/schemas'
 import { seedVehicle } from '../content/seed'
 
@@ -42,6 +42,24 @@ describe('hotspot close-up framing', () => {
     expect(closeupGestureResistance({ ...nearMinimum, phiDelta: .01 })).toBe(1)
     expect(closeupGestureResistance({ ...nearMinimum, distanceDelta: -.02 })).toBeLessThan(.2)
     expect(closeupGestureResistance({ ...nearMinimum, distanceDelta: .02 })).toBe(1)
+  })
+  it('unwraps live azimuth around close-up bounds across the positive pi seam', () => {
+    const limits = closeupLimits(3.1, 1)
+    expect(limits.maxAzimuthAngle).toBeGreaterThan(Math.PI)
+    expect(unwrapAngleNear(-3, 3.1)).toBeCloseTo(2 * Math.PI - 3)
+    expect(angularLimitResistance(-3, limits.minAzimuthAngle, limits.maxAzimuthAngle, .01, closeupResistanceZones.azimuth)).toBeLessThan(.25)
+    expect(angularLimitResistance(-3, limits.minAzimuthAngle, limits.maxAzimuthAngle, -.01, closeupResistanceZones.azimuth)).toBe(1)
+    expect(angularLimitResistance(2.9, limits.minAzimuthAngle, limits.maxAzimuthAngle, -.01, closeupResistanceZones.azimuth)).toBeLessThan(.2)
+    expect(angularLimitResistance(2.9, limits.minAzimuthAngle, limits.maxAzimuthAngle, .01, closeupResistanceZones.azimuth)).toBe(1)
+  })
+  it('unwraps live azimuth around close-up bounds across the negative pi seam', () => {
+    const limits = closeupLimits(-3.1, 1)
+    expect(limits.minAzimuthAngle).toBeLessThan(-Math.PI)
+    expect(unwrapAngleNear(3, -3.1)).toBeCloseTo(3 - 2 * Math.PI)
+    expect(angularLimitResistance(3, limits.minAzimuthAngle, limits.maxAzimuthAngle, -.01, closeupResistanceZones.azimuth)).toBeLessThan(.25)
+    expect(angularLimitResistance(3, limits.minAzimuthAngle, limits.maxAzimuthAngle, .01, closeupResistanceZones.azimuth)).toBe(1)
+    expect(angularLimitResistance(-2.9, limits.minAzimuthAngle, limits.maxAzimuthAngle, .01, closeupResistanceZones.azimuth)).toBeLessThan(.2)
+    expect(angularLimitResistance(-2.9, limits.minAzimuthAngle, limits.maxAzimuthAngle, -.01, closeupResistanceZones.azimuth)).toBe(1)
   })
   it('frames the selected area to the left of the sidebar at desktop and phone sizes', () => {
     for (const width of [960, 390]) {

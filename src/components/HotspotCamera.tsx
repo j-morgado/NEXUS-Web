@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/immutability -- Orbit controls and the camera are imperative Three.js objects. */
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef, type ElementRef, type RefObject } from 'react'
@@ -20,7 +19,7 @@ export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOf
   const effectiveMode = hotspot?.mode ?? mode
   const softenLimits = useRef(false)
   const lastResistance = useRef(1)
-  softenLimits.current = !!hotspot && effectiveMode === 'zoom-in-place'
+  useEffect(() => { softenLimits.current = !!hotspot && effectiveMode === 'zoom-in-place' }, [hotspot, effectiveMode])
 
   useEffect(() => {
     const orbit = controls.current
@@ -28,13 +27,26 @@ export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOf
     if (!orbit || !element) return
     const pointers = new Map<number, { x: number; y: number; button: number; type: string }>()
     let restoreTimer = 0
+    let thetaDirection = 0
+    let phiDirection = 0
     const restoreSpeeds = () => { orbit.rotateSpeed = 1; orbit.zoomSpeed = 1 }
     const resistance = (thetaDelta = 0, phiDelta = 0, distanceDelta = 0) => {
       if (!softenLimits.current || !orbit.enabled) return 1
       return closeupGestureResistance({ theta: orbit.getAzimuthalAngle(), phi: orbit.getPolarAngle(), distance: orbit.getDistance(), thetaDelta, phiDelta, distanceDelta, limits: { minDistance: orbit.minDistance, maxDistance: orbit.maxDistance, minAzimuthAngle: orbit.minAzimuthAngle, maxAzimuthAngle: orbit.maxAzimuthAngle, minPolarAngle: orbit.minPolarAngle, maxPolarAngle: orbit.maxPolarAngle } })
     }
     const remember = (value: number) => { lastResistance.current = value; window.clearTimeout(restoreTimer); restoreTimer = window.setTimeout(restoreSpeeds, 0) }
-    const onPointerDown = (event: PointerEvent) => pointers.set(event.pointerId, { x: event.pageX, y: event.pageY, button: event.button, type: event.pointerType })
+    const clearReversedMomentum = (thetaDelta: number, phiDelta: number) => {
+      const nextThetaDirection = Math.sign(thetaDelta)
+      const nextPhiDirection = Math.sign(phiDelta)
+      if (nextThetaDirection && thetaDirection && nextThetaDirection !== thetaDirection) orbit.setAzimuthalAngle(orbit.getAzimuthalAngle())
+      if (nextPhiDirection && phiDirection && nextPhiDirection !== phiDirection) orbit.setPolarAngle(orbit.getPolarAngle())
+      if (nextThetaDirection) thetaDirection = nextThetaDirection
+      if (nextPhiDirection) phiDirection = nextPhiDirection
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (pointers.size === 0) { thetaDirection = 0; phiDirection = 0 }
+      pointers.set(event.pointerId, { x: event.pageX, y: event.pageY, button: event.button, type: event.pointerType })
+    }
     const onPointerMove = (event: PointerEvent) => {
       const previous = pointers.get(event.pointerId)
       if (!previous) return
@@ -52,7 +64,10 @@ export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOf
           }
         } else if (previous.type === 'touch' || previous.button === 0) {
           const height = Math.max(1, element.clientHeight)
-          const factor = resistance(-2 * Math.PI * (next.x - previous.x) / height, -2 * Math.PI * (next.y - previous.y) / height)
+          const thetaDelta = -2 * Math.PI * (next.x - previous.x) / height
+          const phiDelta = -2 * Math.PI * (next.y - previous.y) / height
+          clearReversedMomentum(thetaDelta, phiDelta)
+          const factor = resistance(thetaDelta, phiDelta)
           orbit.rotateSpeed = factor; remember(factor)
         } else if (previous.button === 1) {
           const distance = orbit.getDistance()
@@ -63,7 +78,7 @@ export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOf
       }
       pointers.set(event.pointerId, next)
     }
-    const onPointerUp = (event: PointerEvent) => { pointers.delete(event.pointerId); restoreSpeeds() }
+    const onPointerUp = (event: PointerEvent) => { pointers.delete(event.pointerId); if (pointers.size === 0) { thetaDirection = 0; phiDirection = 0 }; restoreSpeeds() }
     const onWheel = (event: WheelEvent) => {
       const distance = orbit.getDistance()
       const factor = resistance(0, 0, Math.sign(event.deltaY) * distance * .05)
