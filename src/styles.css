@@ -1978,8 +1978,11 @@ footer {
 .addon-menu-thumb { width: 54px; height: 46px; overflow: hidden; border-radius: 999px; background: #110530; }
 .addon-menu-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .addon-menu-item.selected .addon-menu-thumb { box-shadow: 0 0 0 2px #4c3291; }
-.addon-info-panel { position: absolute; z-index: 13; top: 50%; right: 24px; translate: 0 -50%; width: min(340px, calc(100vw - 48px)); max-height: calc(100svh - 150px); overflow-y: auto; background: #fff; color: #251846; box-shadow: 0 24px 70px rgba(17,5,48,.34); }
-.addon-panel-close { position: absolute; z-index: 1; top: 12px; right: 12px; width: 42px; height: 42px; border: 1px solid rgba(255,255,255,.72); border-radius: 50%; background: rgba(17,5,48,.78); color: #fff; font-size: 25px; line-height: 1; cursor: pointer; }
+.addon-info-panel { --addon-panel-y: -50%; position: absolute; z-index: 13; top: 50%; right: 24px; width: min(340px, calc(100vw - 48px)); max-height: calc(100svh - 150px); overflow-y: auto; background: #fff; color: #251846; box-shadow: 0 24px 70px rgba(17,5,48,.34); transform: translate3d(calc(100vw + 100%),var(--addon-panel-y),0); transition: transform 360ms cubic-bezier(.22,1,.36,1); will-change: transform; pointer-events: none; }
+.addon-info-panel.is-open { transform: translate3d(0,var(--addon-panel-y),0); pointer-events: auto; }
+.addon-panel-close { position: absolute; z-index: 1; top: 8px; right: 8px; width: 48px; height: 48px; border: 0; border-radius: 0; padding: 0; background: transparent; color: #fff; font-size: 34px; font-weight: 300; line-height: 1; text-shadow: 0 1px 8px rgba(17,5,48,.9); cursor: pointer; }
+.addon-panel-close:is(:hover,:active) { background: transparent; color: #fff; }
+.addon-panel-close:focus-visible { outline: 3px solid #fff; outline-offset: -5px; }
 .addon-panel-image { display: block; width: 100%; height: 170px; object-fit: cover; background: #4c3291; }
 .addon-panel-content { padding: 24px; }
 .addon-panel-kicker { margin: 0 0 8px; color: #4c3291; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
@@ -1993,13 +1996,14 @@ footer {
 @media (max-width: 620px) {
   .configuration-controls .bottom-config .addon-menu-item { min-width: 0; padding-right: 14px; grid-template-columns: 46px auto; }
   .addon-menu-thumb { width: 46px; height: 42px; }
-  .addon-info-panel { top: auto; right: 16px; bottom: 210px; translate: none; width: calc(100vw - 32px); max-height: calc(100svh - 350px); }
+  .addon-info-panel { --addon-panel-y: 0; top: auto; right: 16px; bottom: 210px; width: calc(100vw - 32px); max-height: calc(100svh - 350px); }
   .addon-panel-image { height: 116px; }
   .addon-panel-content { padding: 18px; }
   .addon-panel-content h2 { font-size: 24px; }
   .addon-panel-description { margin-bottom: 14px; font-size: 12px; }
   .addon-specs div { padding: 9px 0; }
 }
+@media (prefers-reduced-motion: reduce) { .addon-info-panel { transition: none; } }
 
 .dev-update-actions button { min-height: 44px; padding: 10px 16px; border: 1px solid #a7a3fe; border-radius: 6px; background: #734cdd; color: #fff; font-size: 14px; font-weight: 600; }
 .dev-update-actions button:enabled:is(:hover, :active) { background: #fccfff; border-color: #fccfff; color: #251846; filter: none; }

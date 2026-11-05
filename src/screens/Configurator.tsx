@@ -11,6 +11,7 @@ export function Configurator({ onExit, qualityTier = 'standard', visual = visual
   const [sceneReady, setSceneReady] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [activeAddon, setActiveAddon] = useState<string | null>(null)
+  const [panelAddon, setPanelAddon] = useState<string | null>(null)
   const [activeHotspot, setActiveHotspot] = useState<string | null>(null)
   useEffect(() => { setActiveHotspot(null) }, [hotspotMode])
   useEffect(() => {
@@ -19,6 +20,12 @@ export function Configurator({ onExit, qualityTier = 'standard', visual = visual
   useEffect(() => { if (sceneReady) signalModule('module:ready', 'jltv') }, [sceneReady])
   useEffect(() => { onReadyChange?.(sceneReady) }, [sceneReady, onReadyChange])
   useEffect(() => { onProgress?.(loadingProgress) }, [loadingProgress, onProgress])
+  const toggleAddon = (addonId: string) => {
+    const next = activeAddon === addonId ? null : addonId
+    if (next) setPanelAddon(next)
+    setActiveAddon(next)
+  }
+  const panelDetails = seedVehicle.addons.find(addon => addon.id === panelAddon)
   return <main id="main-content" className="configurator" aria-busy={!sceneReady}>
     {!managedLoading && !sceneReady && <LoadingScreen progress={loadingProgress} />}
     <div className={`experience-content ${sceneReady ? 'is-ready' : ''}`} data-ready={sceneReady} aria-hidden={!sceneReady} inert={!sceneReady}>
@@ -27,9 +34,9 @@ export function Configurator({ onExit, qualityTier = 'standard', visual = visual
     <section className="vehicle-heading"><p className="eyebrow">TACTICAL VEHICLE · INTERACTIVE MODEL</p><h1>JLTV</h1></section>
     <aside className="configuration-controls" aria-label="Vehicle configuration">
       <h2>Configuration</h2>
-      <div className="bottom-config" role="group" aria-label="Add-ons">{seedVehicle.addons.map(addon => <button key={addon.id} className={`addon-menu-item ${activeAddon === addon.id ? 'selected' : ''}`} aria-pressed={activeAddon === addon.id} onClick={() => setActiveAddon(current => current === addon.id ? null : addon.id)}><span className="addon-menu-thumb" aria-hidden="true"><img src={addon.thumbnailUrl} alt="" /></span><span>{addon.label}</span></button>)}</div>
+      <div className="bottom-config" role="group" aria-label="Add-ons">{seedVehicle.addons.map(addon => <button key={addon.id} className={`addon-menu-item ${activeAddon === addon.id ? 'selected' : ''}`} aria-pressed={activeAddon === addon.id} onClick={() => toggleAddon(addon.id)}><span className="addon-menu-thumb" aria-hidden="true"><img src={addon.thumbnailUrl} alt="" /></span><span>{addon.label}</span></button>)}</div>
     </aside>
-    {seedVehicle.addons.find(addon => addon.id === activeAddon) && <AddonInfoPanel addon={seedVehicle.addons.find(addon => addon.id === activeAddon)!} onClose={() => setActiveAddon(null)} />}
+    {panelDetails && <AddonInfoPanel addon={panelDetails} open={activeAddon === panelDetails.id} onClose={() => setActiveAddon(null)} onExited={() => setPanelAddon(current => activeAddon === null && current === panelDetails.id ? null : current)} />}
     </div>
   </main>
 }
