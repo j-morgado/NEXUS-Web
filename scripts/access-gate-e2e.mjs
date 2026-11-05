@@ -23,10 +23,20 @@ const inputStyle = await desktopPage.getByLabel('Password').evaluate(element => 
   const style = getComputedStyle(element)
   return { borderColor: style.borderColor, borderWidth: style.borderWidth }
 })
+const credentialSignals = await desktopPage.getByLabel('Password').evaluate(element => ({
+  autocomplete: element.getAttribute('autocomplete'),
+  autofocus: element.hasAttribute('autofocus'),
+  ignoredBy1Password: element.getAttribute('data-1p-ignore'),
+  name: element.getAttribute('name'),
+  formAutocomplete: element.form?.getAttribute('autocomplete'),
+  formIgnoredBy1Password: element.form?.getAttribute('data-1p-ignore'),
+  initiallyFocused: document.activeElement === element,
+}))
 assert(desktopCard && desktopLogo && desktopLogo.x + desktopLogo.width > desktopCard.x + desktopCard.width - 2, 'Leidos logo is not right aligned')
 assert(desktopInput && desktopButton && Math.abs(desktopInput.y - desktopButton.y) < 2, 'Password and Enter controls are not aligned in one row')
 assert.equal(inputStyle.borderWidth, '1px', 'Password field must use a single-line outline')
 assert.equal(inputStyle.borderColor, 'rgb(76, 50, 145)', 'Password field must use approved purple')
+assert.deepEqual(credentialSignals, { autocomplete: 'off', autofocus: false, ignoredBy1Password: 'true', name: null, formAutocomplete: 'off', formIgnoredBy1Password: 'true', initiallyFocused: false })
 assert.equal(await desktopPage.getByText('Restricted Preview', { exact: true }).count(), 1)
 assert.equal(await desktopPage.getByText('Enter NEXUS', { exact: true }).count(), 0)
 assert.equal(await desktopPage.getByText('This working preview is intended for invited collaborators.', { exact: true }).count(), 0)
@@ -61,18 +71,27 @@ try {
   await page.getByRole('button', { name: 'Enter site' }).click()
   await page.getByRole('alert').filter({ hasText: "That password isn't correct" }).waitFor()
   assert.equal(await page.locator('.attract').count(), 0, 'Wrong password exposed the experience')
+  assert.notEqual(await page.evaluate(() => document.activeElement?.id), 'site-password', 'Wrong-password handling force-focused the credential field')
 
   await page.getByLabel('Password').fill('nexus')
   await page.getByRole('button', { name: 'Enter site' }).click()
   await page.getByRole('button', { name: /touch screen to begin/i }).waitFor()
   assert.equal(await page.getByRole('heading', { name: 'NEXUS', exact: true }).count(), 0, 'Gate remained after successful entry')
+  assert.equal(await page.locator('input[type="password"]').count(), 0, 'Password field remained mounted after successful entry')
+  assert.equal(await page.locator('.access-form').count(), 0, 'Access form remained mounted after successful entry')
+
+  await page.getByRole('button', { name: /touch screen to begin/i }).click()
+  await page.getByRole('heading', { name: /choose an experience/i }).waitFor()
+  await page.getByRole('button', { name: /next experience/i }).click()
+  assert.equal(await page.locator('input[type="password"]').count(), 0, 'App interaction remounted the password field')
+  assert.equal(await page.locator('.access-form').count(), 0, 'App interaction remounted the access form')
 
   await page.reload({ waitUntil: 'networkidle' })
   await page.getByRole('button', { name: /touch screen to begin/i }).waitFor()
   assert.equal(await page.getByLabel('Password').count(), 0, 'Gate did not persist access through a same-session reload')
   assert.deepEqual(browserErrors, [])
 
-  console.log(JSON.stringify({ desktopLayout: '1440x900', logoRightAligned: true, approvedPurpleOutline: true, wrongPasswordBlocked: true, correctPasswordEntered: true, sessionReloadRemembered: true, phoneViewport: '390x844', controlsTogetherOnPhone: true, experienceReached: true }))
+  console.log(JSON.stringify({ desktopLayout: '1440x900', logoRightAligned: true, approvedPurpleOutline: true, accountCredentialSignalsRemoved: true, onePasswordIgnoreHint: true, noForcedCredentialFocus: true, wrongPasswordBlocked: true, correctPasswordEntered: true, gateUnmountedAcrossAppClicks: true, sessionReloadRemembered: true, phoneViewport: '390x844', controlsTogetherOnPhone: true, experienceReached: true }))
 } finally {
   await context.close()
   await browser.close()
