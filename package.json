@@ -18,6 +18,7 @@
     "test:e2e:addons": "node scripts/addon-transition-e2e.mjs",
     "test:e2e:media": "node scripts/media-viewer-e2e.mjs",
     "test:e2e:cms": "node scripts/cms-adversarial-e2e.mjs",
+    "test:e2e:cms-offline-pdf": "npm run build && node scripts/cms-offline-pdf-e2e.mjs",
     "validate:research": "node scripts/validate-explorer-research.mjs"
   },
   "dependencies": {
