@@ -2,7 +2,9 @@ import { chromium } from 'playwright-core'
 import assert from 'node:assert/strict'
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
-const page = await browser.newPage({ viewport: { width: 960, height: 640 }, deviceScaleFactor: 1 })
+const context = await browser.newContext({ viewport: { width: 960, height: 640 }, deviceScaleFactor: 1, serviceWorkers: 'block' })
+await context.addInitScript(() => sessionStorage.setItem('nexus:access-granted', 'true'))
+const page = await context.newPage()
 const errors = []
 page.on('pageerror', error => errors.push(error.message))
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
@@ -19,15 +21,17 @@ try {
   const heading = await page.locator('.vehicle-heading').boundingBox()
   assert(heading.y < 100)
   assert.equal((await read()).addonVisible, 'false')
-  for (const addon of [1, 2, 3, 3, 1, 1]) {
-    await page.getByRole('button', { name: new RegExp(`Add-on ${addon}`) }).click()
+  assert.equal(await page.getByRole('button', { name: 'Add-on 2' }).isDisabled(), true)
+  assert.equal(await page.getByRole('button', { name: 'Add-on 3' }).isDisabled(), true)
+  const addon = page.getByRole('button', { name: 'Add-on 1', exact: true })
+  for (const expected of [true, false, true, false]) {
+    await addon.click()
     const active = await page.locator('.bottom-config [aria-pressed="true"]').count()
     assert(active <= 1)
-    const attached = await page.getByRole('button', { name: 'Add-on 1', exact: true }).getAttribute('aria-pressed') === 'true'
-    await page.waitForFunction(expected => document.querySelector('.model-stage').dataset.addonVisible === String(expected), attached)
+    await page.waitForFunction(visible => document.querySelector('.model-stage').dataset.addonVisible === String(visible), expected)
   }
   assert.equal((await read()).addonVisible, 'false')
-  console.log('Navigation and all exclusive/toggle-off add-on states passed')
+  console.log('Navigation, explicit disabled future slots, and add-on toggle-off states passed')
 
   const canvas = page.locator('canvas')
   await page.mouse.move(800, 300)
@@ -108,4 +112,4 @@ try {
   assert.deepEqual(errors, [])
   await page.getByRole('button', { name: /^Return to Hub$/ }).click()
   await page.getByRole('heading', { name: 'Choose an Experience' }).waitFor()
-} finally { await browser.close() }
+} finally { await context.close(); await browser.close() }

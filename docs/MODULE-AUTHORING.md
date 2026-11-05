@@ -20,6 +20,12 @@ Experience modules are packaged, versioned data consumed by one shared React/Thr
 
 Both modes emit schema-validated `nexus:module` ready/exit/error events. Module interactions also emit `nexus:activity` with the module ID. `ModuleHost` owns the adapter and disposes it on unmount; the stage continues to release cloned geometry/materials, ground texture clones, particles, requestAnimationFrame work, and document listeners.
 
+### Static-host routing boundary
+
+The build creates a real directory shell only for each slug listed in `src/modules/routes.json`. Those known paths return `200` and survive a direct browser reload on a conventional static server. An arbitrary `/modules/unknown-slug` is not generated and a strict static host correctly answers with its own HTTP `404` before React runs.
+
+The application-level “module not found” screen is a second line of defense for environments that already serve the application shell for unknown paths, such as hosts configured with an SPA rewrite or client-side navigation within a loaded shell. The project does not claim that application-level recovery overrides every static host's missing-file behavior.
+
 ## Media and asset boundaries
 
 - GLB and texture URLs are same-origin paths by default and are loaded by Drei's Suspense-aware loaders.
