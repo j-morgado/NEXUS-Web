@@ -39,6 +39,7 @@ try {
   await canvas.evaluate(element => { element.dataset.contextIdentity = 'environment-lab-stable-canvas' })
 
   const screenshots = []
+  const rendererTelemetry = {}
   for (const kind of ['land', 'sea', 'air']) {
     await page.getByRole('button', { name: new RegExp(kind, 'i') }).click()
     await page.waitForFunction(expected => document.querySelector('.environment-lab')?.getAttribute('data-environment') === expected && document.querySelector('.environment-lab')?.getAttribute('data-scene-ready') === 'true', kind)
@@ -49,6 +50,14 @@ try {
     const path = `review-evidence/environment-exploration/${kind}.png`
     await page.screenshot({ path, fullPage: true })
     screenshots.push(path)
+    rendererTelemetry[kind] = await canvas.evaluate(element => ({
+      drawCalls: Number(element.dataset.drawCalls),
+      triangles: Number(element.dataset.triangles),
+      programs: Number(element.dataset.programs),
+      textures: Number(element.dataset.textures),
+      geometries: Number(element.dataset.geometries),
+    }))
+    assert(Object.values(rendererTelemetry[kind]).every(Number.isFinite), `${kind} renderer telemetry was incomplete`)
     assert.equal(await canvas.getAttribute('data-context-identity'), 'environment-lab-stable-canvas', `Canvas was recreated while switching to ${kind}`)
     if (kind === 'land') {
       assert.equal(await page.locator('.environment-canvas').getAttribute('data-frameloop'), 'demand')
@@ -73,6 +82,12 @@ try {
       await page.screenshot({ path: foamPath, clip: { x: 430, y: 220, width: 620, height: 470 } })
       screenshots.push(foamPath)
     }
+    if (kind === 'air') {
+      const firstPhase = await canvas.getAttribute('data-air-phase')
+      await page.waitForTimeout(450)
+      const secondPhase = await canvas.getAttribute('data-air-phase')
+      assert.notEqual(firstPhase, secondPhase, 'Atmospheric cloud phase did not advance')
+    }
   }
 
   for (const kind of ['land', 'sea', 'air', 'sea', 'land']) {
@@ -83,11 +98,14 @@ try {
 
   await page.getByRole('button', { name: /open creator tools/i }).click()
   await page.getByRole('heading', { name: 'Scene direction' }).waitFor()
-  await page.waitForTimeout(350)
+  await page.waitForFunction(() => {
+    const panel = document.querySelector('.environment-creator')
+    return panel instanceof HTMLElement && panel.getBoundingClientRect().x < 1100
+  })
   const desktopCreatorBox = await page.locator('.environment-creator').boundingBox()
   assert(desktopCreatorBox && desktopCreatorBox.x < 1100, 'Creator tools panel did not finish opening on desktop')
   assert.equal(await page.getByLabel('Ambient motion').count(), 0, 'Land exposed an unused ambient-motion control')
-  assert.equal(await page.getByLabel('Ridge variation').count(), 1)
+  assert.equal(await page.getByLabel('Haze density').count(), 1)
   const creatorPath = 'review-evidence/environment-exploration/creator-tools.png'
   await page.screenshot({ path: creatorPath, fullPage: true })
   screenshots.push(creatorPath)
@@ -151,7 +169,7 @@ try {
   assert.equal(createHash('sha256').update(reducedAirFirst).digest('hex'), createHash('sha256').update(reducedAirSecond).digest('hex'), 'Reduced motion did not pause air animation')
 
   assert.deepEqual(browserErrors, [])
-  console.log(JSON.stringify({ accessGate: true, noindex: true, routeIsolation: true, stableCanvas: true, repeatedSwitches: true, environments: ['land', 'sea', 'air'], creatorControls: true, landDemandRendering: true, dynamicSea: { waves: true, sampledBuoyancy: true, contactFoam: true }, dynamicAir: true, reducedMotion: true, responsiveLayout: { portraitNoOverlap: true, portraitVesselVisible: true, noViewportOverflow: true }, viewports: ['1440x900', '844x390', '390x844'], screenshots, browserErrors }, null, 2))
+  console.log(JSON.stringify({ accessGate: true, noindex: true, routeIsolation: true, stableCanvas: true, repeatedSwitches: true, environments: ['land', 'sea', 'air'], creatorControls: true, landDemandRendering: true, dynamicSea: { waves: true, sampledBuoyancy: true, contactFoam: true }, dynamicAir: true, reducedMotion: true, responsiveLayout: { portraitNoOverlap: true, portraitVesselVisible: true, noViewportOverflow: true }, viewports: ['1440x900', '844x390', '390x844'], rendererTelemetry, screenshots, browserErrors }, null, 2))
 } finally {
   await context.close()
   await browser.close()
