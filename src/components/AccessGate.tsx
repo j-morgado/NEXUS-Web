@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useRef, useState } from 'react'
+import { type FormEvent, type ReactNode, useState } from 'react'
 
 const ACCESS_KEY = 'nexus:access-granted'
 const ACCESS_PASSWORD = 'nexus'
@@ -15,7 +15,6 @@ export function AccessGate({ children }: { children: ReactNode }) {
   const [granted, setGranted] = useState(hasAccess)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
 
   if (granted) return children
 
@@ -34,28 +33,25 @@ export function AccessGate({ children }: { children: ReactNode }) {
 
     setError('That password isn\'t correct. Try again.')
     setPassword('')
-    requestAnimationFrame(() => inputRef.current?.focus())
   }
 
   return <main className="access-gate" id="main-content">
     <section className="access-card" aria-labelledby="access-title">
       <img className="access-logo" src="/assets/reference/leidos-logo-light.svg" alt="Leidos" />
       <h1 id="access-title">NEXUS</h1>
-      <form className="access-form" onSubmit={unlock}>
+      <form className="access-form" onSubmit={unlock} autoComplete="off" data-1p-ignore="true">
         <label className="visually-hidden" htmlFor="site-password">Password</label>
         <div className="access-field-row">
           <input
-            ref={inputRef}
             id="site-password"
-            name="password"
             type="password"
             value={password}
             onChange={(event) => {
               setPassword(event.target.value)
               if (error) setError('')
             }}
-            autoComplete="current-password"
-            autoFocus
+            autoComplete="off"
+            data-1p-ignore="true"
             placeholder="Password"
             aria-invalid={!!error}
             aria-describedby={error ? 'access-error' : undefined}
