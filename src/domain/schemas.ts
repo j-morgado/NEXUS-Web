@@ -36,7 +36,15 @@ export const vehicleSchema = z.object({
   name: z.string(),
   modelUrl: z.string(),
   vehicleNode: z.string(),
-  addons: z.array(z.object({ id: z.string(), label: z.string(), nodeName: z.string(), mountAnchor: z.string() })),
+  addons: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    nodeName: z.string(),
+    mountAnchor: z.string(),
+    thumbnailUrl: z.string(),
+    description: z.string(),
+    specs: z.array(z.object({ label: z.string(), value: z.string() })),
+  })),
   hotspots: z.array(hotspotSchema),
 })
 

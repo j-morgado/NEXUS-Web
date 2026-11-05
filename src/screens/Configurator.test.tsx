@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Configurator } from './Configurator'
 
@@ -11,24 +11,35 @@ vi.mock('../components/ModelStage', () => ({ ModelStage: ({ addonVisible, onRead
 
 describe('experience configuration', () => {
   afterEach(() => { cleanup(); readiness.defer = false; readiness.complete = null })
-  it('starts bare and keeps add-ons mutually exclusive with toggle-off behavior', () => {
+  it('keeps the panel mounted through exit and cancels stale removal on rapid reopen', async () => {
     render(<Configurator onExit={vi.fn()} />)
-    const buttons = [1, 2, 3].map(number => screen.getByRole('button', { name: new RegExp(`Add-on ${number}`) }))
-    const pressed = () => buttons.map(button => button.getAttribute('aria-pressed'))
-    expect(pressed()).toEqual(['false', 'false', 'false'])
+    const button = screen.getByRole('button', { name: 'Add-on 1' })
+    expect(button).toHaveAttribute('aria-pressed', 'false')
+    expect(button.querySelector('img')).toHaveAttribute('src', '/assets/addons/addon-1.webp')
     expect(screen.getByTestId('attachment')).toHaveAttribute('data-visible', 'false')
-    fireEvent.click(buttons[0])
-    expect(pressed()).toEqual(['true', 'false', 'false'])
+    fireEvent.click(button)
+    expect(button).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByTestId('attachment')).toHaveAttribute('data-visible', 'true')
-    fireEvent.click(buttons[1])
-    expect(pressed()).toEqual(['false', 'true', 'false'])
-    expect(screen.getByTestId('attachment')).toHaveAttribute('data-visible', 'false')
-    fireEvent.click(buttons[2])
-    expect(pressed()).toEqual(['false', 'false', 'true'])
-    fireEvent.click(buttons[2])
-    expect(pressed()).toEqual(['false', 'false', 'false'])
+    const panel = await screen.findByRole('complementary', { name: 'Add-on 1 details' })
+    expect(panel).toHaveAttribute('data-state', 'open')
+    expect(screen.getAllByText('Placeholder — pending approved data')).toHaveLength(3)
+    fireEvent.click(button)
+    expect(button).toHaveAttribute('aria-pressed', 'false')
+    expect(panel).toHaveAttribute('data-state', 'exiting')
+    expect(panel).toHaveAttribute('aria-hidden', 'true')
+    expect(panel).toHaveAttribute('inert')
+    fireEvent.click(button)
+    await waitFor(() => expect(panel).toHaveAttribute('data-state', 'open'))
+    await new Promise(resolve => setTimeout(resolve, 450))
+    expect(panel).toBeInTheDocument()
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Close Add-on 1 details' }))
+    expect(button).toHaveAttribute('aria-pressed', 'false')
+    expect(panel).toHaveAttribute('data-state', 'exiting')
+    fireEvent.transitionEnd(panel, { propertyName: 'transform' })
+    await waitFor(() => expect(panel).not.toBeInTheDocument())
     expect(screen.queryByText('Bare vehicle')).not.toBeInTheDocument()
-    fireEvent.click(buttons[0]); fireEvent.click(buttons[0])
+    fireEvent.click(button); fireEvent.click(button)
     expect(screen.getByTestId('attachment')).toHaveAttribute('data-visible', 'false')
   })
   it('keeps the whole experience hidden until the renderer signals readiness', () => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { HubCardMedia, type HubCardMediaMode } from '../components/HubCardMedia'
 
-export function Selector({ onJLTV, onExplorer, jltvDisabled = false, animateEntrance = false }: { onJLTV: () => void; onExplorer: () => void; onReset: () => void; jltvDisabled?: boolean; animateEntrance?: boolean }) {
+export function Selector({ onJLTV, onExplorer, jltvDisabled = false, animateEntrance = false, jltvMediaMode = 'video' }: { onJLTV: () => void; onExplorer: () => void; onReset: () => void; jltvDisabled?: boolean; animateEntrance?: boolean; jltvMediaMode?: HubCardMediaMode }) {
   const carouselRef = useRef<HTMLElement>(null)
   const [edges, setEdges] = useState({ start: true, end: false })
 
@@ -37,9 +38,9 @@ export function Selector({ onJLTV, onExplorer, jltvDisabled = false, animateEntr
     <h1>Choose an Experience</h1>
     <div className="hub-experiences">
     <section id="experience-cards" className="hub-carousel" ref={carouselRef} tabIndex={0} aria-label="Experience modules">
-      <button className={`hub-card hub-card-primary ${jltvDisabled ? 'disabled' : ''}`} onClick={onJLTV} disabled={jltvDisabled}><img src="/assets/jltv-card.webp" alt="JLTV platform" /><span className="hub-gradient" /><div><h2>JLTV</h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer consequat viverra efficitur.</p><b className="outline-pill">{jltvDisabled ? 'Disabled' : 'Explore'} <i>→</i></b></div></button>
-      <article className="hub-card"><span className="pending-card-art" /><span className="hub-gradient" /><div><h2>Platform 02</h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vehicle selection pending.</p><b className="outline-pill">Coming soon</b></div></article>
-      <article className="hub-card"><span className="pending-card-art alternate" /><span className="hub-gradient" /><div><h2>Platform 03</h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vehicle selection pending.</p><b className="outline-pill">Coming soon</b></div></article>
+      <button className={`hub-card hub-card-primary ${jltvDisabled ? 'disabled' : ''}`} onClick={onJLTV} disabled={jltvDisabled}><HubCardMedia mode={jltvMediaMode} imageSrc="/assets/jltv-card.webp" videoSrc="/assets/nexus-placeholder-loop.mp4" alt="JLTV platform media" placeholderLabel={jltvMediaMode === 'video' ? 'Placeholder video preview' : undefined} /><span className="hub-gradient" /><div className="hub-card-content"><h2>JLTV</h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer consequat viverra efficitur.</p><b className="outline-pill">{jltvDisabled ? 'Disabled' : 'Explore'} <i>→</i></b></div></button>
+      <article className="hub-card"><span className="pending-card-art" /><span className="hub-gradient" /><div className="hub-card-content"><h2>Platform 02</h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vehicle selection pending.</p><b className="outline-pill">Coming soon</b></div></article>
+      <article className="hub-card"><span className="pending-card-art alternate" /><span className="hub-gradient" /><div className="hub-card-content"><h2>Platform 03</h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vehicle selection pending.</p><b className="outline-pill">Coming soon</b></div></article>
     </section>
     <div className="hub-arrows" role="group" aria-label="Browse experiences"><button aria-label="Previous experience" aria-controls="experience-cards" disabled={edges.start} onClick={() => moveCards(-1)}>←</button><button aria-label="Next experience" aria-controls="experience-cards" disabled={edges.end} onClick={() => moveCards(1)}>→</button></div>
     </div>

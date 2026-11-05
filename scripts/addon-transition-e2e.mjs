@@ -2,7 +2,9 @@ import { chromium } from 'playwright-core'
 import assert from 'node:assert/strict'
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
 try {
-  const page = await browser.newPage({ viewport: { width: 960, height: 640 }, serviceWorkers: 'block' })
+  const context = await browser.newContext({ viewport: { width: 960, height: 640 }, serviceWorkers: 'block' })
+  await context.addInitScript(() => sessionStorage.setItem('nexus:access-granted', 'true'))
+  const page = await context.newPage()
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
@@ -15,6 +17,7 @@ try {
   assert.equal(await stage.getAttribute('data-addon-progress'), '0')
   assert.equal(await stage.getAttribute('data-addon-particles'), '0')
   await addon.click()
+  await page.getByRole('complementary', { name: 'Add-on 1 details' }).waitFor()
   await page.waitForFunction(() => { const progress = Number(document.querySelector('.model-stage').dataset.addonProgress); return progress > .2 && progress < .85 })
   assert.equal(await stage.getAttribute('data-addon-transitioning'), 'true')
   assert(Number(await stage.getAttribute('data-addon-particles')) > 0)
@@ -25,6 +28,7 @@ try {
   assert.equal(await stage.getAttribute('data-addon-particles'), '0')
   await page.screenshot({ path: '/tmp/nexus-addon-attached.png' })
   await addon.click()
+  await page.getByRole('complementary', { name: 'Add-on 1 details' }).waitFor({ state: 'detached' })
   await page.waitForFunction(() => { const progress = Number(document.querySelector('.model-stage').dataset.addonProgress); return progress > .2 && progress < .85 })
   await page.screenshot({ path: '/tmp/nexus-addon-disappearing.png' })
   // A mid-transition click reverses from the current voxel coverage.
@@ -32,7 +36,7 @@ try {
   await addon.click()
   await page.waitForFunction(before => Number(document.querySelector('.model-stage').dataset.addonProgress) > before + .05, beforeReverse)
   await page.waitForFunction(() => document.querySelector('.model-stage').dataset.addonProgress === '1.000')
-  await page.getByRole('button', { name: /Add-on 2/ }).click()
+  await addon.click()
   await page.waitForFunction(() => document.querySelector('.model-stage').dataset.addonVisible === 'false')
   await page.waitForFunction(() => document.querySelector('.model-stage').dataset.addonTransitioning === 'false')
   assert.equal(await stage.getAttribute('data-addon-particles'), '0')
@@ -44,5 +48,5 @@ try {
   await addon.click()
   await page.waitForFunction(() => document.querySelector('.model-stage').dataset.addonVisible === 'false')
   assert.deepEqual(errors, [])
-  console.log('Pixel dissolve, luminous edge, rising/fading particles, toggle reversal, placeholder selection, cleanup and reduced motion passed; no browser/shader errors.')
+  console.log('Pixel dissolve, luminous edge, rising/fading particles, toggle reversal, detail-panel synchronization, cleanup and reduced motion passed; no browser/shader errors.')
 } finally { await browser.close() }
