@@ -2,7 +2,11 @@ import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
-const baseURL = process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177'
+const baseURL = (() => {
+  const url = new URL(process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177')
+  url.searchParams.set('testTimeout', '600')
+  return url.href
+})()
 const imageModeURL = new URL(baseURL)
 imageModeURL.searchParams.set('hubMedia', 'image')
 
@@ -36,6 +40,29 @@ const assertHeadingClearsCard = async page => {
   const heading = await page.locator('.reference-hub h1').boundingBox()
   const card = await page.locator('.hub-card-primary').boundingBox()
   assert(heading && card && heading.y + heading.height <= card.y - 12, 'Hub heading is clipped behind the primary card')
+}
+
+const assertHubCardContentFits = async (page, label) => {
+  const geometry = await page.locator('.hub-card-primary').evaluate(element => {
+    const card = element.getBoundingClientRect()
+    const content = element.querySelector('.hub-card-content').getBoundingClientRect()
+    return {
+      card: { x: card.x, y: card.y, width: card.width, height: card.height, bottom: card.bottom },
+      content: { x: content.x, y: content.y, width: content.width, height: content.height, bottom: content.bottom },
+    }
+  })
+  assert(geometry.card.height >= 180, `${label} Hub card collapsed to ${geometry.card.height}px`)
+  assert(geometry.content.y >= geometry.card.y && geometry.content.bottom <= geometry.card.bottom, `${label} Hub card content is clipped: ${JSON.stringify(geometry)}`)
+}
+
+const assertPanelClearsControls = async (page, viewport) => {
+  await page.setViewportSize(viewport)
+  const panel = await page.locator('.addon-info-panel').boundingBox()
+  const controls = await page.locator('.configuration-controls').boundingBox()
+  assert(panel && controls, `Missing panel or controls at ${viewport.width}x${viewport.height}`)
+  const overlapsHorizontally = panel.x < controls.x + controls.width && panel.x + panel.width > controls.x
+  const overlapsVertically = panel.y < controls.y + controls.height && panel.y + panel.height > controls.y
+  assert(!(overlapsHorizontally && overlapsVertically), `Add-on panel overlaps controls at ${viewport.width}x${viewport.height}: ${JSON.stringify({ panel, controls })}`)
 }
 
 // Chromium's headless SwiftShader timeline can leave compositor transitions
@@ -90,9 +117,16 @@ try {
   await page.waitForFunction(() => document.querySelector('.hub-card-primary video')?.paused === false)
   await page.screenshot({ path: '/tmp/nexus-hub-video-desktop.png' })
 
+  await page.setViewportSize({ width: 844, height: 390 })
+  await assertFullCardMedia(page, 'video')
+  await assertHeadingClearsCard(page)
+  await assertHubCardContentFits(page, '844x390')
+  await page.screenshot({ path: '/tmp/nexus-hub-video-landscape-844x390.png' })
+
   await page.setViewportSize({ width: 390, height: 844 })
   await assertFullCardMedia(page, 'video')
   await assertHeadingClearsCard(page)
+  await assertHubCardContentFits(page, '390x844')
   await page.screenshot({ path: '/tmp/nexus-hub-video-mobile.png' })
   await page.setViewportSize({ width: 1280, height: 800 })
 
@@ -143,6 +177,13 @@ try {
   assert(Number.parseFloat(closeFocus.outlineWidth) >= 3, 'Bare close cross focus treatment is too subtle')
   await page.screenshot({ path: '/tmp/nexus-addon-panel-desktop.png' })
 
+  await assertPanelClearsControls(page, { width: 844, height: 390 })
+  await page.screenshot({ path: '/tmp/nexus-addon-panel-landscape-844x390.png' })
+  await assertPanelClearsControls(page, { width: 768, height: 800 })
+  await page.screenshot({ path: '/tmp/nexus-addon-panel-tablet-768x800.png' })
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await finishPanelTransition(panelElement)
+
   const desktopOpenBounds = await panelElement.boundingBox()
   await addon.evaluate(button => button.click())
   await page.waitForFunction(() => document.querySelector('.addon-menu-item')?.getAttribute('aria-pressed') === 'false')
@@ -164,7 +205,8 @@ try {
   const panelBounds = await panel.boundingBox()
   const controlsBounds = await page.locator('.configuration-controls').boundingBox()
   assert(panelBounds && controlsBounds && panelBounds.x >= 0 && panelBounds.x + panelBounds.width <= 390)
-  assert(panelBounds.y + panelBounds.height <= controlsBounds.y, 'Phone add-on panel obscures configuration controls')
+  const phoneOverlap = panelBounds.x < controlsBounds.x + controlsBounds.width && panelBounds.x + panelBounds.width > controlsBounds.x && panelBounds.y < controlsBounds.y + controlsBounds.height && panelBounds.y + panelBounds.height > controlsBounds.y
+  assert(!phoneOverlap, 'Phone add-on panel obscures configuration controls')
   await page.screenshot({ path: '/tmp/nexus-addon-panel-mobile.png' })
   await closeButton.evaluate(button => button.click())
   await page.waitForFunction(() => document.querySelector('.addon-info-panel')?.dataset.state === 'exiting')
@@ -233,7 +275,7 @@ try {
   await reducedPanel.waitFor({ state: 'detached' })
   await reduced.close()
 
-  console.log(JSON.stringify({ fullCardMediaDesktop: true, fullCardMediaPhone: true, mediaBelowGradientAndContent: true, loopingHubVideo: true, offscreenPauseResume: true, visibilityPauseResume: true, imageModeDesktop: true, imageModePhone: true, browserErrorFallback: true, reducedMotionImageFallback: true, actualAddonThumbnail: true, revealAnimationRetained: true, bareCrossClose: true, accessibleCloseTarget: true, panelSlidesInFromRight: true, panelSlidesFullyOutRight: true, rapidReopenCancelsExit: true, routeUnmountCleansPanel: true, reducedMotionPanel: true, desktopPanel: true, phonePanelAvoidsControls: true, placeholderSpecsOnly: true }))
+  console.log(JSON.stringify({ fullCardMediaDesktop: true, fullCardMediaPhone: true, shortLandscapeHubCard: true, mediaBelowGradientAndContent: true, loopingHubVideo: true, offscreenPauseResume: true, visibilityPauseResume: true, imageModeDesktop: true, imageModePhone: true, browserErrorFallback: true, reducedMotionImageFallback: true, actualAddonThumbnail: true, revealAnimationRetained: true, bareCrossClose: true, accessibleCloseTarget: true, panelSlidesInFromRight: true, panelSlidesFullyOutRight: true, rapidReopenCancelsExit: true, routeUnmountCleansPanel: true, reducedMotionPanel: true, desktopPanel: true, landscapePanelAvoidsControls: true, tabletPanelAvoidsControls: true, phonePanelAvoidsControls: true, placeholderSpecsOnly: true }))
 } finally {
   await browser.close()
 }

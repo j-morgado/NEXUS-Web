@@ -2,7 +2,7 @@
 
 ## Branch and isolation
 
-This work belongs only on `explore/addon-ui-media`. It must not be merged into `main` or deployed to the current live NEXUS Site without a separate review and authorization.
+This work originated on `explore/addon-ui-media`. João explicitly authorized merging the reviewed UI preview into `main` and publishing it. The merge is now on `main`; public publication remains paused only for the active responsive QA checkpoint.
 
 ## Brief
 
@@ -21,14 +21,14 @@ Explore richer add-on selection and hub-card media without changing approved pro
 - [x] Selecting and deselecting retains the existing reveal/hide animation.
 - [x] The panel includes image, name, description, and specification rows.
 - [x] Unknown content is labeled as placeholder/pending approval; no product facts are invented.
-- [x] The panel fits desktop and phone layouts without obscuring configuration controls.
+- [x] The panel fits desktop, tablet, short-landscape, and phone layouts without obscuring configuration controls.
 - [x] Hub video is muted, inline, looping, and uses the existing authorized placeholder video.
 - [x] The video pauses when offscreen or the page is hidden and yields to the still image for reduced motion, errors, or image-only mode.
 - [x] Image fallback and optional image mode are covered by tests.
 - [x] `?hubMedia=image` exposes the reviewable image-only comparison without changing the default video experiment.
 - [x] Browser geometry and stacking assertions keep media full-card and below the gradient/content at desktop and phone sizes.
-- [x] Phone hub heading clears the card with a tested visual gap; no title clipping remains.
-- [x] This branch remains isolated from production.
+- [x] Phone and short-landscape Hub layouts preserve a usable card height, keep content inside the card, and maintain a tested heading gap.
+- [x] The UI preview remained isolated until João authorized the merge; the merged `main` build is undergoing final responsive QA before public publication.
 
 ## Verification
 

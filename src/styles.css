@@ -2006,6 +2006,36 @@ footer {
 }
 @media (prefers-reduced-motion: reduce) { .addon-info-panel { transition: none; } }
 
+/* Keep the reviewed UI usable on tablet and short landscape displays. */
+@media (min-width: 621px) and (max-width: 900px) {
+  .addon-info-panel {
+    --addon-panel-y: 0;
+    top: clamp(16px, 10svh, 80px);
+    right: 16px;
+    bottom: 200px;
+    width: min(340px, calc(100vw - 32px));
+    max-height: none;
+  }
+}
+
+@media (min-width: 621px) and (max-height: 520px) {
+  .reference-logo { top: 16px; right: 24px; width: 112px; }
+  .reference-hub h1 { left: 24px; top: 24px; font-size: 34px; line-height: 40px; }
+  .reference-hub .hub-experiences { left: 24px; top: 88px; bottom: 16px; gap: 8px; }
+  .reference-hub .hub-carousel { min-height: 0; padding-bottom: 0; gap: 16px; }
+  .reference-hub .hub-card-content { left: 24px; right: 24px; bottom: 20px; }
+  .reference-hub .hub-card h2 { margin-bottom: 8px; font-size: 30px; }
+  .reference-hub .hub-card p { margin-bottom: 12px; font-size: 14px; line-height: 1.4; }
+  .reference-hub .outline-pill { min-height: 40px; padding: 7px 22px; font-size: 13px; }
+  .reference-hub .hub-arrows { flex-basis: 40px; gap: 32px; margin-right: 24px; }
+  .reference-hub .hub-arrows button { min-width: 44px; min-height: 40px; font-size: 36px; }
+  .addon-info-panel .addon-panel-image { height: 72px; }
+  .addon-info-panel .addon-panel-content { padding: 12px 16px; }
+  .addon-info-panel .addon-panel-content h2 { margin-bottom: 8px; font-size: 22px; }
+  .addon-info-panel .addon-panel-description { margin-bottom: 10px; font-size: 11px; }
+  .addon-info-panel .addon-specs div { padding: 7px 0; }
+}
+
 .dev-update-actions button { min-height: 44px; padding: 10px 16px; border: 1px solid #a7a3fe; border-radius: 6px; background: #734cdd; color: #fff; font-size: 14px; font-weight: 600; }
 .dev-update-actions button:enabled:is(:hover, :active) { background: #fccfff; border-color: #fccfff; color: #251846; filter: none; }
 .dev-options .dev-update-actions button:disabled { background: #30253f; border-color: #76638c; color: #e0d6ec; opacity: 1; }
