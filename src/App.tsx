@@ -4,11 +4,13 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { InactivityGuard } from './components/InactivityGuard'
 import { ModuleBoundary } from './components/ModuleBoundary'
 import { recordUsage } from './services/analytics'
-import { defaultSettings, getConfigState, getOperatorSettings, saveOperatorSettings, type OperatorSettings } from './services/configStore'
+import { defaultSettings, getConfigState, getOperatorSettings, isModuleEnabled, saveOperatorSettings, type OperatorSettings } from './services/configStore'
 import { checkForPublishedUpdate, registerOfflineWorker } from './services/serviceWorker'
 import { Attract } from './screens/Attract'
 import { Selector } from './screens/Selector'
 import { LoadingScreen } from './components/LoadingScreen'
+import { seedEventConfig } from './content/seed'
+import type { EventConfig } from './domain/schemas'
 
 const Configurator = lazy(() => import('./screens/Configurator').then((module) => ({ default: module.Configurator })))
 const Explorer = lazy(() => import('./screens/Explorer').then((module) => ({ default: module.Explorer })))
@@ -39,6 +41,7 @@ export default function App() {
   const [operatorOpen, setOperatorOpen] = useState(false)
   const [sessionEpoch, setSessionEpoch] = useState(0)
   const [settings, setSettings] = useState<OperatorSettings>(defaultSettings)
+  const [eventConfig, setEventConfig] = useState<EventConfig>(seedEventConfig)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const go = useCallback((next: Route) => {
@@ -73,8 +76,9 @@ export default function App() {
   }, [transition, destinationReady])
 
   useEffect(() => {
-    Promise.all([getOperatorSettings(), getConfigState()]).then(([storedSettings]) => {
+    Promise.all([getOperatorSettings(), getConfigState()]).then(([storedSettings, configState]) => {
       setSettings(storedSettings)
+      setEventConfig(configState.active.config)
       setSettingsLoaded(true)
     }).catch((error) => { setSettingsLoaded(true); console.error('Local configuration recovery failed', error) })
   }, [])
@@ -103,15 +107,17 @@ export default function App() {
 
 
 
-  return <InactivityGuard enabled={route !== 'attract'} timeoutSeconds={60} warningSeconds={10} onReset={reset}>
+  const jltvDisabled = !isModuleEnabled(eventConfig, settings, 'jltv')
+
+  return <InactivityGuard enabled={route !== 'attract'} timeoutSeconds={settings.inactivitySeconds} warningSeconds={eventConfig.warningSeconds} onReset={reset}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <div className={`shared-loop-media ${route === 'selector' ? 'is-hub' : ''} ${route !== 'attract' && route !== 'selector' ? 'is-hidden' : ''}`} aria-hidden="true"><video className="placeholder-video" src="/assets/attract-loop.mp4" autoPlay muted loop playsInline preload="auto" /></div>
     <div key={sessionEpoch} inert={!!transition} aria-busy={!!transition} data-quality-tier={settings.qualityTier}>
       {route === 'attract' && <Attract onBegin={begin} />}
-      {route === 'selector' && <Selector animateEntrance={hubEntrance} jltvMediaMode={hubMediaMode} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} onReset={reset}  />}
+      {route === 'selector' && <Selector animateEntrance={hubEntrance} jltvMediaMode={hubMediaMode} onJLTV={() => go('jltv')} onExplorer={() => go('explorer')} jltvDisabled={jltvDisabled} />}
       <Suspense fallback={null}>
         {route === 'jltv' && <ModuleBoundary onExit={() => go('selector')} onFailure={markReady}><Configurator onExit={() => go('selector')} hotspotMode={settings.hotspotMode} visual={settings.visual} showPerformanceStats={settings.showPerformanceStats} managedLoading={!!transition} onReadyChange={sceneReady} onProgress={setProgress} /></ModuleBoundary>}
-        {route === 'explorer' && <><Explorer active={!transition} onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></>}
+        {route === 'explorer' && <ModuleBoundary moduleName="Explorer" onExit={() => go('selector')} onFailure={markReady}><Explorer active={!transition} onExit={() => go('selector')} /><DestinationReady onReady={markReady} /></ModuleBoundary>}
         {route === 'selector' && <DestinationReady onReady={markReady} />}
       </Suspense>
     </div>

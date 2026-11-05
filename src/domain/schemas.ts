@@ -13,7 +13,7 @@ export const productSchema = z.object({
   heroLabel: z.string().min(1),
   highlights: z.array(orderedText).min(3).max(6),
   features: z.array(orderedText).min(3).max(10),
-  learnMoreUrl: z.string().url().optional(),
+  learnMoreUrl: z.string().url().refine(value => ['http:', 'https:'].includes(new URL(value).protocol), 'Learn-more links must use HTTP or HTTPS').optional(),
   isFiller: z.boolean(),
 })
 

@@ -12,7 +12,7 @@
 
 ## Evidence collected
 
-- Typecheck, lint, 17 automated tests and production build pass.
+- Asset provisioning check, typecheck, lint, 39 automated unit tests, production build, and the packaged quality browser suite pass.
 - Chromium smoke at 1920×1080 and 820×1180 covers the requested functional path.
 - Screenshots cover selector, JLTV with/without attachment, model-anchored hotspot, Explorer, preview, pending state, corrupt-model recovery, WebGL recovery, and opacity-zero far-side occlusion.
 - A 2.9-second frame-derived interaction recording captures hotspot focus and camera restoration.

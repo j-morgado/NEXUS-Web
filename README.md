@@ -9,7 +9,15 @@ npm ci
 npm run dev
 ```
 
-The proprietary runtime model is intentionally excluded from Git. Place the optimized derivative at `public/assets/jltv-runtime.glb`. The preserved original must remain outside the repository.
+The proprietary runtime model, supplied brand references, card image, and private font binaries are intentionally excluded from Git. Provision the private runtime bundle at these paths before running or building:
+
+- `public/assets/jltv-runtime.glb`
+- `public/assets/jltv-card.webp`
+- `public/assets/reference/leidos-logo-light.svg`
+- `public/assets/reference/leidos-mark-light.svg`
+- `public/assets/fonts/AvenirNextforLeidos-*.otf`
+
+`npm run check:assets` validates the bundle. The preserved source model and original handoff must remain outside the repository.
 
 ## Verify
 
@@ -35,7 +43,7 @@ npm run preview
 
 Validated active/previous event configuration bundles and operator preferences persist in IndexedDB. Activation checks the schema and SHA-256 integrity; a corrupt active bundle falls back to the previous verified bundle, then the packaged seed. Rollback is explicit. This is resilient local event state, not a secure CMS or publication authority.
 
-The future trusted CMS and event-publication ports are declared in `src/contracts/cms.ts`. Role enforcement, accounts, draft publication, signed distribution, and trusted authorization remain backend work. The operator menu is intentionally not a security boundary.
+Role enforcement, accounts, draft publication, signed distribution, and trusted authorization remain backend work. The operator menu is intentionally not a security boundary.
 
 Visitor requests use a separate durable outbox. Invalid records are quarantined, rapid duplicates are suppressed, and the current transport is explicitly `not-configured`; it cannot mark a request sent.
 - Operator controls are a convenience surface, not an access-control boundary.

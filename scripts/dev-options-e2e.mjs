@@ -1,8 +1,9 @@
 import {chromium} from 'playwright-core'
 import assert from 'node:assert/strict'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']})
 try {
- const page=await browser.newPage({viewport:{width:960,height:720},serviceWorkers:'block'});const errors=[]
+ const page=await browser.newPage({viewport:{width:960,height:720},serviceWorkers:'block'});await grantPreviewAccess(page);const errors=[]
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())})
  await page.goto(process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177')
  await page.locator('.reference-attract').waitFor();await page.keyboard.press('Control+Shift+d');const panel=page.getByRole('dialog',{name:'Dev Options'});await panel.waitFor()

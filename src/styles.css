@@ -1026,12 +1026,6 @@ footer {
 }
 
 /* Nexus Figma composition (New Design 10.28) reconciled with approved DS tokens. */
-.experience-backdrop {
-  position: absolute;
-  inset: 0;
-  background: url("/assets/figma/styleframe-hero.png") center / cover no-repeat;
-  transform: scale(1.015);
-}
 .attract-scrim,
 .selector-scrim {
   position: absolute;
@@ -1358,7 +1352,7 @@ footer {
 .timeout-scrim .timeout-warning { position: static; transform: none; translate: none; width: min(594px, 100%); height: min(318px, calc(100svh - 32px)); max-height: 100%; animation: timeout-dialog 175ms ease-out both; display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 0; padding: 40px 24px 30px; border: 2px solid #734cdd; background: #38265b; color: white; box-shadow: none; text-transform: uppercase; }
 .timeout-warning strong { font-size: 27px; letter-spacing: .06em; }
 .timeout-warning .timeout-count { color: white; font-size: 70px; font-weight: 300; }
-.timeout-warning small { font-size: 21px; letter-spacing: .04em; }
+.timeout-warning > button { border: 0; padding: 8px 14px; background: transparent; color: inherit; font-size: 21px; letter-spacing: .04em; text-transform: uppercase; }
 
 .configurator { background: linear-gradient(#6f35a4 0 46%,#7954a0 46% 100%); }
 .bottom-config { position: absolute; z-index: 12; left: 50%; bottom: 24px; translate: -50% 0; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 50px; background: #251846; box-shadow: 0 12px 32px rgba(0,0,0,.24); }
@@ -1778,7 +1772,7 @@ footer {
 .configuration-controls .bottom-config { position: static; translate: none; display: flex; gap: 4px; }
 .configuration-controls .bottom-config button { min-width: 130px; min-height: 54px; }
 .configuration-controls .bottom-config small { font-size: 10px; color: inherit; opacity: .8; }
-.vehicle-hotspot { --hotspot-width: min(360px, calc(100vw - 32px)); overflow: hidden; opacity: 0; position: absolute; z-index: 8; width: 42px; transform: translate(-21px,-21px); pointer-events: none; transition: opacity 0.5s linear, width 160ms cubic-bezier(.4,0,.2,1), transform 160ms cubic-bezier(.4,0,.2,1); }
+.vehicle-hotspot { --hotspot-width: min(360px, calc(100vw - 32px)); overflow: hidden; opacity: 0; position: absolute; z-index: 8; width: 42px; transform: translate(-21px,-21px); pointer-events: none; transition: opacity 0.5s linear, transform 160ms cubic-bezier(.4,0,.2,1); }
 .vehicle-hotspot.is-open { width: var(--hotspot-width); z-index: 11; transform: translate(-21px, -21px); }
 .hotspot-header { display: flex; width: 100%; height: 42px; align-items: center; overflow: hidden; padding: 0; border: 0; background: #734cdd; color: #fff; text-align: left; }
 .hotspot-header .accordion-icon { width: 42px; height: 42px; }
@@ -1959,7 +1953,7 @@ footer {
 .dev-update-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .performance-stats { position: fixed; z-index: 90; top: 12px; right: 12px; display: grid; gap: 5px; padding: 12px 16px; background: rgba(17,5,48,.88); color: #fff; font: 12px/1.4 monospace; border: 1px solid #734cdd; pointer-events: none; }
 
-.vehicle-hotspot { height: 42px; transition: opacity .5s linear, width 160ms cubic-bezier(.4,0,.2,1), height 160ms cubic-bezier(.4,0,.2,1), transform 160ms cubic-bezier(.4,0,.2,1); }
+.vehicle-hotspot { height: 42px; transition: opacity .5s linear, transform 160ms cubic-bezier(.4,0,.2,1); }
 .vehicle-hotspot.is-open { height: var(--hotspot-open-height, 42px); }
 .vehicle-hotspot.is-morphing, .vehicle-hotspot.is-sidebar { transition: opacity .5s linear, left 650ms cubic-bezier(.4,0,.2,1), top 650ms cubic-bezier(.4,0,.2,1), width 650ms cubic-bezier(.4,0,.2,1), height 650ms cubic-bezier(.4,0,.2,1), transform 650ms cubic-bezier(.4,0,.2,1); }
 .vehicle-hotspot.is-sidebar { width: 42px; height: 42px; transform: translate(-21px,-21px); background: #fff; }

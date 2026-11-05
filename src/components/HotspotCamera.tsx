@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/immutability -- Orbit controls and the camera are imperative Three.js objects. */
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef, type ElementRef, type RefObject } from 'react'

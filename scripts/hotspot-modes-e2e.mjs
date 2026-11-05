@@ -1,9 +1,10 @@
 import {chromium} from 'playwright-core'
 import assert from 'node:assert/strict'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']})
 const distance=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]))
 try {
- const page=await browser.newPage({viewport:{width:960,height:720},reducedMotion:'reduce',serviceWorkers:'block'});const errors=[]
+ const page=await browser.newPage({viewport:{width:960,height:720},reducedMotion:'reduce',serviceWorkers:'block'});await grantPreviewAccess(page);const errors=[]
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())})
  await page.addInitScript(()=>localStorage.setItem('nexus-operator-settings-v1',JSON.stringify({inactivitySeconds:60,qualityTier:'low',visual:{ssgi:false,ssgiSamples:8,ssao:false,ssaoSamples:8,ssr:false,ssrSteps:16,motionBlur:false,motionBlurSamples:3,resolutionScale:.5,maxDpr:1,planarReflections:false,reflectionResolution:256,shadowResolution:512},updateChecksEnabled:false,locallyDisabledModuleIds:[]})))
  await page.goto(process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177');await page.getByRole('button',{name:'Touch Screen to Begin'}).click();await page.locator('.hub-card-primary').click();await page.locator('.experience-loading').waitFor({state:'detached',timeout:90000})

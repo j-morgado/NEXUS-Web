@@ -1,8 +1,9 @@
 import {chromium} from 'playwright-core'
 import assert from 'node:assert/strict'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']})
 try {
- const page=await browser.newPage({viewport:{width:1280,height:900},serviceWorkers:'block'});const errors=[];page.on('pageerror',e=>errors.push(e.message))
+ const page=await browser.newPage({viewport:{width:1280,height:900},serviceWorkers:'block'});await grantPreviewAccess(page);const errors=[];page.on('pageerror',e=>errors.push(e.message))
  await page.goto(process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177');await page.getByRole('button',{name:'Touch Screen to Begin'}).click();await page.getByRole('button',{name:/^Explorer/}).click();await page.locator('.experience-loading').waitFor({state:'detached'})
  for(const kind of ['images','videos','Documents']) {
   await page.getByRole('button',{name:kind,exact:true}).click()

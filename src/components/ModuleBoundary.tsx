@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
-type Props = { children: ReactNode; onExit: () => void; onFailure?: () => void }
+type Props = { children: ReactNode; onExit: () => void; onFailure?: () => void; moduleName?: string }
 type State = { error: string | null; retryKey: number }
 
 export class ModuleBoundary extends Component<Props, State> {
@@ -16,9 +16,10 @@ export class ModuleBoundary extends Component<Props, State> {
   }
 
   render() {
+    const moduleName = this.props.moduleName ?? 'JLTV'
     if (this.state.error) return <main className="module-recovery">
       <p className="eyebrow">MODULE INTERRUPTED</p>
-      <h1>JLTV is temporarily unavailable.</h1>
+      <h1>{moduleName} is temporarily unavailable.</h1>
       <p>The platform selector remains available. Retry the module now or return without restarting the experience.</p>
       <div><button className="primary-cta" onClick={() => this.setState((state) => ({ error: null, retryKey: state.retryKey + 1 }))}>Retry module <span>↻</span></button><button className="back-button recovery-back" onClick={this.props.onExit}>Return to platforms</button></div>
     </main>

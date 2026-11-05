@@ -156,7 +156,8 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
     })
     return owned
   }, [gltf.scene, addonUniforms])
-  const addon = useMemo(() => scene.getObjectByName(vehicle.addons[0].nodeName) ?? scene.getObjectByName(vehicle.addons[0].nodeName.replaceAll(' ', '_')), [scene, vehicle.addons])
+  const primaryAddon = vehicle.addons[0]
+  const addon = useMemo(() => primaryAddon ? scene.getObjectByName(primaryAddon.nodeName) ?? scene.getObjectByName(primaryAddon.nodeName.replaceAll(' ', '_')) : undefined, [scene, primaryAddon])
   const box = useMemo(() => new Box3().setFromObject(scene), [scene])
   const modelOffset = useMemo(() => {
     const center = box.getCenter(new Vector3())
@@ -216,14 +217,25 @@ function VehicleModel({ vehicle, addonVisible, activeHotspot, markers, stageRef,
         element.style.backgroundColor = '#fff'
       } else {
         element.style.left = `${left}px`; element.style.top = `${top}px`
-        element.style.width = ''; element.style.height = ''; element.style.transform = ''
-        element.style.transition = ''; element.style.backgroundColor = ''
+        // Set transition targets once. Relying on a custom-property-backed CSS
+        // width while this frame loop updates marker styles kept restarting the
+        // browser transition at its 42px origin.
+        const targetWidth = activeHotspot === hotspot.id ? `${panelWidth}px` : ''
+        const targetHeight = activeHotspot === hotspot.id ? `${scratch.heights.get(hotspot.id)}px` : ''
+        if (element.style.width !== targetWidth) element.style.width = targetWidth
+        if (element.style.height !== targetHeight) element.style.height = targetHeight
+        if (element.style.transform) element.style.transform = ''
+        if (element.style.transition) element.style.transition = ''
+        if (element.style.backgroundColor) element.style.backgroundColor = ''
       }
       element.dataset.morphProgress = String(progress)
       if (progress !== destination) invalidate()
-      element.style.setProperty('--hotspot-width', `${panelWidth}px`)
-      element.style.setProperty('--sidebar-height', `${Math.max(160, size.height - (size.width < 700 ? 214 : 134))}px`)
-      element.style.setProperty('--hotspot-open-height', `${scratch.heights.get(hotspot.id)}px`)
+      const hotspotWidth = `${panelWidth}px`
+      const sidebarHeight = `${Math.max(160, size.height - (size.width < 700 ? 214 : 134))}px`
+      const openHeight = `${scratch.heights.get(hotspot.id)}px`
+      if (element.style.getPropertyValue('--hotspot-width') !== hotspotWidth) element.style.setProperty('--hotspot-width', hotspotWidth)
+      if (element.style.getPropertyValue('--sidebar-height') !== sidebarHeight) element.style.setProperty('--sidebar-height', sidebarHeight)
+      if (element.style.getPropertyValue('--hotspot-open-height') !== openHeight) element.style.setProperty('--hotspot-open-height', openHeight)
       if (!checkOcclusion) continue
       scratch.pointer.set(scratch.ndc.x, scratch.ndc.y)
       scratch.ray.setFromCamera(scratch.pointer, camera)
@@ -277,23 +289,23 @@ function ShadowQuality({ resolution }: { resolution: number }) {
 }
 
 export function ModelStage(props: Props) {
+  const { activeHotspot, onHotspot, onProgress } = props
   const visual = props.visual ?? visualPresets[props.qualityTier ?? 'standard']
   const { active: loadingAssets, progress: assetProgress } = useProgress()
-  useEffect(() => { props.onProgress(loadingAssets ? Math.min(90, assetProgress * .9) : 90) }, [loadingAssets, assetProgress, props.onProgress])
+  useEffect(() => { onProgress(loadingAssets ? Math.min(90, assetProgress * .9) : 90) }, [loadingAssets, assetProgress, onProgress])
   const [contextLost, setContextLost] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const modelOffsetRef = useRef(new Vector3())
-  const activeDefinition = props.vehicle.hotspots.find(hotspot => hotspot.id === props.activeHotspot)
+  const activeDefinition = props.vehicle.hotspots.find(hotspot => hotspot.id === activeHotspot)
   const activeMode = activeDefinition?.mode ?? props.hotspotMode ?? 'in-place'
   const sidebarOpen = !!activeDefinition && activeMode === 'zoom-sidebar'
   const [sidebarReadyId, setSidebarReadyId] = useState<string | null>(null)
-  const sidebarReady = sidebarOpen && sidebarReadyId === props.activeHotspot
+  const sidebarReady = sidebarOpen && sidebarReadyId === activeHotspot
   const [sidebarTransitionId, setSidebarTransitionId] = useState<string | null>(null)
   useEffect(() => {
-    if (sidebarReady) { setSidebarTransitionId(props.activeHotspot); return }
-    const timer = window.setTimeout(() => setSidebarTransitionId(null), 650)
+    const timer = window.setTimeout(() => setSidebarTransitionId(sidebarReady ? activeHotspot : null), sidebarReady ? 0 : 650)
     return () => clearTimeout(timer)
-  }, [sidebarReady, props.activeHotspot])
+  }, [sidebarReady, activeHotspot])
   const markers = useRef(new Map<string, HTMLDivElement>())
   const stageRef = useRef<HTMLDivElement>(null)
   const injectedWebglFault = useRef(false)
@@ -304,7 +316,7 @@ export function ModelStage(props: Props) {
     return () => query.removeEventListener('change', update)
   }, [])
   useEffect(() => {
-    if (!props.activeHotspot) return
+    if (!activeHotspot) return
     const pointers = new Map<number, { x: number; y: number }>()
     let gestureMoved = false
     const dismiss = (event: PointerEvent) => {
@@ -322,11 +334,11 @@ export function ModelStage(props: Props) {
       if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) gestureMoved = true
       pointers.delete(event.pointerId)
       if (!pointers.size) {
-        if (!gestureMoved && event.type === 'pointerup') props.onHotspot(null)
+        if (!gestureMoved && event.type === 'pointerup') onHotspot(null)
         gestureMoved = false
       }
     }
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') props.onHotspot(null) }
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') onHotspot(null) }
     document.addEventListener('pointerdown', dismiss)
     document.addEventListener('pointermove', move)
     document.addEventListener('pointerup', release)
@@ -337,7 +349,7 @@ export function ModelStage(props: Props) {
       document.removeEventListener('pointerup', release); document.removeEventListener('pointercancel', release)
       document.removeEventListener('keydown', escape)
     }
-  }, [props.activeHotspot, props.onHotspot])
+  }, [activeHotspot, onHotspot])
 
   if (contextLost) return <section className="model-failure" role="alert"><p className="eyebrow">3D MODULE INTERRUPTED</p><h2>The vehicle view needs to restart.</h2><p>Your selected configuration is preserved. Retry the renderer or return to the hub.</p><div><button className="primary-cta" onClick={() => { props.onReadyChange(false); props.onProgress(90); setContextLost(false) }}>Retry 3D view <span>↻</span></button><button className="recovery-back" onClick={props.onExit}>Return to hub</button></div></section>
 

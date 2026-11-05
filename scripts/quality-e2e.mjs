@@ -1,9 +1,11 @@
 import { chromium } from 'playwright-core'
 import axe from 'axe-core'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 
 const baseURL = process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177'
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=swiftshader'] })
 const context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, serviceWorkers: 'allow', reducedMotion: 'reduce', hasTouch: true })
+await grantPreviewAccess(context)
 const page = await context.newPage()
 const browserErrors = []
 const audits = []
@@ -87,7 +89,7 @@ await page.getByRole('button', { name: /close/i }).click()
 
 await page.getByRole('button', { name: /^share/i }).click()
 await page.getByRole('dialog', { name: /^share$/i }).waitFor()
-await page.getByLabel('Name').fill('Quality Test')
+await page.getByLabel('Full name').fill('Quality Test')
 await page.getByLabel('Email').fill('quality@example.com')
 await page.getByRole('button', { name: /type q/i }).click()
 await page.getByRole('button', { name: /backspace/i }).click()
@@ -112,6 +114,7 @@ await context.close()
 for (const route of process.env.SKIP_TIMER_CHECKS ? [] : ['share', 'media', 'configurator']) {
   console.log(`Checking inactivity reset from ${route}`)
   const timerContext = await browser.newContext({ viewport: { width: 1280, height: 720 }, serviceWorkers: 'block', hasTouch: true })
+  await grantPreviewAccess(timerContext)
   const timerPage = await timerContext.newPage()
   await timerPage.goto(`${baseURL}?testTimeout=12`, { waitUntil: 'networkidle' })
   await timerPage.getByRole('button', { name: /touch screen to begin/i }).click()
@@ -132,6 +135,7 @@ for (const route of process.env.SKIP_TIMER_CHECKS ? [] : ['share', 'media', 'con
 }
 
 const smallContext = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block', hasTouch: true })
+await grantPreviewAccess(smallContext)
 const smallPage = await smallContext.newPage()
 await smallPage.goto(baseURL, { waitUntil: 'networkidle' })
 await smallPage.getByRole('button', { name: /touch screen to begin/i }).click()
@@ -153,6 +157,7 @@ if (overlaps(formBounds, keyboardBounds) || keyHeight < 48) throw new Error('Sma
 await smallContext.close()
 
 const updateContext = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' })
+await grantPreviewAccess(updateContext)
 const updatePage = await updateContext.newPage()
 await updatePage.goto(baseURL, { waitUntil: 'networkidle' })
 await updatePage.keyboard.press('Control+Shift+D')

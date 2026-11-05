@@ -6,7 +6,10 @@ describe('versioned schemas', () => {
   it('rejects unsupported product schema versions', () => {
     expect(productSchema.safeParse({ ...seedProduct, schemaVersion: 2 }).success).toBe(false)
   })
-  it('requires a five-second timeout warning', () => {
+  it('requires a ten-second timeout warning', () => {
     expect(eventConfigSchema.safeParse({ schemaVersion: 1, id: 'x', version: '1', inactivitySeconds: 10, warningSeconds: 4, enabledModuleIds: ['x'], activeBundleVersion: '1', previousBundleVersion: null }).success).toBe(false)
+  })
+  it('rejects unsafe learn-more URL protocols', () => {
+    expect(productSchema.safeParse({ ...seedProduct, learnMoreUrl: 'javascript:alert(1)' }).success).toBe(false)
   })
 })

@@ -1,8 +1,10 @@
 import { chromium } from 'playwright-core'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 
 const baseURL = process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177'
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] })
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } })
+await grantPreviewAccess(page)
 
 await page.goto(baseURL, { waitUntil: 'networkidle' })
 await page.getByRole('button', { name: /touch screen to begin/i }).click()

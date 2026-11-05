@@ -1,9 +1,10 @@
 import { chromium } from 'playwright-core'
 import assert from 'node:assert/strict'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 const browser = await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']})
 try {
  for(const width of [1280,390]) {
-  const page=await browser.newPage({viewport:{width,height:844},serviceWorkers:'block'})
+  const page=await browser.newPage({viewport:{width,height:844},serviceWorkers:'block'});await grantPreviewAccess(page)
   const errors=[];page.on('pageerror',error=>errors.push(error.message))
   await page.addInitScript(() => { window.loadingPhases=[]; document.addEventListener('DOMContentLoaded',()=>new MutationObserver(()=>{const e=document.querySelector('.experience-loading');if(e)window.loadingPhases.push(e.dataset.phase)}).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['data-phase']})) })
   await page.goto(process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177')

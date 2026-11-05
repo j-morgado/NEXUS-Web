@@ -45,8 +45,8 @@ export function InactivityGuard({ enabled = true, timeoutSeconds, warningSeconds
 
   return <>
     {children}
-    {enabled && remaining !== null && createPortal(<div className="timeout-scrim"><button className="timeout-warning" role="alertdialog" aria-label="Session timeout warning" onClick={resetTimer}>
-      <strong>Are you still there?</strong><span className="timeout-count">:{String(remaining).padStart(2, '0')}</span><small>Tap to dismiss</small>
-    </button></div>, document.fullscreenElement ?? document.body)}
+    {enabled && remaining !== null && createPortal(<div className="timeout-scrim"><div className="timeout-warning" role="alertdialog" aria-modal="true" aria-label="Session timeout warning" onClick={resetTimer}>
+      <strong>Are you still there?</strong><span className="timeout-count">:{String(remaining).padStart(2, '0')}</span><button type="button" autoFocus onClick={resetTimer}>Tap to dismiss</button>
+    </div></div>, document.fullscreenElement ?? document.body)}
   </>
 }

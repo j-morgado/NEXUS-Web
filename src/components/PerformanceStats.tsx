@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 export type RenderStats = { fps: number; cpuMs: number; calls: number; triangles: number; geometries: number; textures: number; timestamp: number }
 export function PerformanceStats({ sceneActive }: { sceneActive: boolean }) {
   const [stats, setStats] = useState<RenderStats | null>(null)
-  const [now, setNow] = useState(performance.now())
+  const [now, setNow] = useState(0)
   useEffect(() => {
     const receive = (event: Event) => setStats((event as CustomEvent<RenderStats>).detail)
     window.addEventListener('nexus:render-stats', receive)

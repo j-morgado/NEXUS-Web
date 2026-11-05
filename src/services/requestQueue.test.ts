@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { enqueueRequest, getQueueHealth, injectQueueRecordForTest, listRequests, normalizeQueueError, QueuePersistenceError, unconfiguredTransport } from './requestQueue'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { DEDUPE_WINDOW_MS, enqueueRequest, getQueueHealth, injectQueueRecordForTest, listRequests, normalizeQueueError, QueuePersistenceError, unconfiguredTransport } from './requestQueue'
 
 describe('durable request queue', () => {
+  afterEach(() => vi.restoreAllMocks())
   it('persists pending status and suppresses duplicate taps', async () => {
     const input = { name: 'Test Visitor', email: 'dedupe@example.com', productId: 'jltv-demo' }
     const first = await enqueueRequest(input)
@@ -10,6 +11,15 @@ describe('durable request queue', () => {
     expect(second.duplicate).toBe(true)
     expect((await listRequests())).toHaveLength(1)
     expect(first.request.status).toBe('pending-not-configured')
+  })
+
+  it('suppresses rapid duplicates across an old fixed-window boundary', async () => {
+    const boundary = Math.ceil(Date.now() / DEDUPE_WINDOW_MS) * DEDUPE_WINDOW_MS
+    const input = { name: 'Boundary Visitor', email: 'boundary@example.com', productId: 'jltv-demo' }
+    vi.spyOn(Date, 'now').mockReturnValue(boundary - 1_000)
+    expect((await enqueueRequest(input)).duplicate).toBe(false)
+    vi.mocked(Date.now).mockReturnValue(boundary + 1_000)
+    expect((await enqueueRequest(input)).duplicate).toBe(true)
   })
 
   it('quarantines corrupt records without losing valid requests', async () => {

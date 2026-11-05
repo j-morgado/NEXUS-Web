@@ -1,9 +1,11 @@
 import { chromium } from 'playwright-core'
 import assert from 'node:assert/strict'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', args: ['--no-sandbox'] })
 try {
   for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 }]) {
     const page = await browser.newPage({ viewport, serviceWorkers: 'block' })
+    await grantPreviewAccess(page)
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     await page.goto(process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177')
@@ -86,6 +88,7 @@ try {
   }
   // A fullscreen media frame must still host the global idle warning.
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' })
+  await grantPreviewAccess(page)
   await page.goto('http://127.0.0.1:4177?testTimeout=3')
   await page.getByRole('button', { name: 'Touch Screen to Begin' }).click()
   await page.getByRole('button', { name: /^Explorer/ }).click()

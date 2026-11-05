@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "check:assets": "node scripts/check-private-assets.mjs",
+    "dev": "npm run check:assets && vite --host 0.0.0.0",
+    "build": "npm run check:assets && tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint .",
     "test": "vitest run",
@@ -18,7 +19,16 @@
     "preview": "vite preview --host 0.0.0.0",
     "test:e2e:experience": "node scripts/experience-e2e.mjs",
     "test:e2e:addons": "node scripts/addon-transition-e2e.mjs",
-    "test:e2e:media": "node scripts/media-viewer-e2e.mjs"
+    "test:e2e:media": "node scripts/media-viewer-e2e.mjs",
+    "test:e2e:dev-options": "node scripts/dev-options-e2e.mjs",
+    "test:e2e:explorer-entrance": "node scripts/explorer-entrance-e2e.mjs",
+    "test:e2e:hotspot-modes": "node scripts/hotspot-modes-e2e.mjs",
+    "test:e2e:media-fade": "node scripts/media-fade-e2e.mjs",
+    "test:e2e:media-gallery": "node scripts/media-gallery-e2e.mjs",
+    "test:e2e:module-transitions": "node scripts/module-transitions-e2e.mjs",
+    "test:e2e:scene-loading": "node scripts/scene-loading-e2e.mjs",
+    "test:e2e:share-motion": "node scripts/share-motion-e2e.mjs",
+    "test:e2e:timeout-presentation": "node scripts/timeout-presentation-e2e.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.6",

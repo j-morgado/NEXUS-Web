@@ -33,6 +33,7 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
   const featureIntroTimer = useRef<number | undefined>(undefined)
   const marketsIntroduced = useRef(false)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const shareDialogRef = useRef<HTMLElement>(null)
   const preview = useMemo(() => createEmailPreview(emailProduct(product)), [product])
   useEffect(() => { if (overlay !== 'none') closeRef.current?.focus() }, [overlay])
   useEffect(() => {
@@ -49,13 +50,13 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
     return () => clearTimeout(featureIntroTimer.current)
   }, [active, product.id, product.features.length])
   useEffect(() => {
-    if (overlay !== 'media') { setMediaRevealed(false); return }
+    if (overlay !== 'media') return
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => setMediaRevealed(true))
     })
     return () => cancelAnimationFrame(frame)
   }, [overlay])
-  const closeShare = useCallback(() => setOverlayClosing(true), [])
+  const closeShare = useCallback(() => { setMediaRevealed(false); setOverlayClosing(true) }, [])
   useEffect(() => {
     if (!overlayClosing) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -82,7 +83,7 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
   const setKeyboardValue = activeField === 'name' ? setName : setEmail
 
   return <main id="main-content" className={`catalog-explorer ${active ? 'is-presenting' : ''}`}>
-    <div className="catalog-body">
+    <div className="catalog-body" inert={overlay !== 'none'}>
     <aside className="catalog-nav"><header><h1>Explorer</h1><p>Browse our catalogue of products and services, their related features, details, media and more.</p></header>
       <div className="market-accordion">{catalogMarkets.map((market, marketIndex) => {
         const expanded = openMarket === market.id
@@ -111,9 +112,16 @@ export function Explorer({ onExit, active = true }: { onExit: () => void; active
     </div>
     {overlay !== 'none' && <div className={`explorer-overlay ${overlay === 'share' || overlay === 'saved' ? 'share-overlay' : 'media-overlay'} ${overlayClosing ? 'is-closing' : ''} ${mediaRevealed ? 'is-revealed' : ''}`} inert={overlayClosing} onClick={event => {
       if ((overlay === 'share' || overlay === 'saved') && event.target instanceof Element && !event.target.closest('.share-form, .touch-keyboard, .share-saved')) closeShare()
-    }} onKeyDown={event => { if (event.key === 'Escape' && (overlay === 'share' || overlay === 'saved')) { event.stopPropagation(); closeShare() } }}>
+    }} onKeyDown={event => {
+      if (event.key === 'Escape' && (overlay === 'share' || overlay === 'saved')) { event.stopPropagation(); closeShare(); return }
+      if (event.key !== 'Tab' || (overlay !== 'share' && overlay !== 'saved')) return
+      const focusable = Array.from(shareDialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [tabindex="0"]') ?? []).filter(element => element.getClientRects().length)
+      const first = focusable[0], last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }}>
       {overlay === 'media' && <MediaViewer media={selectedMedia} items={product.media} onSelect={setSelectedMedia} onClose={closeMedia} />}
-      {(overlay === 'share' || overlay === 'saved') && <section className="share-lightbox" inert={overlayClosing} role="dialog" aria-modal="true" aria-labelledby="share-title"><header><h2 id="share-title">Share</h2><p>To receive more information regarding this product please fill out the following information.</p></header><button ref={closeRef} className="overlay-x" onClick={closeShare} aria-label="Close share dialog">×</button>{overlay === 'share' ? <><div className="share-form" data-email-subject={preview.subject}><label>Full name<input aria-label="Name" value={name} onFocus={() => setActiveField('name')} onChange={(event) => setName(event.target.value)} /></label><label>Email address<input aria-label="Email" type="email" value={email} onFocus={() => setActiveField('email')} onChange={(event) => setEmail(event.target.value)} /></label>{error && <p role="alert">{error}</p>}<button className="outline-pill" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'} <span>→</span></button></div><TouchKeyboard value={keyboardValue} onChange={setKeyboardValue} /></> : <div className="share-saved"><h3>Request saved locally.</h3><p>Pending — email service not configured. It has not been sent or delivered.</p><button className="outline-pill" onClick={() => { setName(''); setEmail(''); closeShare() }}>Return to Explorer</button></div>}</section>}
+      {(overlay === 'share' || overlay === 'saved') && <section ref={shareDialogRef} className="share-lightbox" inert={overlayClosing} role="dialog" aria-modal="true" aria-labelledby="share-title"><header><h2 id="share-title">Share</h2><p>To receive more information regarding this product please fill out the following information.</p></header><button ref={closeRef} className="overlay-x" onClick={closeShare} aria-label="Close share dialog">×</button>{overlay === 'share' ? <><form className="share-form" data-email-subject={preview.subject} onSubmit={event => { event.preventDefault(); void submit() }}><label>Full name<input name="name" autoComplete="name" value={name} onFocus={() => setActiveField('name')} onChange={(event) => setName(event.target.value)} /></label><label>Email address<input name="email" autoComplete="email" type="email" value={email} onFocus={() => setActiveField('email')} onChange={(event) => setEmail(event.target.value)} /></label>{error && <p role="alert">{error}</p>}<button type="submit" className="outline-pill" disabled={submitting}>{submitting ? 'Saving…' : 'Submit'} <span>→</span></button></form><TouchKeyboard value={keyboardValue} onChange={setKeyboardValue} /></> : <div className="share-saved"><h3>Request saved locally.</h3><p>Pending — email service not configured. It has not been sent or delivered.</p><button className="outline-pill" onClick={() => { setName(''); setEmail(''); closeShare() }}>Return to Explorer</button></div>}</section>}
     </div>}
   </main>
 }

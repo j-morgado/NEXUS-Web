@@ -50,6 +50,10 @@ export const defaultSettings: OperatorSettings = {
   locallyDisabledModuleIds: [],
 }
 
+export function isModuleEnabled(config: EventConfig, settings: OperatorSettings, moduleId: string) {
+  return config.enabledModuleIds.includes(moduleId) && !settings.locallyDisabledModuleIds.includes(moduleId)
+}
+
 async function checksum(config: EventConfig) {
   const bytes = new TextEncoder().encode(JSON.stringify(config))
   const digest = await crypto.subtle.digest('SHA-256', bytes)
@@ -130,7 +134,7 @@ export async function getOperatorSettings(): Promise<OperatorSettings> {
 
 export async function saveOperatorSettings(input: unknown): Promise<OperatorSettings> {
   const settings = operatorSettingsSchema.parse(input)
-  localStorage.setItem(OPERATOR_LOCAL_KEY, JSON.stringify(settings))
+  try { localStorage.setItem(OPERATOR_LOCAL_KEY, JSON.stringify(settings)) } catch { /* IndexedDB remains available when synchronous storage is blocked. */ }
   await (await database()).put(SETTINGS, settings, OPERATOR_KEY)
   return settings
 }

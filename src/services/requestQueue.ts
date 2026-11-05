@@ -9,6 +9,7 @@ const pendingRequestSchema = z.object({
   productId: z.string().min(1),
   status: z.literal('pending-not-configured'),
   dedupeKey: z.string().min(1),
+  dedupeIdentity: z.string().min(1).optional(),
 })
 
 export type PendingRequest = z.infer<typeof pendingRequestSchema>
@@ -45,45 +46,56 @@ export function normalizeQueueError(error: unknown) {
 const DB_NAME = 'nexus-local-outbox-v1'
 const STORE = 'requests'
 const QUARANTINE = 'quarantine'
-const DEDUPE_WINDOW_MS = 5 * 60 * 1000
+export const DEDUPE_WINDOW_MS = 5 * 60 * 1000
 
-const db = () => openDB(DB_NAME, 2, {
-  upgrade(database, oldVersion) {
+const db = () => openDB(DB_NAME, 3, {
+  upgrade(database, oldVersion, _newVersion, transaction) {
     if (oldVersion < 1) {
       const store = database.createObjectStore(STORE, { keyPath: 'id' })
       store.createIndex('dedupeKey', 'dedupeKey', { unique: true })
     }
     if (oldVersion < 2) database.createObjectStore(QUARANTINE, { keyPath: 'quarantineId' })
+    if (oldVersion < 3) {
+      const store = transaction.objectStore(STORE)
+      if (store.indexNames.contains('dedupeKey')) store.deleteIndex('dedupeKey')
+      store.createIndex('dedupeIdentity', 'dedupeIdentity')
+    }
   },
 })
 
-function dedupeKey(email: string, productId: string, now = Date.now()) {
-  return `${email.trim().toLowerCase()}|${productId}|${Math.floor(now / DEDUPE_WINDOW_MS)}`
+function dedupeIdentity(email: string, productId: string) {
+  return `${email.trim().toLowerCase()}|${productId}`
 }
 
 export async function enqueueRequest(input: Pick<PendingRequest, 'name' | 'email' | 'productId'>) {
   const database = await db()
-  const key = dedupeKey(input.email, input.productId)
-  const previous = await database.getFromIndex(STORE, 'dedupeKey', key)
-  const parsedPrevious = pendingRequestSchema.safeParse(previous)
-  if (parsedPrevious.success) return { request: parsedPrevious.data, duplicate: true }
+  const identity = dedupeIdentity(input.email, input.productId)
+  const now = Date.now()
+  const transaction = database.transaction(STORE, 'readwrite')
+  const store = transaction.store
+  const candidates = await store.getAll()
+  const previous = candidates.map(record => pendingRequestSchema.safeParse(record)).find(result => result.success && (result.data.dedupeIdentity ?? result.data.dedupeKey.replace(/\|[^|]+$/, '')) === identity && Date.parse(result.data.createdAt) >= now - DEDUPE_WINDOW_MS)
+  if (previous?.success) {
+    await transaction.done
+    return { request: previous.data, duplicate: true }
+  }
 
+  const id = crypto.randomUUID()
   const request = pendingRequestSchema.parse({
     ...input,
     name: input.name.trim(),
     email: input.email.trim().toLowerCase(),
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
+    id,
+    createdAt: new Date(now).toISOString(),
     status: 'pending-not-configured',
-    dedupeKey: key,
+    dedupeKey: `${identity}|${now}|${id}`,
+    dedupeIdentity: identity,
   })
   try {
-    await database.add(STORE, request)
+    await store.add(request)
+    await transaction.done
     return { request, duplicate: false }
   } catch (error) {
-    const concurrent = await database.getFromIndex(STORE, 'dedupeKey', key)
-    const parsedConcurrent = pendingRequestSchema.safeParse(concurrent)
-    if (parsedConcurrent.success) return { request: parsedConcurrent.data, duplicate: true }
     throw normalizeQueueError(error)
   }
 }

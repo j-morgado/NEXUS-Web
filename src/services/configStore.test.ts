@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { seedEventConfig } from '../content/seed'
-import { getConfigState, getOperatorSettings, injectConfigRecordForTest, rollbackEventConfig, saveOperatorSettings, stageAndActivateEventConfig } from './configStore'
+import { defaultSettings, getConfigState, getOperatorSettings, injectConfigRecordForTest, isModuleEnabled, rollbackEventConfig, saveOperatorSettings, stageAndActivateEventConfig } from './configStore'
 
 describe('local configuration store', () => {
   it('maintains active and previous bundles and rolls back safely', async () => {
@@ -20,6 +20,12 @@ describe('local configuration store', () => {
     expect((await getConfigState()).active.key).toBe(before.active.key)
   })
 
+  it('combines published and device-local module availability', () => {
+    expect(isModuleEnabled(seedEventConfig, defaultSettings, 'jltv')).toBe(true)
+    expect(isModuleEnabled(seedEventConfig, { ...defaultSettings, locallyDisabledModuleIds: ['jltv'] }, 'jltv')).toBe(false)
+    expect(isModuleEnabled({ ...seedEventConfig, enabledModuleIds: ['other'] }, defaultSettings, 'jltv')).toBe(false)
+  })
+
   it('recovers from a corrupt active bundle using the previous verified bundle', async () => {
     const good = await stageAndActivateEventConfig({ ...seedEventConfig, version: '0.3.0', activeBundleVersion: 'jltv-0.3.0' })
     await injectConfigRecordForTest('corrupt@1', { key: 'corrupt@1', config: {}, checksum: 'bad' }, { active: 'corrupt@1', previous: good.key })
@@ -37,6 +43,13 @@ describe('local configuration store', () => {
     const pending = saveOperatorSettings({ inactivitySeconds: 60, qualityTier: 'standard', updateChecksEnabled: false, locallyDisabledModuleIds: [] })
     expect(JSON.parse(localStorage.getItem('nexus-operator-settings-v1') ?? '{}').updateChecksEnabled).toBe(false)
     await pending
+  })
+  it('falls back to IndexedDB when synchronous storage is blocked', async () => {
+    localStorage.clear()
+    const blocked = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => { throw new DOMException('blocked', 'SecurityError') })
+    await saveOperatorSettings({ ...defaultSettings, inactivitySeconds: 180 })
+    blocked.mockRestore()
+    expect(await getOperatorSettings()).toMatchObject({ inactivitySeconds: 180 })
   })
   it('migrates legacy quality settings and persists custom effect choices', async () => {
     await saveOperatorSettings({ inactivitySeconds: 60, qualityTier: 'high', updateChecksEnabled: true, locallyDisabledModuleIds: [] })

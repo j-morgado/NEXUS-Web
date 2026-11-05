@@ -8,7 +8,7 @@ import { DepthTexture, HalfFloatType, Matrix4, Mesh, NoBlending, OrthographicCam
 /** Consistent scene output; five depth-reprojected samples only during camera motion. */
 export function CameraMotionBlur({ reducedMotion, statusRef, visual, showPerformanceStats }: { visual: VisualSettings; showPerformanceStats: boolean; reducedMotion: boolean; statusRef: RefObject<HTMLDivElement | null> }) {
   const { gl, size, invalidate } = useThree()
-  const statsWindow = useRef({ start: performance.now(), frames: 0 })
+  const statsWindow = useRef({ start: 0, frames: 0 })
   const firstFrame = useRef(true)
   const renderedFrames = useRef(0)
   const previous = useMemo(() => new Matrix4(), [])
@@ -188,6 +188,7 @@ export function CameraMotionBlur({ reducedMotion, statusRef, visual, showPerform
     gl.render(pipeline.scene, pipeline.camera)
     if (showPerformanceStats) {
       const window = statsWindow.current
+      if (window.start === 0) window.start = started
       window.frames++
       const now = performance.now(), elapsed = now - window.start
       if (elapsed >= 500 || firstFrame.current) {

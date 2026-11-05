@@ -1,9 +1,11 @@
 import { chromium } from 'playwright-core'
 import assert from 'node:assert/strict'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] })
 try {
   for (const viewport of [{ width: 1280, height: 720 }, { width: 960, height: 640 }, { width: 390, height: 844 }]) {
     const page = await browser.newPage({ viewport, serviceWorkers: 'block' })
+    await grantPreviewAccess(page)
     await page.goto(`${process.env.NEXUS_PREVIEW_URL ?? 'http://127.0.0.1:4177'}?testTimeout=3`)
     await page.getByRole('button', { name: 'Touch Screen to Begin' }).click()
     const dialog = page.getByRole('alertdialog')

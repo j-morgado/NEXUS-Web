@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { HubCardMedia, type HubCardMediaMode } from '../components/HubCardMedia'
 
-export function Selector({ onJLTV, onExplorer, jltvDisabled = false, animateEntrance = false, jltvMediaMode = 'video' }: { onJLTV: () => void; onExplorer: () => void; onReset: () => void; jltvDisabled?: boolean; animateEntrance?: boolean; jltvMediaMode?: HubCardMediaMode }) {
+export function Selector({ onJLTV, onExplorer, jltvDisabled = false, animateEntrance = false, jltvMediaMode = 'video' }: { onJLTV: () => void; onExplorer: () => void; jltvDisabled?: boolean; animateEntrance?: boolean; jltvMediaMode?: HubCardMediaMode }) {
   const carouselRef = useRef<HTMLElement>(null)
   const [edges, setEdges] = useState({ start: true, end: false })
 

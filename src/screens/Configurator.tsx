@@ -12,8 +12,9 @@ export function Configurator({ onExit, qualityTier = 'standard', visual = visual
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [activeAddon, setActiveAddon] = useState<string | null>(null)
   const [panelAddon, setPanelAddon] = useState<string | null>(null)
-  const [activeHotspot, setActiveHotspot] = useState<string | null>(null)
-  useEffect(() => { setActiveHotspot(null) }, [hotspotMode])
+  const [hotspotSelection, setHotspotSelection] = useState<{ id: string | null; mode: HotspotMode }>({ id: null, mode: hotspotMode })
+  const activeHotspot = hotspotSelection.mode === hotspotMode ? hotspotSelection.id : null
+  const setActiveHotspot = (id: string | null) => setHotspotSelection({ id, mode: hotspotMode })
   useEffect(() => {
     return () => signalModule('module:exit', 'jltv')
   }, [])

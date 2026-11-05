@@ -1,8 +1,9 @@
 import {chromium} from 'playwright-core'
 import assert from 'node:assert/strict'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 const b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']})
 try {
- const p=await b.newPage({viewport:{width:960,height:640},serviceWorkers:'block'})
+ const p=await b.newPage({viewport:{width:960,height:640},serviceWorkers:'block'});await grantPreviewAccess(p)
  const errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())})
  let release;const gate=new Promise(r=>release=r)
  await p.route('**/jltv-runtime.glb',async route=>{await gate;await route.continue()})

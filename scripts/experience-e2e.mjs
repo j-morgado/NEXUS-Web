@@ -1,8 +1,10 @@
 import { chromium } from 'playwright-core'
 import assert from 'node:assert/strict'
+import { grantPreviewAccess } from './e2e-helpers.mjs'
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
 const page = await browser.newPage({ viewport: { width: 960, height: 640 }, deviceScaleFactor: 1 })
+await grantPreviewAccess(page)
 const errors = []
 page.on('pageerror', error => errors.push(error.message))
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
@@ -19,13 +21,18 @@ try {
   const heading = await page.locator('.vehicle-heading').boundingBox()
   assert(heading.y < 100)
   assert.equal((await read()).addonVisible, 'false')
-  for (const addon of [1, 2, 3, 3, 1, 1]) {
-    await page.getByRole('button', { name: new RegExp(`Add-on ${addon}`) }).click()
+  const addonButtons = page.locator('.addon-menu-item')
+  const addonCount = await addonButtons.count()
+  assert(addonCount > 0)
+  for (let addon = 0; addon < addonCount; addon++) {
+    await addonButtons.nth(addon).click()
     const active = await page.locator('.bottom-config [aria-pressed="true"]').count()
     assert(active <= 1)
-    const attached = await page.getByRole('button', { name: 'Add-on 1', exact: true }).getAttribute('aria-pressed') === 'true'
+    const attached = await addonButtons.first().getAttribute('aria-pressed') === 'true'
     await page.waitForFunction(expected => document.querySelector('.model-stage').dataset.addonVisible === String(expected), attached)
   }
+  await page.locator('.bottom-config [aria-pressed="true"]').click()
+  await page.waitForFunction(() => document.querySelector('.model-stage').dataset.addonVisible === 'false')
   assert.equal((await read()).addonVisible, 'false')
   console.log('Navigation and all exclusive/toggle-off add-on states passed')
 
