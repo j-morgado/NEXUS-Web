@@ -19,6 +19,8 @@ The proprietary runtime model, supplied brand references, card image, and privat
 
 `npm run check:assets` validates the bundle. The preserved source model and original handoff must remain outside the repository.
 
+Hosted builds may set the sensitive `NEXUS_PRIVATE_ASSET_MANIFEST` environment variable to a JSON object keyed by the paths above. Each value must provide a private `url` and its expected `sha1`. The asset check downloads missing files, verifies their integrity, and keeps the bundle out of source control.
+
 ## Verify
 
 ```bash
