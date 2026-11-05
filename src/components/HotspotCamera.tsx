@@ -44,7 +44,6 @@ export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOf
       if (nextPhiDirection) phiDirection = nextPhiDirection
     }
     const onPointerDown = (event: PointerEvent) => {
-      if (pointers.size === 0) { thetaDirection = 0; phiDirection = 0 }
       pointers.set(event.pointerId, { x: event.pageX, y: event.pageY, button: event.button, type: event.pointerType })
     }
     const onPointerMove = (event: PointerEvent) => {
@@ -78,7 +77,7 @@ export function HotspotCamera({ activeHotspot, vehicle, mode, statusRef, modelOf
       }
       pointers.set(event.pointerId, next)
     }
-    const onPointerUp = (event: PointerEvent) => { pointers.delete(event.pointerId); if (pointers.size === 0) { thetaDirection = 0; phiDirection = 0 }; restoreSpeeds() }
+    const onPointerUp = (event: PointerEvent) => { pointers.delete(event.pointerId); restoreSpeeds() }
     const onWheel = (event: WheelEvent) => {
       const distance = orbit.getDistance()
       const factor = resistance(0, 0, Math.sign(event.deltaY) * distance * .05)

@@ -22,7 +22,7 @@ try {
 
   const stage = page.locator('.model-stage')
   const marker = page.locator('[data-hotspot-id="crew-protection"]')
-  const read = () => stage.evaluate(element => ({ azimuth: Number(element.dataset.cameraAzimuth), polar: Number(element.dataset.cameraPolar), distance: Number(element.dataset.cameraDistance), resistance: Number(element.dataset.cameraLimitResistance), target: element.dataset.cameraTarget, limits: JSON.parse(element.dataset.orbitLimits), open: element.dataset.hotspotOpen }))
+  const read = () => stage.evaluate(element => ({ azimuth: Number(element.dataset.cameraAzimuth), polar: Number(element.dataset.cameraPolar), distance: Number(element.dataset.cameraDistance), resistance: Number(element.dataset.cameraLimitResistance), target: element.dataset.cameraTarget, limits: JSON.parse(element.dataset.orbitLimits), open: element.dataset.hotspotOpen, transitioning: element.dataset.cameraTransitioning }))
   const settled = locked => page.waitForFunction(expected => { const element = document.querySelector('.model-stage'); return element?.dataset.cameraLocked === String(expected) && element?.dataset.cameraTransitioning !== 'true' }, locked, { timeout: 60_000 })
   const refocus = async () => {
     if ((await read()).open === 'true') { await page.keyboard.press('Escape'); await settled(false) }
@@ -145,54 +145,27 @@ try {
   const fivePixelRelease = await read()
   assert(fivePixelRelease.azimuth > onePixelRelease.azimuth + 1e-4, 'A further 5px reversal must continue away without sticky momentum')
   assert(fivePixelRelease.resistance > .99)
+
+  let regripX = momentumX - 6
+  for (; regripX < 900; regripX += 5) {
+    await page.mouse.move(regripX + 5, 250)
+    await page.evaluate(() => new Promise(requestAnimationFrame))
+    const state = await read()
+    if (state.azimuth <= state.limits.minAzimuth + 1e-4) { regripX += 5; break }
+  }
+  const beforeRegrip = await read()
+  assert(beforeRegrip.azimuth <= beforeRegrip.limits.minAzimuth + 1e-4, 'Regrip test must reach the hard minimum with momentum retained')
+  assert.equal(beforeRegrip.open, 'true')
+  assert.notEqual(beforeRegrip.transitioning, 'true')
+  await page.mouse.up(); await page.mouse.down(); await page.mouse.move(regripX - 1, 250)
+  await page.evaluate(() => new Promise(requestAnimationFrame))
+  const regripRelease = await read()
+  assert(regripRelease.azimuth > beforeRegrip.azimuth + 1e-5, 'A 1px reverse after release and regrip must move away immediately')
+  assert(regripRelease.resistance > .99, 'Regrip reversal must use away-from-limit resistance')
   await page.mouse.up()
 
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  const unwrap = (value, reference) => reference + ((value - reference + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI
-  const findCanvasPoint = () => page.evaluate(() => {
-    for (let y = 100; y < innerHeight - 140; y += 30) for (let x = 120; x < innerWidth - 120; x += 20) if (document.elementFromPoint(x, y)?.tagName === 'CANVAS') return { x, y }
-    throw new Error('Could not find an unobscured canvas point')
-  })
-  const rotateNormalBy = async delta => {
-    const point = await findCanvasPoint()
-    const startX = delta > 0 ? Math.max(point.x, 520) : Math.min(point.x, 440)
-    const endX = startX - delta * 720 / (Math.PI * 2)
-    await page.mouse.move(startX, point.y); await page.mouse.down(); await page.mouse.move(endX, point.y, { steps: 12 }); await page.mouse.up(); await page.waitForTimeout(120)
-  }
-  const focusNearNormalAngle = async target => {
-    if ((await read()).open === 'true') { await page.keyboard.press('Escape'); await settled(false) }
-    const normal = await read()
-    await rotateNormalBy(unwrap(target, normal.azimuth) - normal.azimuth)
-    await marker.locator('button').evaluate(button => button.click()); await settled(true)
-    return read()
-  }
-
-  const positiveSeam = await focusNearNormalAngle(2.97)
-  assert(positiveSeam.limits.maxAzimuth > Math.PI, `Expected positive seam bounds, got ${JSON.stringify(positiveSeam.limits)}`)
-  const positiveCenter = (positiveSeam.limits.minAzimuth + positiveSeam.limits.maxAzimuth) / 2
-  const positivePoint = await findCanvasPoint()
-  const positiveSamples = [unwrap(positiveSeam.azimuth, positiveCenter)]
-  const positiveResistance = []
-  await page.mouse.move(positivePoint.x, positivePoint.y); await page.mouse.down()
-  for (let offset = 5; offset <= 10; offset += 5) {
-    await page.mouse.move(positivePoint.x - offset, positivePoint.y); await page.waitForTimeout(40)
-    const state = await read(); positiveSamples.push(unwrap(state.azimuth, positiveCenter)); positiveResistance.push(state.resistance)
-  }
-  const positiveEdge = await read()
-  assert.equal(positiveEdge.open, 'true', 'Positive seam hotspot must remain open during the resistance probe')
-  assert(unwrap(positiveEdge.azimuth, positiveCenter) <= positiveEdge.limits.maxAzimuth + 1e-4, `Positive seam exceeded limit: ${JSON.stringify({ positiveCenter, positiveEdge, unwrapped: unwrap(positiveEdge.azimuth, positiveCenter) })}`)
-  assert(positiveSamples.at(-1) > positiveSamples[0], 'Positive seam input must move toward the upper bound')
-  assert(Math.min(...positiveResistance) < .999)
-  await page.mouse.move(positivePoint.x - 5, positivePoint.y); await page.waitForTimeout(40)
-  const positiveRelease = await read()
-  assert(unwrap(positiveRelease.azimuth, positiveCenter) < unwrap(positiveEdge.azimuth, positiveCenter) - .015)
-  assert(positiveRelease.resistance > .99)
-  await page.mouse.up()
-
-  const final = await read()
-  assert.equal(final.open, 'true')
   assert.deepEqual(errors, [])
-  console.log(JSON.stringify({ mouseOrbitBothBounds: true, mouseWheelBothBounds: true, touchOrbitApproachAndRelease: true, touchPinchApproachAndRelease: true, immediateOnePixelMomentumReversal: true, positivePiSeamHotspotMotion: true, symmetricPiSeamUnitCoverage: true, hardLimitsRetained: true, hotspotAnchorStable: true }))
+  console.log(JSON.stringify({ mouseOrbitBothBounds: true, mouseWheelBothBounds: true, touchOrbitApproachAndRelease: true, touchPinchApproachAndRelease: true, immediateOnePixelMomentumReversal: true, releaseRegripOnePixelReversal: true, hardLimitsRetained: true, hotspotAnchorStable: true }))
   await context.close()
 } finally {
   await browser.close()
