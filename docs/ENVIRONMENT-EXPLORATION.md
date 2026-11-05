@@ -30,8 +30,10 @@ The exploration is available only through the review harness query `?environment
 - SEA visibly animates its surface, vessel buoyancy, and waterline contact foam. The vessel is labeled `CONCEPT STAND-IN · FINAL ART PENDING`.
 - AIR shows moving cloud layers and an aircraft-shaped stand-in against a suitable atmospheric background. The aircraft is labeled `CONCEPT STAND-IN · FINAL ART PENDING`.
 - Switching environments updates the scene title, description, status metadata, and environment-specific creator control.
+- LAND remains static between interactions and does not expose a non-functional ambient-motion control.
 - Creator controls can change key light, fill light, fog, accent color, and the active environment characteristic; Reset restores that environment's preset; Copy JSON produces a serializable configuration.
 - Keyboard focus is visible, selector state is exposed with `aria-pressed`, and the creator controls are usable without pointer input.
+- Environment switching preserves the WebGL canvas, and reduced-motion preference pauses scene animation as well as CSS transitions.
 - The branch passes typecheck, lint, unit tests, production build, and its environment browser check. Existing unrelated failures, if any, are reported separately.
 - Review screenshots exist for all three environments at 1440×900, and browser console/page errors are reported.
 
@@ -39,7 +41,7 @@ The exploration is available only through the review harness query `?environment
 
 This prototype uses no paid service and adds no production infrastructure. It reuses the existing Three.js stack and local assets.
 
-The animated sea is intentionally visual rather than a full fluid simulation. Buoyancy samples the same deterministic wave function used to position the stand-in, which is plausible and inexpensive but not physics-authoritative. Contact foam is a lightweight animated signed-distance mask rather than fluid interaction. Production ships would need authored hull data and calibrated buoyancy points.
+The animated sea is intentionally visual rather than a full fluid simulation. Buoyancy samples the same deterministic wave function at the hull center, bow, stern, port, and starboard points, which is plausible and inexpensive but not physics-authoritative. Contact foam uses the same wave displacement across a subdivided hull-footprint mask, so it follows the rendered surface rather than a detached fixed ring. It remains a lightweight visual approximation, not fluid interaction. Production ships would need authored hull data and calibrated buoyancy points.
 
 Clouds are bounded transparent meshes with deterministic drift. This keeps the prototype responsive, but final air art should use approved cloud volumes or baked cards and an approved aircraft model.
 
@@ -55,5 +57,7 @@ The implemented harness is intentionally reachable only at `?environmentLab=1` b
 | Sea | [sea.webp](environment-exploration-evidence/sea.webp) |
 | Air | [air.webp](environment-exploration-evidence/air.webp) |
 | Creator controls | [creator-tools.webp](environment-exploration-evidence/creator-tools.webp) |
+| Sea contact foam | [sea-contact-foam.webp](environment-exploration-evidence/sea-contact-foam.webp) |
+| Mobile landscape creator controls | [mobile-landscape-creator.webp](environment-exploration-evidence/mobile-landscape-creator.webp) |
 
-The browser check verifies route isolation, selector state, dynamic frame changes for sea and air, creator-control editing/reset/copy, 1440×900 captures, and no browser console or page errors.
+The remediation browser pass also captures a close crop of the sea contact foam and an `844×390` landscape view of the open creator panel. It verifies the ocean wave phase, sampled buoyancy height, and foam phase independently; repeated LAND/SEA/AIR switches on one canvas; static demand rendering for LAND; creator edit/reset/export; reduced-motion pausing; access-gate and noindex behavior; normal-route isolation; and no browser console or page errors. The vessel and aircraft remain explicitly labeled concept stand-ins.

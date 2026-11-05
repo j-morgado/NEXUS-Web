@@ -1,6 +1,6 @@
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
-import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { BackSide, Box3, Color, Group, Mesh, ShaderMaterial, Vector3 } from 'three'
 import { cloneEnvironmentPresets, environmentOrder, environmentPresets, serializeEnvironmentConfig, type EnvironmentConfig, type EnvironmentKind } from '../environment/environmentConfig'
 
@@ -64,7 +64,7 @@ function LandScene({ config }: { config: EnvironmentConfig }) {
   </>
 }
 
-function OceanSurface({ config }: { config: EnvironmentConfig }) {
+function OceanSurface({ config, reducedMotion }: { config: EnvironmentConfig; reducedMotion: boolean }) {
   const material = useRef<ShaderMaterial>(null)
   const uniforms = useMemo(() => ({
     time: { value: 0 },
@@ -73,7 +73,11 @@ function OceanSurface({ config }: { config: EnvironmentConfig }) {
     deep: { value: new Color('#101943') },
     crest: { value: new Color(config.accent) },
   }), [config.accent, config.detail, config.motion])
-  useFrame(state => { if (material.current) material.current.uniforms.time.value = state.clock.elapsedTime })
+  useFrame(state => {
+    const time = reducedMotion ? 0 : state.clock.elapsedTime
+    if (material.current) material.current.uniforms.time.value = time
+    state.gl.domElement.dataset.wavePhase = time.toFixed(3)
+  })
   return <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
     <planeGeometry args={[180, 180, 96, 96]} />
     <shaderMaterial ref={material} uniforms={uniforms} vertexShader={`uniform float time,motion,detail; varying float vWave; varying vec2 vUv; void main(){vUv=uv; vec3 p=position; float speed=.45+motion*1.25; float amp=.12+motion*.38; float w=sin(p.x*.22+time*speed)*.52+sin(p.y*.31-time*speed*.73)*.31+sin((p.x+p.y)*.13+time*.43)*.17; p.z+=w*amp*(.7+detail*.3); vWave=w; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`} fragmentShader={`uniform vec3 deep,crest; uniform float time,detail; varying float vWave; varying vec2 vUv; void main(){float shimmer=.5+.5*sin((vUv.x+vUv.y)*210.+time*1.7); float foam=smoothstep(.48,.9,vWave)*(.4+.6*shimmer)*detail; float depth=.16+smoothstep(-.75,.85,vWave)*.32; vec3 color=mix(deep,crest,depth+foam*.42); gl_FragColor=vec4(color,1.);
@@ -82,36 +86,51 @@ function OceanSurface({ config }: { config: EnvironmentConfig }) {
   </mesh>
 }
 
-function waveSample(time: number, motion: number) {
+function waveSample(x: number, y: number, time: number, motion: number, detail: number) {
   const speed = .45 + motion * 1.25
-  return (Math.sin(time * speed) * .52 + Math.sin(-time * speed * .73) * .31 + Math.sin(time * .43) * .17) * (.12 + motion * .38)
+  const wave = Math.sin(x * .22 + time * speed) * .52
+    + Math.sin(y * .31 - time * speed * .73) * .31
+    + Math.sin((x + y) * .13 + time * .43) * .17
+  return wave * (.12 + motion * .38) * (.7 + detail * .3)
 }
 
-function ContactFoam({ config }: { config: EnvironmentConfig }) {
+function ContactFoam({ config, reducedMotion }: { config: EnvironmentConfig; reducedMotion: boolean }) {
   const material = useRef<ShaderMaterial>(null)
-  const uniforms = useMemo(() => ({ time: { value: 0 }, accent: { value: new Color('#f5ecff') }, detail: { value: config.detail } }), [config.detail])
-  useFrame(state => { if (material.current) material.current.uniforms.time.value = state.clock.elapsedTime })
-  return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, .055, .12]} renderOrder={3}>
-    <planeGeometry args={[6.8, 3.1]} />
-    <shaderMaterial ref={material} uniforms={uniforms} transparent depthWrite={false} vertexShader={`varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`} fragmentShader={`varying vec2 vUv; uniform float time,detail; uniform vec3 accent; void main(){vec2 p=(vUv-.5)*vec2(2.,3.6); float d=abs(length(p)-1.); float pulse=.68+.32*sin(atan(p.y,p.x)*12.-time*2.4); float broken=smoothstep(.58,.92,pulse+sin((p.x+p.y)*18.+time)*.16); float alpha=(1.-smoothstep(.035,.16,d))*broken*(.45+detail*.5); gl_FragColor=vec4(accent,alpha);}`} />
+  const uniforms = useMemo(() => ({
+    time: { value: 0 },
+    motion: { value: config.motion },
+    accent: { value: new Color('#f8f3ff') },
+    detail: { value: config.detail },
+  }), [config.detail, config.motion])
+  useFrame(state => {
+    const time = reducedMotion ? 0 : state.clock.elapsedTime
+    if (material.current) material.current.uniforms.time.value = time
+    state.gl.domElement.dataset.contactFoamPhase = time.toFixed(3)
+  })
+  return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, .065, 0]} renderOrder={3}>
+    <planeGeometry args={[7.1, 3.2, 40, 18]} />
+    <shaderMaterial ref={material} uniforms={uniforms} transparent depthWrite={false} vertexShader={`uniform float time,motion,detail; varying vec2 vUv; varying vec2 vPosition; void main(){vUv=uv; vec3 p=position; vPosition=p.xy; float speed=.45+motion*1.25; float amp=.12+motion*.38; float w=sin(p.x*.22+time*speed)*.52+sin(p.y*.31-time*speed*.73)*.31+sin((p.x+p.y)*.13+time*.43)*.17; p.z+=w*amp*(.7+detail*.3); gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`} fragmentShader={`varying vec2 vUv; varying vec2 vPosition; uniform float time,detail; uniform vec3 accent; void main(){vec2 q=vec2(max(abs(vPosition.x)-2.05,0.),vPosition.y); float hullDistance=length(q)-.74; float contact=1.-smoothstep(.035,.20,abs(hullDistance)); float flecks=.62+.38*sin(atan(vPosition.y,vPosition.x)*15.-time*2.8+sin((vPosition.x-vPosition.y)*10.)); float broken=smoothstep(.38,.76,flecks); float wake=(1.-smoothstep(1.,2.7,vPosition.x))*(1.-smoothstep(.05,.8,abs(vPosition.y)))*smoothstep(.2,.9,sin(vPosition.y*19.+time*3.)*.5+.5)*.22; float alpha=(contact*broken+wake)*(.62+detail*.38); gl_FragColor=vec4(accent,alpha);}`} />
   </mesh>
 }
 
-function VesselStandIn({ config }: { config: EnvironmentConfig }) {
+function VesselStandIn({ config, reducedMotion }: { config: EnvironmentConfig; reducedMotion: boolean }) {
   const vessel = useRef<Group>(null)
-  const foam = useRef<Group>(null)
   useFrame(state => {
-    const time = state.clock.elapsedTime
-    const sample = waveSample(time, config.motion)
+    const time = reducedMotion ? 0 : state.clock.elapsedTime
+    const center = waveSample(0, 0, time, config.motion, config.detail)
+    const bow = waveSample(2.1, 0, time, config.motion, config.detail)
+    const stern = waveSample(-2.1, 0, time, config.motion, config.detail)
+    const port = waveSample(0, .7, time, config.motion, config.detail)
+    const starboard = waveSample(0, -.7, time, config.motion, config.detail)
     if (vessel.current) {
-      vessel.current.position.y = .43 + sample
-      vessel.current.rotation.z = Math.sin(time * (.42 + config.motion)) * (.025 + config.motion * .055)
-      vessel.current.rotation.x = Math.sin(time * (.31 + config.motion * .45) + .7) * (.018 + config.motion * .035)
+      vessel.current.position.y = .43 + center
+      vessel.current.rotation.z = Math.atan2(stern - bow, 4.2)
+      vessel.current.rotation.x = Math.atan2(port - starboard, 1.4)
     }
-    if (foam.current) foam.current.position.y = sample * .16
+    state.gl.domElement.dataset.buoyancyHeight = center.toFixed(4)
   })
   return <>
-    <group ref={foam}><ContactFoam config={config} /></group>
+    <ContactFoam config={config} reducedMotion={reducedMotion} />
     <group ref={vessel}>
       <mesh position={[0, .18, 0]} rotation={[0, 0, Math.PI / 2]} scale={[.72, 1.35, 1.05]} castShadow><capsuleGeometry args={[.62, 3.5, 5, 12]} /><meshStandardMaterial color="#272136" roughness={.42} metalness={.45} /></mesh>
       <mesh position={[-.35, .8, 0]} scale={[1.42, .42, .72]} castShadow><boxGeometry /><meshStandardMaterial color="#d8d0df" roughness={.55} /></mesh>
@@ -122,11 +141,11 @@ function VesselStandIn({ config }: { config: EnvironmentConfig }) {
   </>
 }
 
-function SeaScene({ config }: { config: EnvironmentConfig }) {
-  return <><OceanSurface config={config} /><VesselStandIn config={config} /></>
+function SeaScene({ config, reducedMotion }: { config: EnvironmentConfig; reducedMotion: boolean }) {
+  return <><OceanSurface config={config} reducedMotion={reducedMotion} /><VesselStandIn config={config} reducedMotion={reducedMotion} /></>
 }
 
-function CloudField({ config }: { config: EnvironmentConfig }) {
+function CloudField({ config, reducedMotion }: { config: EnvironmentConfig; reducedMotion: boolean }) {
   const group = useRef<Group>(null)
   const clouds = useMemo(() => Array.from({ length: 12 }, (_, index) => ({
     x: -20 + (index * 7.7) % 42,
@@ -136,7 +155,7 @@ function CloudField({ config }: { config: EnvironmentConfig }) {
   })), [])
   const visible = Math.max(5, Math.round(5 + config.detail * 7))
   useFrame((_, delta) => {
-    if (!group.current) return
+    if (!group.current || reducedMotion) return
     group.current.position.x += delta * (.16 + config.motion * .55)
     if (group.current.position.x > 7) group.current.position.x = -7
   })
@@ -148,11 +167,11 @@ function CloudField({ config }: { config: EnvironmentConfig }) {
   </group>)}</group>
 }
 
-function AircraftStandIn({ config }: { config: EnvironmentConfig }) {
+function AircraftStandIn({ config, reducedMotion }: { config: EnvironmentConfig; reducedMotion: boolean }) {
   const aircraft = useRef<Group>(null)
   useFrame(state => {
     if (!aircraft.current) return
-    const time = state.clock.elapsedTime
+    const time = reducedMotion ? 0 : state.clock.elapsedTime
     aircraft.current.position.y = 1.25 + Math.sin(time * (.35 + config.motion)) * .16
     aircraft.current.rotation.z = -.05 + Math.sin(time * .3) * .018
   })
@@ -165,25 +184,59 @@ function AircraftStandIn({ config }: { config: EnvironmentConfig }) {
   </group>
 }
 
-function AirScene({ config }: { config: EnvironmentConfig }) {
-  return <><CloudField config={config} /><AircraftStandIn config={config} /></>
+function AirScene({ config, reducedMotion }: { config: EnvironmentConfig; reducedMotion: boolean }) {
+  return <><CloudField config={config} reducedMotion={reducedMotion} /><AircraftStandIn config={config} reducedMotion={reducedMotion} /></>
 }
 
-function EnvironmentCanvas({ kind, config, onReady }: { kind: EnvironmentKind; config: EnvironmentConfig; onReady: () => void }) {
+function SceneCamera({ kind }: { kind: EnvironmentKind }) {
+  const { camera, invalidate } = useThree()
+  useEffect(() => {
+    camera.position.set(...cameraPositions[kind])
+    camera.lookAt(0, kind === 'air' ? .7 : 1.2, 0)
+    camera.updateProjectionMatrix()
+    invalidate()
+  }, [camera, invalidate, kind])
+  return null
+}
+
+function SceneReady({ kind, onReady }: { kind: EnvironmentKind; onReady: () => void }) {
+  const reported = useRef<EnvironmentKind | null>(null)
+  useFrame(() => {
+    if (reported.current === kind) return
+    reported.current = kind
+    onReady()
+  })
+  return null
+}
+
+function EnvironmentCanvas({ kind, config, onReady, reducedMotion }: { kind: EnvironmentKind; config: EnvironmentConfig; onReady: () => void; reducedMotion: boolean }) {
   const fogNear = 18 + config.fog * 20
   const fogFar = 62 + config.fog * 80
-  return <Canvas key={kind} shadows={kind !== 'air'} dpr={[1, 1.25]} camera={{ position: cameraPositions[kind], fov: 38, near: .1, far: 600 }} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={onReady}>
+  return <Canvas shadows={kind !== 'air'} frameloop={reducedMotion || kind === 'land' ? 'demand' : 'always'} dpr={[1, 1.25]} camera={{ position: cameraPositions.land, fov: 38, near: .1, far: 600 }} gl={{ antialias: true, powerPreference: 'high-performance' }}>
     <color attach="background" args={[config.horizon]} />
     <fog attach="fog" args={[config.horizon, fogNear, fogFar]} />
+    <SceneCamera kind={kind} />
     <GradientSky config={config} />
     <SceneLights config={config} />
     <Suspense fallback={null}>
       {kind === 'land' && <LandScene config={config} />}
-      {kind === 'sea' && <SeaScene config={config} />}
-      {kind === 'air' && <AirScene config={config} />}
+      {kind === 'sea' && <SeaScene config={config} reducedMotion={reducedMotion} />}
+      {kind === 'air' && <AirScene config={config} reducedMotion={reducedMotion} />}
     </Suspense>
-    <OrbitControls makeDefault enablePan={false} minDistance={6} maxDistance={18} minPolarAngle={Math.PI * .2} maxPolarAngle={Math.PI * .48} target={[0, kind === 'air' ? .7 : 1.2, 0]} />
+    <SceneReady kind={kind} onReady={onReady} />
+    <OrbitControls key={kind} makeDefault enablePan={false} minDistance={6} maxDistance={18} minPolarAngle={Math.PI * .2} maxPolarAngle={Math.PI * .48} target={[0, kind === 'air' ? .7 : 1.2, 0]} />
   </Canvas>
+}
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => setReduced(media.matches)
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+  return reduced
 }
 
 function RangeControl({ id, label, value, min = 0, max = 4, step = .05, onChange }: { id: string; label: string; value: number; min?: number; max?: number; step?: number; onChange: (value: number) => void }) {
@@ -196,6 +249,8 @@ export function EnvironmentLab() {
   const [creatorOpen, setCreatorOpen] = useState(false)
   const [sceneReady, setSceneReady] = useState(false)
   const [copyStatus, setCopyStatus] = useState('')
+  const reducedMotion = useReducedMotion()
+  const markSceneReady = useCallback(() => setSceneReady(true), [])
   const config = configs[kind]
   const patch = (values: Partial<EnvironmentConfig>) => setConfigs(current => ({ ...current, [kind]: { ...current[kind], ...values } }))
   const select = (next: EnvironmentKind) => {
@@ -217,8 +272,8 @@ export function EnvironmentLab() {
     return () => window.removeEventListener('keydown', shortcut)
   }, [])
 
-  return <main id="main-content" className={`environment-lab environment-${kind}`} data-environment={kind} data-scene-ready={sceneReady} style={{ '--environment-accent': config.accent } as CSSProperties}>
-    <div className="environment-canvas" aria-hidden="true"><EnvironmentCanvas kind={kind} config={config} onReady={() => setSceneReady(true)} /></div>
+  return <main id="main-content" className={`environment-lab environment-${kind}`} data-environment={kind} data-scene-ready={sceneReady} data-motion={reducedMotion ? 'reduced' : 'full'} style={{ '--environment-accent': config.accent } as CSSProperties}>
+    <div className="environment-canvas" data-frameloop={reducedMotion || kind === 'land' ? 'demand' : 'always'} aria-hidden="true"><EnvironmentCanvas kind={kind} config={config} onReady={markSceneReady} reducedMotion={reducedMotion} /></div>
     <header className="environment-lab-header">
       <p className="eyebrow">NEXUS · ENVIRONMENT EXPLORATION</p>
       <h1>{config.label}</h1>
@@ -234,14 +289,14 @@ export function EnvironmentLab() {
       <span>STANDARD · DPR 1.25</span>
       {kind !== 'land' && <strong>CONCEPT STAND-IN · FINAL ART PENDING</strong>}
     </aside>
-    <button className="creator-toggle" aria-expanded={creatorOpen} aria-controls="environment-creator-tools" onClick={() => setCreatorOpen(value => !value)}>Creator tools <span>{creatorOpen ? '×' : '+'}</span></button>
+    <button className={`creator-toggle ${creatorOpen ? 'is-open' : ''}`} aria-label={creatorOpen ? 'Close creator tools' : 'Open creator tools'} aria-expanded={creatorOpen} aria-controls="environment-creator-tools" onClick={() => setCreatorOpen(value => !value)}><span className="creator-toggle-label">Creator tools</span><span aria-hidden="true">{creatorOpen ? '×' : '+'}</span></button>
     <aside id="environment-creator-tools" className={`environment-creator ${creatorOpen ? 'is-open' : ''}`} aria-hidden={!creatorOpen} inert={!creatorOpen}>
       <header><p>AUTHORING ONLY</p><h2>Scene direction</h2><small>Not included in the visitor experience</small></header>
       <RangeControl id="creator-key" label="Key light" value={config.keyLight} onChange={value => patch({ keyLight: value })} />
       <RangeControl id="creator-fill" label="Fill light" value={config.fillLight} onChange={value => patch({ fillLight: value })} />
       <RangeControl id="creator-fog" label="Atmospheric depth" value={config.fog} max={1} step={.01} onChange={value => patch({ fog: value })} />
       <label htmlFor="creator-accent">Accent color<input id="creator-accent" type="color" value={config.accent} onChange={event => patch({ accent: event.target.value })} /></label>
-      <RangeControl id="creator-motion" label={kind === 'land' ? 'Ambient motion' : kind === 'sea' ? 'Wave energy' : 'Cloud drift'} value={config.motion} max={1} step={.01} onChange={value => patch({ motion: value })} />
+      {kind !== 'land' && <RangeControl id="creator-motion" label={kind === 'sea' ? 'Wave energy' : 'Cloud drift'} value={config.motion} max={1} step={.01} onChange={value => patch({ motion: value })} />}
       <RangeControl id="creator-detail" label={kind === 'land' ? 'Ridge variation' : kind === 'sea' ? 'Surface detail' : 'Cloud density'} value={config.detail} max={1} step={.01} onChange={value => patch({ detail: value })} />
       <div className="creator-actions"><button onClick={() => patch(environmentPresets[kind])}>Reset {config.label}</button><button onClick={() => void copy()}>Copy JSON</button></div>
       {copyStatus && <p className="creator-copy-status" role="status">{copyStatus}</p>}
