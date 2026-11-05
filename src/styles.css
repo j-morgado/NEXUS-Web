@@ -2058,6 +2058,10 @@ footer {
   .creator-toggle { top: auto; right: 18px; bottom: 98px; padding: 6px 11px; font-size: 10px; }
   .creator-toggle.is-open { top: 14px; right: 14px; bottom: auto; padding: 6px; }
 }
+@media (max-width: 620px) and (orientation: portrait) {
+  .environment-status { bottom: 164px; max-width: calc(100vw - 40px); }
+  .creator-toggle:not(.is-open) { top: auto; right: 18px; bottom: 98px; }
+}
 @media (max-width: 900px) and (max-height: 500px) and (orientation: landscape) {
   .environment-lab-header { top: 18px; left: 20px; width: min(470px, 56vw); }
   .environment-lab-header .eyebrow { margin-bottom: 8px; font-size: 9px; }

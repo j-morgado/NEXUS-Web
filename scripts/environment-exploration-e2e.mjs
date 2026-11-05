@@ -113,6 +113,25 @@ try {
   const overlaps = closeBox.x < headingBox.x + headingBox.width && closeBox.x + closeBox.width > headingBox.x && closeBox.y < headingBox.y + headingBox.height && closeBox.y + closeBox.height > headingBox.y
   assert.equal(overlaps, false, 'Mobile landscape creator close control obscured the Scene direction heading')
 
+  await page.getByRole('button', { name: /close creator tools/i }).click()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.waitForTimeout(400)
+  const portraitPath = 'review-evidence/environment-exploration/mobile-portrait-sea.png'
+  await page.screenshot({ path: portraitPath, fullPage: true })
+  screenshots.push(portraitPath)
+  const statusBox = await page.locator('.environment-status').boundingBox()
+  const creatorToggleBox = await page.getByRole('button', { name: /open creator tools/i }).boundingBox()
+  assert(statusBox && creatorToggleBox)
+  const portraitOverlap = creatorToggleBox.x < statusBox.x + statusBox.width && creatorToggleBox.x + creatorToggleBox.width > statusBox.x && creatorToggleBox.y < statusBox.y + statusBox.height && creatorToggleBox.y + creatorToggleBox.height > statusBox.y
+  assert.equal(portraitOverlap, false, 'Portrait Creator tools button overlapped status or final-art copy')
+  const portraitOverflow = await page.evaluate(() => ({ horizontal: document.documentElement.scrollWidth > window.innerWidth, vertical: document.documentElement.scrollHeight > window.innerHeight }))
+  assert.deepEqual(portraitOverflow, { horizontal: false, vertical: false }, 'Portrait environment layout overflowed the viewport')
+  const vesselBounds = await canvas.evaluate(element => ({ min: Number(element.dataset.vesselMinX), max: Number(element.dataset.vesselMaxX) }))
+  assert(Number.isFinite(vesselBounds.min) && Number.isFinite(vesselBounds.max), 'Portrait vessel visibility bounds were unavailable')
+  assert(vesselBounds.min > -1 && vesselBounds.max < 1, `Portrait vessel footprint clipped horizontally (${vesselBounds.min}, ${vesselBounds.max})`)
+
+  await page.setViewportSize({ width: 844, height: 390 })
+
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.reload({ waitUntil: 'networkidle' })
   await page.getByRole('navigation', { name: 'Environment preview' }).waitFor()
@@ -132,7 +151,7 @@ try {
   assert.equal(createHash('sha256').update(reducedAirFirst).digest('hex'), createHash('sha256').update(reducedAirSecond).digest('hex'), 'Reduced motion did not pause air animation')
 
   assert.deepEqual(browserErrors, [])
-  console.log(JSON.stringify({ accessGate: true, noindex: true, routeIsolation: true, stableCanvas: true, repeatedSwitches: true, environments: ['land', 'sea', 'air'], creatorControls: true, landDemandRendering: true, dynamicSea: { waves: true, sampledBuoyancy: true, contactFoam: true }, dynamicAir: true, reducedMotion: true, viewports: ['1440x900', '844x390'], screenshots, browserErrors }, null, 2))
+  console.log(JSON.stringify({ accessGate: true, noindex: true, routeIsolation: true, stableCanvas: true, repeatedSwitches: true, environments: ['land', 'sea', 'air'], creatorControls: true, landDemandRendering: true, dynamicSea: { waves: true, sampledBuoyancy: true, contactFoam: true }, dynamicAir: true, reducedMotion: true, responsiveLayout: { portraitNoOverlap: true, portraitVesselVisible: true, noViewportOverflow: true }, viewports: ['1440x900', '844x390', '390x844'], screenshots, browserErrors }, null, 2))
 } finally {
   await context.close()
   await browser.close()

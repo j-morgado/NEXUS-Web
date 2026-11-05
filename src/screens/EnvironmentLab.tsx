@@ -10,6 +10,13 @@ const cameraPositions: Record<EnvironmentKind, [number, number, number]> = {
   air: [9.2, 4.8, 11.5],
 }
 
+const vesselFootprint: [number, number, number][] = [
+  [-3.65, 0, -1.65],
+  [-3.65, 0, 1.65],
+  [3.65, 0, -1.65],
+  [3.65, 0, 1.65],
+]
+
 function GradientSky({ config }: { config: EnvironmentConfig }) {
   return <mesh renderOrder={-10}>
     <sphereGeometry args={[250, 24, 12]} />
@@ -115,6 +122,7 @@ function ContactFoam({ config, reducedMotion }: { config: EnvironmentConfig; red
 
 function VesselStandIn({ config, reducedMotion }: { config: EnvironmentConfig; reducedMotion: boolean }) {
   const vessel = useRef<Group>(null)
+  const footprintPoints = useMemo(() => vesselFootprint.map(point => new Vector3(...point)), [])
   useFrame(state => {
     const time = reducedMotion ? 0 : state.clock.elapsedTime
     const center = waveSample(0, 0, time, config.motion, config.detail)
@@ -122,10 +130,15 @@ function VesselStandIn({ config, reducedMotion }: { config: EnvironmentConfig; r
     const stern = waveSample(-2.1, 0, time, config.motion, config.detail)
     const port = waveSample(0, .7, time, config.motion, config.detail)
     const starboard = waveSample(0, -.7, time, config.motion, config.detail)
-    if (vessel.current) {
-      vessel.current.position.y = .43 + center
-      vessel.current.rotation.z = Math.atan2(stern - bow, 4.2)
-      vessel.current.rotation.x = Math.atan2(port - starboard, 1.4)
+    const activeVessel = vessel.current
+    if (activeVessel) {
+      activeVessel.position.y = .43 + center
+      activeVessel.rotation.z = Math.atan2(stern - bow, 4.2)
+      activeVessel.rotation.x = Math.atan2(port - starboard, 1.4)
+      activeVessel.updateWorldMatrix(true, false)
+      const footprint = footprintPoints.map((point, index) => point.set(...vesselFootprint[index]).applyMatrix4(activeVessel.matrixWorld).project(state.camera).x)
+      state.gl.domElement.dataset.vesselMinX = Math.min(...footprint).toFixed(4)
+      state.gl.domElement.dataset.vesselMaxX = Math.max(...footprint).toFixed(4)
     }
     state.gl.domElement.dataset.buoyancyHeight = center.toFixed(4)
   })
@@ -189,14 +202,25 @@ function AirScene({ config, reducedMotion }: { config: EnvironmentConfig; reduce
 }
 
 function SceneCamera({ kind }: { kind: EnvironmentKind }) {
-  const { camera, invalidate } = useThree()
+  const { camera, invalidate, size } = useThree()
   useEffect(() => {
-    camera.position.set(...cameraPositions[kind])
-    camera.lookAt(0, kind === 'air' ? .7 : 1.2, 0)
+    const targetY = kind === 'air' ? .7 : 1.2
+    const portrait = size.height > size.width
+    const portraitScale = kind === 'sea' ? 1.75 : kind === 'air' ? 1.55 : 1.45
+    const scale = portrait ? portraitScale : 1
+    const [x, y, z] = cameraPositions[kind]
+    camera.position.set(x * scale, targetY + (y - targetY) * scale, z * scale)
+    camera.lookAt(0, targetY, 0)
     camera.updateProjectionMatrix()
     invalidate()
-  }, [camera, invalidate, kind])
+  }, [camera, invalidate, kind, size.height, size.width])
   return null
+}
+
+function SceneControls({ kind }: { kind: EnvironmentKind }) {
+  const { size } = useThree()
+  const portrait = size.height > size.width
+  return <OrbitControls key={`${kind}-${portrait ? 'portrait' : 'landscape'}`} makeDefault enablePan={false} minDistance={6} maxDistance={portrait ? 32 : 18} minPolarAngle={Math.PI * .2} maxPolarAngle={Math.PI * .48} target={[0, kind === 'air' ? .7 : 1.2, 0]} />
 }
 
 function SceneReady({ kind, onReady }: { kind: EnvironmentKind; onReady: () => void }) {
@@ -224,7 +248,7 @@ function EnvironmentCanvas({ kind, config, onReady, reducedMotion }: { kind: Env
       {kind === 'air' && <AirScene config={config} reducedMotion={reducedMotion} />}
     </Suspense>
     <SceneReady kind={kind} onReady={onReady} />
-    <OrbitControls key={kind} makeDefault enablePan={false} minDistance={6} maxDistance={18} minPolarAngle={Math.PI * .2} maxPolarAngle={Math.PI * .48} target={[0, kind === 'air' ? .7 : 1.2, 0]} />
+    <SceneControls kind={kind} />
   </Canvas>
 }
 
